@@ -1,0 +1,19 @@
+MEU PLAYER - projeto Android (Kotlin)
+
+COMO GERAR O APK
+Opcao 1 - GitHub (de graca, na nuvem)
+ 1. Envie TODA esta pasta para um repositorio no GitHub (branch main),
+    mantendo as pastas (inclusive .github/workflows/build.yml).
+ 2. Abra a aba "Actions" > "Build APK" > "Run workflow".
+ 3. Quando terminar (uns 5 min), abra a execucao e baixe o artefato
+    "MeuPlayer-apk" (contem o app-debug.apk). Instale no celular.
+
+Opcao 2 - Android Studio (PC)
+ Abra a pasta no Android Studio, aguarde o sync e va em
+ Build > Build APK(s).
+
+COMO ADICIONAR VIDEOS
+ Edite app/src/main/assets/videos.json (id, title, channel) e gere o APK de novo.
+ O "id" e o codigo depois de youtu.be/ ou de ?v= no link.
+
+Versoes: Gradle 8.7, Android Gradle Plugin 8.5.2, Kotlin 1.9.24, JDK 17, minSdk 26 (Android 8+).
