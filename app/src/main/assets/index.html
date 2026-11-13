@@ -994,6 +994,7 @@ const players=new WeakMap();
 const pendingSeek=new Map();
 let activeFrame=null;
 let progressTimer=null;
+let progressFrame=null;
 let history=[];
 try{history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');if(!Array.isArray(history))history=[];}catch(_){history=[];}
 
@@ -1107,6 +1108,7 @@ function ensurePlayer(frame){
   const player=new YT.Player(frame,{
    events:{
     onReady:event=>{
+     if(players.get(frame)!==event.target)return;
      players.set(frame,event.target);
      const id=videoId(frame),seek=pendingSeek.get(id);
      if(Number.isFinite(seek)){event.target.seekTo(seek,true);pendingSeek.delete(id);}
@@ -1118,10 +1120,12 @@ function ensurePlayer(frame){
      }
     },
     onStateChange:event=>{
+     if(players.get(frame)!==event.target)return;
      if(event.data===YT.PlayerState.PLAYING){
       if(activeFrame!==frame){try{event.target.pauseVideo();}catch(_){}return;}
       pauseOthers(frame);
       if(progressTimer)clearInterval(progressTimer);
+      progressFrame=frame;
       progressTimer=setInterval(()=>{
        try{
         if(event.target.getPlayerState()===YT.PlayerState.PLAYING)
@@ -1130,7 +1134,7 @@ function ensurePlayer(frame){
       },2000);
      }else{
       try{upsertProgress(frame.closest('.video'),event.target.getCurrentTime(),event.target.getDuration());}catch(_){}
-      if(progressTimer){clearInterval(progressTimer);progressTimer=null;}
+      if(progressTimer&&progressFrame===frame){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
      }
     }
    }
@@ -1174,6 +1178,7 @@ function unloadFrame(card){
   }
   pauseFrame(frame);
   if(activeFrame===frame)activeFrame=null;
+  if(progressTimer&&progressFrame===frame){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
   frame.dataset.src=current;
   players.delete(frame);
   frame.src='about:blank';
@@ -1273,6 +1278,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 window.addEventListener('pagehide',()=>{
+ if(progressTimer){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
  frames.forEach(frame=>{
   pauseFrame(frame);const player=players.get(frame);
   if(player&&typeof player.getCurrentTime==='function'){
