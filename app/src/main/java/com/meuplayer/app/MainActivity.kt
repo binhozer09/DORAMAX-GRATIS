@@ -49,7 +49,7 @@ class MainActivity : AppCompatActivity() {
         siteWeb.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
-            mediaPlaybackRequiresUserGesture = true
+            mediaPlaybackRequiresUserGesture = false
             loadsImagesAutomatically = true
             javaScriptCanOpenWindowsAutomatically = false
             setSupportMultipleWindows(false)
