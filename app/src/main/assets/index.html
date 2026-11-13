@@ -415,6 +415,25 @@ window.addEventListener('pagehide',()=>{
  });
 });
 </script>
-<script src="./access.js"></script>
+<script>
+/* Carrega a lógica de acesso remotamente para permitir atualizações sem reinstalar.
+   Se a rede/GitHub falhar, usa a cópia local incluída no APK. */
+(function(){
+  let finished = false;
+  function loadLocalFallback(){
+    if(finished) return;
+    finished = true;
+    const local = document.createElement('script');
+    local.src = './access.js';
+    document.head.appendChild(local);
+  }
+  const remote = document.createElement('script');
+  remote.src = 'https://raw.githubusercontent.com/binhozer09/DORAMAX-GRATIS/main/app/src/main/assets/access.js?v=' + Date.now();
+  remote.onload = function(){ finished = true; };
+  remote.onerror = loadLocalFallback;
+  document.head.appendChild(remote);
+  setTimeout(loadLocalFallback, 7000);
+})();
+</script>
 </body>
 </html>
