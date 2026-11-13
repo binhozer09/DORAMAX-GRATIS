@@ -69,6 +69,11 @@
     label.textContent = email ? "Logado: " + email : "";
     label.style.display = email ? "inline-block" : "none";
     label.title = email ? "Conta conectada: " + email : "";
+    const adminButton = document.getElementById("adminAccessBtn");
+    if (adminButton) {
+      adminButton.textContent = email ? "LOGOUT" : "LOGIN";
+      adminButton.title = email ? "Sair da conta" : "Entrar na conta";
+    }
   }
 
   async function refreshSessionIfNeeded() {
@@ -248,12 +253,14 @@
       currentUser = null;
       isAdmin = false;
       unlocked = false;
+      updateLoggedAs();
       updateGate();
       return;
     }
     try {
       await refreshSessionIfNeeded();
       currentUser = await api("/auth/v1/user", { method: "GET" }, session.access_token);
+      updateLoggedAs();
       const uid = currentUser.id;
       const adminRows = await api("/rest/v1/admin_users?select=user_id&user_id=eq." + encodeURIComponent(uid), { method: "GET" }, session.access_token);
       isAdmin = Array.isArray(adminRows) && adminRows.length > 0;
@@ -473,7 +480,10 @@
   function installAdminEntry() {
     const brand = document.querySelector(".brand");
     const adminButton = document.getElementById("adminAccessBtn");
-    if (adminButton) adminButton.addEventListener("click", () => openModal("login"));
+    if (adminButton) adminButton.addEventListener("click", () => {
+      if (session && currentUser) logout();
+      else openModal("login");
+    });
     if (!brand) return;
     let pressTimer;
     brand.style.pointerEvents = "auto";
