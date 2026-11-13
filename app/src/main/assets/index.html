@@ -992,6 +992,7 @@ const continueBtn=document.getElementById('continueBtn');
 const closeHistory=document.getElementById('closeHistory');
 const players=new WeakMap();
 const pendingSeek=new Map();
+let activeFrame=null;
 let progressTimer=null;
 let history=[];
 try{history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');if(!Array.isArray(history))history=[];}catch(_){history=[];}
@@ -1034,7 +1035,10 @@ function restoreFeedPosition(){
   requestAnimationFrame(saveFeedPosition);
  });
 }
-feed.addEventListener('scroll',saveFeedPosition,{passive:true});
+feed.addEventListener('scroll',()=>{
+ if(activeFrame){pauseFrame(activeFrame);activeFrame=null;}
+ saveFeedPosition();
+},{passive:true});
 window.addEventListener('pagehide',saveFeedPosition);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveFeedPosition();});
 function cardData(card){
@@ -1089,9 +1093,13 @@ historyPanel.addEventListener('click',event=>{if(event.target===historyPanel)hid
 renderHistory();
 
 function pauseFrame(frame){
+ if(!frame)return;
+ try{const player=players.get(frame);if(player&&typeof player.pauseVideo==='function')player.pauseVideo();}catch(_){}
  try{frame.contentWindow.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:[]}),'https://www.youtube.com');}catch(_){}
 }
-function pauseOthers(activeFrame){frames.forEach(frame=>{if(frame!==activeFrame)pauseFrame(frame);});}
+function pauseOthers(currentFrame){
+ frames.forEach(frame=>{if(frame!==currentFrame)pauseFrame(frame);});
+}
 
 function ensurePlayer(frame){
  if(!window.YT||!YT.Player||players.has(frame))return;
@@ -1103,12 +1111,15 @@ function ensurePlayer(frame){
      const id=videoId(frame),seek=pendingSeek.get(id);
      if(Number.isFinite(seek)){event.target.seekTo(seek,true);pendingSeek.delete(id);}
      const card=frame.closest('.video');
-     if(card&&card.getBoundingClientRect().top<innerHeight*0.65&&card.getBoundingClientRect().bottom>innerHeight*0.35){
+     if(card&&activeFrame===frame&&card.getBoundingClientRect().top<innerHeight*0.65&&card.getBoundingClientRect().bottom>innerHeight*0.35){
       try{event.target.playVideo();}catch(_){}
+     }else{
+      try{event.target.pauseVideo();}catch(_){}
      }
     },
     onStateChange:event=>{
      if(event.data===YT.PlayerState.PLAYING){
+      if(activeFrame!==frame){try{event.target.pauseVideo();}catch(_){}return;}
       pauseOthers(frame);
       if(progressTimer)clearInterval(progressTimer);
       progressTimer=setInterval(()=>{
@@ -1143,18 +1154,36 @@ function resumeVideo(item){
  }
 }
 function activateFrame(frame){
- if(frame&&!frame.src&&frame.dataset.src){
+ if(frame&&frame.dataset.src&&(!frame.getAttribute('src')||frame.getAttribute('src')==='about:blank')){
   frame.loading='eager';
   frame.src=frame.dataset.src;
-  frame.removeAttribute('data-src');
+ }
+}
+function unloadFrame(card){
+ const frame=card?.querySelector('iframe');
+ if(!frame)return;
+ const current=frame.getAttribute('src')||'';
+ if(current&&current!=='about:blank'&&/youtube\.com\/embed\//.test(current)){
+  const player=players.get(frame);
+  if(player&&typeof player.getCurrentTime==='function'){
+   try{
+    const seconds=player.getCurrentTime(),duration=player.getDuration();
+    upsertProgress(card,seconds,duration);
+    if(Number.isFinite(seconds)&&seconds>0)pendingSeek.set(videoId(frame),seconds);
+   }catch(_){}
+  }
+  pauseFrame(frame);
+  if(activeFrame===frame)activeFrame=null;
+  frame.dataset.src=current;
+  players.delete(frame);
+  frame.src='about:blank';
  }
 }
 const preloadObserver=new IntersectionObserver(entries=>{
  entries.forEach(entry=>{
-  if(entry.isIntersecting){
-   activateFrame(entry.target.querySelector('iframe'));
-   preloadObserver.unobserve(entry.target);
-  }
+  const frame=entry.target.querySelector('iframe');
+  if(entry.isIntersecting)activateFrame(frame);
+  else unloadFrame(entry.target);
  });
 },{root:feed,rootMargin:'100% 0px',threshold:0});
 cards.forEach(card=>preloadObserver.observe(card));
@@ -1165,6 +1194,7 @@ const observer=new IntersectionObserver(entries=>{
   const card=entry.target,frame=card.querySelector('iframe'),info=card.querySelector('.info');
   if(!frame)return;
   if(entry.isIntersecting&&entry.intersectionRatio>=0.65){
+   activeFrame=frame;
    pauseOthers(frame);ensurePlayer(frame);
    const activePlayer=players.get(frame);
    if(activePlayer&&typeof activePlayer.playVideo==='function'){
@@ -1175,6 +1205,7 @@ const observer=new IntersectionObserver(entries=>{
    }
   }else{
    pauseFrame(frame);
+   if(activeFrame===frame)activeFrame=null;
    const player=players.get(frame);
    if(player&&typeof player.getCurrentTime==='function'){
     try{upsertProgress(card,player.getCurrentTime(),player.getDuration());}catch(_){}
