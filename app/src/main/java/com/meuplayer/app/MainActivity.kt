@@ -96,7 +96,8 @@ class MainActivity : AppCompatActivity() {
                 Log.e(TAG, "AdMob initialization failed", error)
                 runOnUiThread {
                     if (!isFinishing && !isDestroyed) {
-                        showAdDiagnostic("Falha ao inicializar o AdMob", error.message ?: error.toString())
+                        adContainer.removeAllViews()
+                        adContainer.visibility = android.view.View.GONE
                     }
                 }
             }
