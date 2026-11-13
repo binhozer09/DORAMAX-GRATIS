@@ -1196,11 +1196,42 @@ document.addEventListener('visibilitychange',()=>{
  }
 });
 
+async function fetchSupabaseVideoCatalog(){
+ const base='https://qbwsaahlkovrejwliefv.supabase.co';
+ const apiKey='sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK';
+ const headers={apikey:apiKey};
+ const sync=await fetch(base+'/functions/v1/sync-videos',{
+  method:'POST',headers:{...headers,'Content-Type':'application/json'},
+  body:'{}',cache:'no-store'
+ });
+ if(!sync.ok)throw new Error('Supabase sync HTTP '+sync.status);
+ const syncResult=await sync.json();
+ if(!syncResult.ok)throw new Error(syncResult.error||'Falha na sincronização Supabase');
+ const videos=[];
+ for(let offset=0;offset<5000;offset+=1000){
+  const response=await fetch(base+'/rest/v1/videos?select=id,title,published,source&is_active=eq.true&order=position.asc',{
+   headers:{...headers,Range:offset+'-'+(offset+999)},cache:'no-store'
+  });
+  if(!response.ok)throw new Error('Supabase videos HTTP '+response.status);
+  const page=await response.json();
+  videos.push(...page);
+  if(page.length<1000)break;
+ }
+ return {videos};
+}
+
 async function loadRemoteVideos(){
  try{
-  const response=await fetch('https://raw.githubusercontent.com/binhozer09/doramax-updates/main/videos.json?ts='+Date.now(),{cache:'no-store'});
-  if(!response.ok)throw new Error('HTTP '+response.status);
-  const data=await response.json();
+  let data;
+  try{
+   data=await fetchSupabaseVideoCatalog();
+   if(!Array.isArray(data.videos))throw new Error('Catálogo Supabase inválido');
+  }catch(supabaseError){
+   console.warn('Supabase indisponível; usando catálogo GitHub:',supabaseError);
+   const fallback=await fetch('https://raw.githubusercontent.com/binhozer09/doramax-updates/main/videos.json?ts='+Date.now(),{cache:'no-store'});
+   if(!fallback.ok)throw new Error('GitHub HTTP '+fallback.status);
+   data=await fallback.json();
+  }
   if(!Array.isArray(data.videos))return;
   const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
   const fresh=data.videos.filter(video=>video&&video.id&&!known.has(video.id));
