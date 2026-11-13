@@ -23,7 +23,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
     @keyframes flameDance{from{transform:rotate(-9deg) scale(.94)}to{transform:rotate(9deg) scale(1.12)}}
     @media(prefers-reduced-motion:reduce){.brand-name,.brand-flame{animation:none}}
 .top-label{font-size:12px;font-weight:700;background:#0008;padding:7px 11px;border-radius:20px}.top-actions{display:flex;align-items:center;gap:8px;pointer-events:auto}.admin-entry{border:1px solid #ffffff66;border-radius:18px;padding:7px 8px;background:#0009;color:#fff;font-size:10px;font-weight:800;letter-spacing:.2px}.top-actions{gap:5px}
-.donate{position:fixed;z-index:22;top:calc(42px + var(--safe-top));left:14px;right:auto;bottom:auto;width:auto;height:auto;padding:6px 9px;border-radius:14px;background:#16a765;color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;letter-spacing:.3px;box-shadow:0 4px 16px #000b;border:1px solid #ffffffd9;pointer-events:auto;-webkit-tap-highlight-color:transparent}.donate:active{transform:scale(.94)}
+.donate{position:fixed;z-index:22;top:calc(42px + var(--safe-top));left:14px;right:auto;bottom:auto;width:auto;height:auto;padding:6px 9px;border-radius:14px;background:#071b12;color:#baffd7;text-decoration:none;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;letter-spacing:.3px;box-shadow:0 0 5px #16f58b88,0 0 12px #16f58b66,inset 0 0 5px #16f58b44;border:1px solid #48ff9b;pointer-events:auto;-webkit-tap-highlight-color:transparent;animation:donateNeon 2.2s ease-in-out infinite}
+    @keyframes donateNeon{0%,100%{opacity:1;text-shadow:0 0 4px #8dffc0,0 0 8px #16f58b;box-shadow:0 0 5px #16f58b88,0 0 12px #16f58b66,inset 0 0 5px #16f58b44}50%{opacity:.62;text-shadow:0 0 2px #8dffc088;box-shadow:0 0 2px #16f58b44,0 0 5px #16f58b33,inset 0 0 2px #16f58b22}}
+    .donate:active{transform:scale(.94)}
+    @media(prefers-reduced-motion:reduce){.donate{animation:none}}
 .info{position:absolute;z-index:5;left:14px;right:76px;bottom:calc(22px + var(--safe-bottom));padding:42px 0 8px;background:linear-gradient(transparent,#0009 28%,#000c);pointer-events:none}
 .info{opacity:1;transition:opacity 4s ease}.info.is-fading{opacity:0}
 .channel{font-size:14px;font-weight:800;margin-bottom:8px;text-shadow:0 1px 5px #000}
