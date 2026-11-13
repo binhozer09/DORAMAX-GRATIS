@@ -442,6 +442,8 @@
       const pending = await api("/rest/v1/access_grants?select=user_id&is_unlocked=eq.false", { method: "GET" }, session.access_token);
       const notice = document.getElementById("dmPendingNotice");
       if (notice) notice.textContent = "🔔 " + pending.length + " solicitação(ões) aguardando sua aprovação.";
+      await loadPaymentNotifications();
+      if (!paymentPoller) paymentPoller = setInterval(loadPaymentNotifications, 20000);
       target.innerHTML = "";
       if (!profiles.length) { target.textContent = "Ainda não há usuários cadastrados."; return; }
       for (const profile of profiles) await renderAdminUser(profile, target);
