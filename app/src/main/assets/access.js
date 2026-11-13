@@ -231,7 +231,8 @@
       return;
     }
     try {
-      await refreshSessionIfNeeded();\n      currentUser = await api("/auth/v1/user", { method: "GET" }, session.access_token);
+      await refreshSessionIfNeeded();
+      currentUser = await api("/auth/v1/user", { method: "GET" }, session.access_token);
       const uid = currentUser.id;
       const adminRows = await api("/rest/v1/admin_users?select=user_id&user_id=eq." + encodeURIComponent(uid), { method: "GET" }, session.access_token);
       isAdmin = Array.isArray(adminRows) && adminRows.length > 0;
