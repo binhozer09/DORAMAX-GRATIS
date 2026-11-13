@@ -1233,8 +1233,21 @@ async function loadRemoteVideos(){
    data=await fallback.json();
   }
   if(!Array.isArray(data.videos))return;
+  const remoteById=new Map(data.videos.filter(video=>video&&video.id).map(video=>[String(video.id),video]));
+  // Atualiza títulos e remove do feed os vídeos desativados pelo painel ADM.
+  [...feed.querySelectorAll('.video')].forEach(section=>{
+   const frame=section.querySelector('iframe');
+   const id=frame?videoId(frame):null;
+   if(!id)return;
+   const remoteVideo=remoteById.get(String(id));
+   if(!remoteVideo){section.remove();return;}
+   const title=remoteVideo.title||'Vídeo';
+   frame.title=title;
+   const heading=section.querySelector('.title');
+   if(heading)heading.textContent=title;
+  });
   const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
-  const fresh=data.videos.filter(video=>video&&video.id&&!known.has(video.id));
+  const fresh=data.videos.filter(video=>video&&video.id&&!known.has(String(video.id)));
   fresh.reverse().forEach(video=>{
    const section=document.createElement('section');section.className='video';
    const player=document.createElement('div');player.className='player';
@@ -1248,12 +1261,10 @@ async function loadRemoteVideos(){
    info.appendChild(heading);section.appendChild(info);
    feed.insertBefore(section,feed.firstChild);
   });
-  if(fresh.length){
-   cards=[...document.querySelectorAll('#feed .video')];
-   frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
-   cards.forEach(card=>{preloadObserver.observe(card);observer.observe(card);});
-   if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();
-  }
+  cards=[...document.querySelectorAll('#feed .video')];
+  frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
+  cards.forEach(card=>{preloadObserver.observe(card);observer.observe(card);});
+  if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();
   restoreFeedPosition();
  }catch(error){
   console.warn('Não foi possível atualizar a lista online de vídeos:',error);
