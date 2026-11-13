@@ -1232,56 +1232,12 @@ document.addEventListener('visibilitychange',()=>{
  }
 });
 
-async function fetchSupabaseVideoCatalog(){
- const base='https://qbwsaahlkovrejwliefv.supabase.co';
- const apiKey='sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK';
- const headers={apikey:apiKey};
- const sync=await fetch(base+'/functions/v1/sync-videos',{
-  method:'POST',headers:{...headers,'Content-Type':'application/json'},
-  body:'{}',cache:'no-store'
- });
- if(!sync.ok)throw new Error('Supabase sync HTTP '+sync.status);
- const syncResult=await sync.json();
- if(!syncResult.ok)throw new Error(syncResult.error||'Falha na sincronização Supabase');
- const videos=[];
- for(let offset=0;offset<5000;offset+=1000){
-  const response=await fetch(base+'/rest/v1/videos?select=id,title,published,source&is_active=eq.true&order=position.asc',{
-   headers:{...headers,Range:offset+'-'+(offset+999)},cache:'no-store'
-  });
-  if(!response.ok)throw new Error('Supabase videos HTTP '+response.status);
-  const page=await response.json();
-  videos.push(...page);
-  if(page.length<1000)break;
- }
- return {videos};
-}
-
 async function loadRemoteVideos(){
  try{
-  let data;
-  try{
-   data=await fetchSupabaseVideoCatalog();
-   if(!Array.isArray(data.videos))throw new Error('Catálogo Supabase inválido');
-  }catch(supabaseError){
-   console.warn('Supabase indisponível; usando catálogo GitHub:',supabaseError);
-   const fallback=await fetch('https://raw.githubusercontent.com/binhozer09/doramax-updates/main/videos.json?ts='+Date.now(),{cache:'no-store'});
-   if(!fallback.ok)throw new Error('GitHub HTTP '+fallback.status);
-   data=await fallback.json();
-  }
+  const response=await fetch('https://raw.githubusercontent.com/binhozer09/doramax-updates/main/videos.json?ts='+Date.now(),{cache:'no-store'});
+  if(!response.ok)throw new Error('GitHub HTTP '+response.status);
+  const data=await response.json();
   if(!Array.isArray(data.videos))return;
-  const remoteById=new Map(data.videos.filter(video=>video&&video.id).map(video=>[String(video.id),video]));
-  // Atualiza títulos e remove do feed os vídeos desativados pelo painel ADM.
-  [...feed.querySelectorAll('.video')].forEach(section=>{
-   const frame=section.querySelector('iframe');
-   const id=frame?videoId(frame):null;
-   if(!id)return;
-   const remoteVideo=remoteById.get(String(id));
-   if(!remoteVideo){section.remove();return;}
-   const title=remoteVideo.title||'Vídeo';
-   frame.title=title;
-   const heading=section.querySelector('.title');
-   if(heading)heading.textContent=title;
-  });
   const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
   const fresh=data.videos.filter(video=>video&&video.id&&!known.has(String(video.id)));
   fresh.reverse().forEach(video=>{
@@ -1297,10 +1253,12 @@ async function loadRemoteVideos(){
    info.appendChild(heading);section.appendChild(info);
    feed.insertBefore(section,feed.firstChild);
   });
-  cards=[...document.querySelectorAll('#feed .video')];
-  frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
-  cards.forEach(card=>{preloadObserver.observe(card);observer.observe(card);});
-  if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();
+  if(fresh.length){
+   cards=[...document.querySelectorAll('#feed .video')];
+   frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
+   cards.forEach(card=>{preloadObserver.observe(card);observer.observe(card);});
+   if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();
+  }
   restoreFeedPosition();
  }catch(error){
   console.warn('Não foi possível atualizar a lista online de vídeos:',error);
