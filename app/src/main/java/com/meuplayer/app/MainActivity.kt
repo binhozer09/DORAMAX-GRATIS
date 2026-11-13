@@ -48,7 +48,8 @@ class MainActivity : AppCompatActivity() {
 
                 val host = request.url.host.orEmpty().lowercase()
                 if (host == "youtube.com" || host.endsWith(".youtube.com") ||
-                    host == "youtu.be" || host.endsWith(".youtu.be")) {
+                    host == "youtu.be" || host.endsWith(".youtu.be") ||
+                    host == "picpay.com" || host.endsWith(".picpay.com")) {
                     return try {
                         startActivity(Intent(Intent.ACTION_VIEW, request.url))
                         true
