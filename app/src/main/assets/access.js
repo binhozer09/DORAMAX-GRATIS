@@ -209,7 +209,7 @@
         <h2>Continue assistindo</h2>
         <p>Os 2 primeiros vídeos são grátis. Para liberar os demais, faça seu cadastro e pague R$ 5,00 uma única vez.</p>
         <button class="dm-btn" type="button">Entrar / Criar conta</button>
-        <button class="dm-btn green" type="button">Pagar R$ 5 pelo PicPay</button>
+        <button class="dm-btn green" type="button">PAGUE 5 REAIS APENAS UMA VEZ</button>
         <p class="dm-small">Depois do pagamento, aguarde a confirmação e liberação pelo administrador.</p>
       </div>`;
     cover.querySelector(".dm-btn").onclick = () => openModal("login");
