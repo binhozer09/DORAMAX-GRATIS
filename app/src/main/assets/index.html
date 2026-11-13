@@ -985,6 +985,10 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
 const feed=document.getElementById('feed');
 let cards=[...document.querySelectorAll('.video')];
 let frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
+const preparedFrames=new Set(frames.filter(frame=>{
+ const src=frame.getAttribute('src')||'';
+ return src&&src!=='about:blank'&&/youtube\.com\/embed\//.test(src);
+}));
 const HISTORY_KEY='doramax_continue_watching_v1';
 const historyPanel=document.getElementById('historyPanel');
 const historyList=document.getElementById('historyList');
@@ -1008,6 +1012,11 @@ function saveWatchedVideos(){
 function refreshFeedCollections(){
  cards=[...document.querySelectorAll('#feed .video')];
  frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
+ preparedFrames.clear();
+ frames.forEach(frame=>{
+  const src=frame.getAttribute('src')||'';
+  if(src&&src!=='about:blank'&&/youtube\.com\/embed\//.test(src))preparedFrames.add(frame);
+ });
 }
 function buildVideoCard(video){
  const section=document.createElement('section');section.className='video';
@@ -1140,11 +1149,13 @@ renderHistory();
 
 function pauseFrame(frame){
  if(!frame)return;
+ const src=frame.getAttribute('src')||'';
+ if(!src||src==='about:blank'||!/youtube\.com\/embed\//.test(src))return;
  try{const player=players.get(frame);if(player&&typeof player.pauseVideo==='function')player.pauseVideo();}catch(_){}
  try{frame.contentWindow.postMessage(JSON.stringify({event:'command',func:'pauseVideo',args:[]}),'https://www.youtube.com');}catch(_){}
 }
 function pauseOthers(currentFrame){
- frames.forEach(frame=>{if(frame!==currentFrame)pauseFrame(frame);});
+ preparedFrames.forEach(frame=>{if(frame!==currentFrame)pauseFrame(frame);});
 }
 
 function ensurePlayer(frame){
@@ -1209,9 +1220,14 @@ function resumeVideo(item){
  }
 }
 function activateFrame(frame){
- if(frame&&frame.dataset.src&&(!frame.getAttribute('src')||frame.getAttribute('src')==='about:blank')){
+ if(!frame)return;
+ const current=frame.getAttribute('src')||'';
+ if(frame.dataset.src&&(!current||current==='about:blank')){
   frame.loading='eager';
   frame.src=frame.dataset.src;
+  preparedFrames.add(frame);
+ }else if(current&&current!=='about:blank'&&/youtube\.com\/embed\//.test(current)){
+  preparedFrames.add(frame);
  }
 }
 function unloadFrame(card){
@@ -1234,6 +1250,7 @@ function unloadFrame(card){
   players.delete(frame);
   frame.src='about:blank';
  }
+ preparedFrames.delete(frame);
 }
 const fadeTimers=new WeakMap();
 const observer=new IntersectionObserver(entries=>{
@@ -1244,13 +1261,16 @@ const observer=new IntersectionObserver(entries=>{
    activeFrame=frame;
    // Mantém o vídeo atual e os vizinhos preparados para reduzir a espera ao deslizar.
    const activeIndex=frames.indexOf(frame);
-   frames.forEach((otherFrame,index)=>{
-    if(Math.abs(index-activeIndex)<=1){
-     activateFrame(otherFrame);
-    }else{
-     unloadFrame(cards[index]);
-    }
-   });
+   if(activeIndex>=0){
+    const first=Math.max(0,activeIndex-1);
+    const last=Math.min(frames.length-1,activeIndex+1);
+    for(let index=first;index<=last;index++)activateFrame(frames[index]);
+    [...preparedFrames].forEach(otherFrame=>{
+     const index=frames.indexOf(otherFrame);
+     if(index<first||index>last)unloadFrame(cards[index]);
+    });
+   }
+   activateFrame(frame);
    pauseOthers(frame);ensurePlayer(frame);
    const activePlayer=players.get(frame);
    if(activePlayer&&typeof activePlayer.playVideo==='function'){
