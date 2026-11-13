@@ -12,6 +12,14 @@
   let cards = [...document.querySelectorAll("#feed .video")];
   if (!feed || cards.length < 3) return;
 
+  // Teste de atualização remota: aviso temporário para confirmar o carregamento do GitHub.
+  const remoteUpdateNotice = document.createElement("div");
+  remoteUpdateNotice.textContent = "DORAMAX: atualização remota funcionando!";
+  remoteUpdateNotice.setAttribute("role", "status");
+  remoteUpdateNotice.style.cssText = "position:fixed;top:12px;left:12px;right:12px;z-index:99999;padding:13px 16px;border-radius:12px;background:#159b60;color:#fff;text-align:center;font:700 14px Arial,sans-serif;box-shadow:0 4px 18px #0008";
+  document.body.appendChild(remoteUpdateNotice);
+  setTimeout(() => remoteUpdateNotice.remove(), 6000);
+
   let session = null;
   let currentUser = null;
   let isAdmin = false;
