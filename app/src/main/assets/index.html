@@ -1214,7 +1214,6 @@ const observer=new IntersectionObserver(entries=>{
    }
    const timer=fadeTimers.get(card);if(timer){clearTimeout(timer);fadeTimers.delete(card);}
    if(info)info.classList.remove('is-fading');
-   if(entry.intersectionRatio===0&&activeFrame!==frame)unloadFrame(card);
   }
  });
 },{root:feed,threshold:[0,0.25,0.65,0.9]});
