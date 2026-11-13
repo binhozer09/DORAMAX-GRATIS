@@ -43,8 +43,42 @@
 
   function saveSession(value) {
     session = value;
-    if (value) localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
-    else localStorage.removeItem(STORAGE_KEY);
+    if (value) {
+      if (!value.expires_at && value.expires_in) {
+        value.expires_at = Math.floor(Date.now() / 1000) + Number(value.expires_in);
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    updateLoggedAs();
+  }
+
+  function updateLoggedAs() {
+    let label = document.getElementById("dmLoggedAs");
+    if (!label) {
+      const actions = document.querySelector(".top-actions");
+      if (!actions) return;
+      label = document.createElement("span");
+      label.id = "dmLoggedAs";
+      label.className = "dm-logged-as";
+      actions.insertBefore(label, actions.firstChild);
+    }
+    const email = currentUser && currentUser.email;
+    label.textContent = email ? "Logado: " + email : "";
+    label.style.display = email ? "inline-block" : "none";
+    label.title = email ? "Conta conectada: " + email : "";
+  }
+
+  async function refreshSessionIfNeeded() {
+    if (!session || !session.refresh_token) return;
+    const expiresAt = Number(session.expires_at || 0);
+    if (expiresAt && expiresAt > Math.floor(Date.now() / 1000) + 60) return;
+    const refreshed = await api("/auth/v1/token?grant_type=refresh_token", {
+      method: "POST",
+      body: JSON.stringify({ refresh_token: session.refresh_token })
+    });
+    saveSession(refreshed);
   }
 
   function addStyles() {
@@ -67,7 +101,7 @@
       .dm-user{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #333;font-size:13px}
       .dm-user button{border:0;border-radius:9px;padding:10px 12px;background:#159b60;color:#fff;font-size:11px;font-weight:800;white-space:normal;min-width:150px}.dm-user{align-items:flex-start}.dm-user span{flex:1;overflow-wrap:anywhere}
       .dm-user button.lock{background:#b52b3f}
-      .dm-status{font-size:12px;color:#bbb;margin:8px 0}
+      .dm-status{font-size:12px;color:#bbb;margin:8px 0}\n      .dm-logged-as{max-width:112px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;font-weight:600;color:#fff;background:#0009;border:1px solid #ffffff30;border-radius:12px;padding:4px 6px;pointer-events:none}
     `;
     document.head.appendChild(style);
   }
@@ -197,7 +231,7 @@
       return;
     }
     try {
-      currentUser = await api("/auth/v1/user", { method: "GET" }, session.access_token);
+      await refreshSessionIfNeeded();\n      currentUser = await api("/auth/v1/user", { method: "GET" }, session.access_token);
       const uid = currentUser.id;
       const adminRows = await api("/rest/v1/admin_users?select=user_id&user_id=eq." + encodeURIComponent(uid), { method: "GET" }, session.access_token);
       isAdmin = Array.isArray(adminRows) && adminRows.length > 0;
