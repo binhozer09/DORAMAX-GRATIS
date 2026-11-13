@@ -30,10 +30,10 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "DORAMAX_ADS"
-        // Google sample App ID. Replace with the App ID from your AdMob account before release.
-        private const val ADMOB_APP_ID = "ca-app-pub-3940256099942544~3347511713"
-        // Google's official Android test banner unit. Replace before publishing.
-        private const val BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/9214589741"
+        // DORAMAX GRÁTIS production AdMob App ID.
+        private const val ADMOB_APP_ID = "ca-app-pub-2488297391470541~8272798060"
+        // DORAMAX GRÁTIS production banner ad unit.
+        private const val BANNER_AD_UNIT_ID = "ca-app-pub-2488297391470541/7183077672"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -125,7 +125,7 @@ class MainActivity : AppCompatActivity() {
 
         adView.loadAd(request, object : AdLoadCallback<BannerAd> {
             override fun onAdLoaded(ad: BannerAd) {
-                Log.d(TAG, "DORAMAX test banner loaded")
+                Log.d(TAG, "DORAMAX production banner loaded")
             }
 
             override fun onAdFailedToLoad(adError: LoadAdError) {
