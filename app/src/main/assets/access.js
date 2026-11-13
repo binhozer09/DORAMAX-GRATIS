@@ -128,6 +128,22 @@
     authMode = mode;
     updateAuthMode();
     document.getElementById("dmError").textContent = "";
+    const adminPanel = document.getElementById("dmAdmin");
+    const authForm = document.getElementById("dmAuthForm");
+    const switchButton = document.getElementById("dmSwitch");
+    if (isAdmin && session) {
+      authForm.style.display = "none";
+      switchButton.style.display = "none";
+      adminPanel.style.display = "block";
+      document.getElementById("dmModalTitle").textContent = "Painel ADM";
+      document.getElementById("dmLogout").style.display = "block";
+      listUsers();
+    } else {
+      authForm.style.display = "block";
+      switchButton.style.display = "block";
+      adminPanel.style.display = "none";
+      document.getElementById("dmModalTitle").textContent = mode === "signup" ? "Criar conta" : "Entrar no DORAMAX";
+    }
     document.getElementById("dmModal").style.display = "flex";
   }
 
@@ -153,7 +169,7 @@
       </div>`;
     cover.querySelector(".dm-btn").onclick = () => openModal("login");
     cover.querySelector(".dm-btn.green").onclick = () => {
-      window.open(PICPay_URL, "_blank", "noopener");
+      window.location.href = PICPay_URL;
     };
     card.style.position = "relative";
     card.appendChild(cover);
