@@ -142,6 +142,7 @@
       authForm.style.display = "block";
       switchButton.style.display = "block";
       adminPanel.style.display = "none";
+      document.getElementById("dmLogout").style.display = session ? "block" : "none";
       document.getElementById("dmModalTitle").textContent = mode === "signup" ? "Criar conta" : "Entrar no DORAMAX";
     }
     document.getElementById("dmModal").style.display = "flex";
@@ -304,7 +305,7 @@
         await api("/rest/v1/access_grants?user_id=eq." + encodeURIComponent(profile.user_id), {
           method: "PATCH",
           headers: { "Prefer": "return=minimal" },
-          body: JSON.stringify({ is_unlocked: !isUnlocked, updated_at: new Date().toISOString() })
+          body: JSON.stringify({ is_unlocked: !isUnlocked })
         }, session.access_token);
         await renderAdminUser(profile, target);
         row.remove();
@@ -351,6 +352,8 @@
 
   function installAdminEntry() {
     const brand = document.querySelector(".brand");
+    const adminButton = document.getElementById("adminAccessBtn");
+    if (adminButton) adminButton.addEventListener("click", () => openModal("login"));
     if (!brand) return;
     let pressTimer;
     brand.style.pointerEvents = "auto";
