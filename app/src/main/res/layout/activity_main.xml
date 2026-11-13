@@ -15,7 +15,8 @@
     <FrameLayout
         android:id="@+id/adViewContainer"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="50dp"
+        android:visibility="gone"
         android:foregroundGravity="center"
         android:gravity="center"
         android:background="#090B10" />
