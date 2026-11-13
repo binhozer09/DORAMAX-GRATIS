@@ -5,6 +5,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.TextView
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -94,6 +95,11 @@ class MainActivity : AppCompatActivity() {
                 }
             } catch (error: Exception) {
                 Log.e(TAG, "AdMob initialization failed", error)
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) {
+                        showAdDiagnostic("Falha ao inicializar o AdMob", error.message ?: error.toString())
+                    }
+                }
             }
         }.start()
     }
@@ -124,12 +130,33 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onAdFailedToLoad(adError: LoadAdError) {
-                Log.w(TAG, "DORAMAX banner failed to load: $adError")
+                val diagnostic = "Código: ${adError.code}\nMensagem: ${adError.message}\nDetalhes: $adError"
+                Log.e(TAG, "DORAMAX banner failed to load: $diagnostic")
                 runOnUiThread {
-                    if (!isFinishing && !isDestroyed) adContainer.removeAllViews()
+                    if (!isFinishing && !isDestroyed) {
+                        showAdDiagnostic("Não foi possível carregar o anúncio", diagnostic)
+                    }
                 }
             }
         })
+    }
+
+    private fun showAdDiagnostic(title: String, details: String) {
+        adContainer.removeAllViews()
+        val diagnosticView = TextView(this).apply {
+            text = "$title\n$details"
+            textSize = 11f
+            setTextColor(android.graphics.Color.WHITE)
+            setPadding(16, 10, 16, 10)
+            gravity = android.view.Gravity.CENTER
+        }
+        adContainer.addView(
+            diagnosticView,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        )
     }
 
     @Suppress("DEPRECATION")
