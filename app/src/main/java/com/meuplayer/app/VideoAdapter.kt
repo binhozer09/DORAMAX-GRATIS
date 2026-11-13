@@ -29,14 +29,14 @@ class VideoAdapter(
         val progress: ProgressBar = view.findViewById(R.id.progress)
 
         var videoId: String? = null
-        var position = -1
+        var itemPosition = -1
         var ready = false
         var playing = false
 
         // Toca o vídeo da tela atual e pausa os outros
         fun sync() {
             if (!ready) return
-            if (position == current) {
+            if (itemPosition == current) {
                 web.evaluateJavascript("if(window.player)player.playVideo();", null)
             } else {
                 web.evaluateJavascript("if(window.player)player.pauseVideo();", null)
@@ -55,7 +55,7 @@ class VideoAdapter(
         fun onState(s: Int) {
             h.web.post {
                 h.playing = (s == 1)
-                if (s == 0 && h.position == current) onEnded(h.position)
+                if (s == 0 && h.itemPosition == current) onEnded(h.itemPosition)
             }
         }
 
@@ -94,7 +94,7 @@ class VideoAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val v = videos[position]
-        holder.position = position
+        holder.itemPosition = position
         holder.title.text = v.title
         holder.channel.text = v.channel
         holder.count.text = "${position + 1} / ${videos.size}"
