@@ -17,6 +17,7 @@
   let isAdmin = false;
   let unlocked = false;
   let authMode = "login";
+  let paymentPoller = null;
 
   const apiHeaders = (token) => ({
     "apikey": SUPABASE_KEY,
@@ -98,6 +99,7 @@
       .dm-modal .dm-error{color:#ff8292;min-height:18px;font-size:13px}
       .dm-close{float:right;border:0;background:transparent;color:#fff;font-size:25px;padding:0 5px}
       .dm-admin-list{margin-top:16px;text-align:left}
+      .dm-payment-box{margin:14px 0;padding:14px;border:1px solid #ffffff24;border-radius:12px;background:#202020;text-align:left}.dm-payment-box h3{font-size:15px;margin:0 0 8px}.dm-payment-count{font-size:12px;color:#ffd36a;margin:0 0 10px}.dm-payment-item{padding:10px 0;border-top:1px solid #ffffff20;font-size:12px;line-height:1.45}.dm-payment-item strong{display:block;color:#fff}.dm-payment-empty{font-size:12px;color:#aaa}
       .dm-user{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #333;font-size:13px}
       .dm-user button{border:0;border-radius:9px;padding:10px 12px;background:#159b60;color:#fff;font-size:11px;font-weight:800;white-space:normal;min-width:150px}.dm-user{align-items:flex-start}.dm-user span{flex:1;overflow-wrap:anywhere}
       .dm-user button.lock{background:#b52b3f}
@@ -126,6 +128,7 @@
         <div class="dm-status" id="dmStatus"></div>
         <div id="dmAdmin" style="display:none">
           <h2>Painel ADM</h2>
+          <div class="dm-payment-box"><h3>🔔 Cliques em pagar R$ 5</h3><p class="dm-payment-count" id="dmPaymentCount">Carregando notificações...</p><div id="dmPaymentNotifications" class="dm-admin-list"></div><button class="dm-btn secondary" id="dmPaymentRefresh" type="button">Atualizar notificações</button></div>
           <p id="dmPendingNotice" class="dm-status">Verificando solicitações de acesso...</p>
           <p>Contas novas aparecem como aguardando aprovação. Confira o pagamento e escolha se deseja liberar o acesso completo.</p>
           <input id="dmSearch" type="email" placeholder="E-mail do usuário">
@@ -146,6 +149,7 @@
     document.getElementById("dmLogout").onclick = logout;
     document.getElementById("dmSearchBtn").onclick = searchUser;
     document.getElementById("dmRefreshBtn").onclick = listUsers;
+    document.getElementById("dmPaymentRefresh").onclick = loadPaymentNotifications;
   }
 
   function updateAuthMode() {
@@ -204,8 +208,25 @@
         <p class="dm-small">Depois do pagamento, aguarde a confirmação e liberação pelo administrador.</p>
       </div>`;
     cover.querySelector(".dm-btn").onclick = () => openModal("login");
-    cover.querySelector(".dm-btn.green").onclick = () => {
-      window.location.href = PICPay_URL;
+    cover.querySelector(".dm-btn.green").onclick = async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      button.textContent = "Abrindo PicPay...";
+      try {
+        await api("/rest/v1/payment_click_notifications", {
+          method: "POST",
+          headers: { "Prefer": "return=minimal" },
+          body: JSON.stringify({
+            user_id: currentUser && currentUser.id ? currentUser.id : null,
+            email: currentUser && currentUser.email ? currentUser.email : null,
+            amount: 5.00
+          })
+        }, session && session.access_token ? session.access_token : null);
+      } catch (error) {
+        console.warn("Não foi possível registrar o clique de pagamento:", error);
+      } finally {
+        window.location.href = PICPay_URL;
+      }
     };
     card.style.position = "relative";
     card.appendChild(cover);
@@ -377,6 +398,39 @@
     };
     row.append(label, button);
     target.appendChild(row);
+  }
+
+  async function loadPaymentNotifications() {
+    if (!isAdmin || !session) return;
+    const list = document.getElementById("dmPaymentNotifications");
+    const count = document.getElementById("dmPaymentCount");
+    if (!list || !count) return;
+    try {
+      const rows = await api("/rest/v1/payment_click_notifications?select=id,email,amount,clicked_at&order=clicked_at.desc&limit=30", { method: "GET" }, session.access_token);
+      count.textContent = rows.length + " clique(s) registrado(s) — isso não significa pagamento confirmado.";
+      list.innerHTML = "";
+      if (!rows.length) {
+        const empty = document.createElement("p");
+        empty.className = "dm-payment-empty";
+        empty.textContent = "Ainda não houve cliques no botão de pagamento.";
+        list.appendChild(empty);
+        return;
+      }
+      rows.forEach(item => {
+        const line = document.createElement("div");
+        line.className = "dm-payment-item";
+        const who = document.createElement("strong");
+        who.textContent = item.email || "Visitante sem login";
+        const when = document.createElement("span");
+        const date = new Date(item.clicked_at);
+        when.textContent = "Clicou em pagar R$ " + Number(item.amount || 5).toFixed(2).replace(".", ",") + " — " + (Number.isNaN(date.getTime()) ? item.clicked_at : date.toLocaleString("pt-BR"));
+        line.append(who, when);
+        list.appendChild(line);
+      });
+    } catch (error) {
+      count.textContent = "Não foi possível carregar os cliques.";
+      list.textContent = error.message || "Verifique a tabela e as permissões no Supabase.";
+    }
   }
 
   async function listUsers() {
