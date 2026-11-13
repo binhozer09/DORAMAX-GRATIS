@@ -65,7 +65,7 @@
       .dm-close{float:right;border:0;background:transparent;color:#fff;font-size:25px;padding:0 5px}
       .dm-admin-list{margin-top:16px;text-align:left}
       .dm-user{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #333;font-size:13px}
-      .dm-user button{border:0;border-radius:9px;padding:9px 11px;background:#159b60;color:#fff;font-weight:700}
+      .dm-user button{border:0;border-radius:9px;padding:10px 12px;background:#159b60;color:#fff;font-size:11px;font-weight:800;white-space:normal;min-width:150px}.dm-user{align-items:flex-start}.dm-user span{flex:1;overflow-wrap:anywhere}
       .dm-user button.lock{background:#b52b3f}
       .dm-status{font-size:12px;color:#bbb;margin:8px 0}
     `;
@@ -304,17 +304,20 @@
     label.textContent = profile.email + " — " + (isUnlocked ? "LIBERADO" : "BLOQUEADO");
     const button = document.createElement("button");
     button.className = isUnlocked ? "lock" : "";
-    button.textContent = isUnlocked ? "Bloquear" : "Liberar";
+    button.textContent = isUnlocked ? "BLOQUEAR ACESSO COMPLETO" : "DESBLOQUEAR ACESSO COMPLETO";
     button.onclick = async () => {
       button.disabled = true;
       try {
         await api("/rest/v1/access_grants?user_id=eq." + encodeURIComponent(profile.user_id), {
           method: "PATCH",
-          headers: { "Prefer": "return=minimal" },
+          headers: { "Prefer": "return=representation" },
           body: JSON.stringify({ is_unlocked: !isUnlocked })
         }, session.access_token);
-        await renderAdminUser(profile, target);
-        row.remove();
+        const updated = await api("/rest/v1/access_grants?select=user_id,is_unlocked&user_id=eq." + encodeURIComponent(profile.user_id), { method: "GET" }, session.access_token);
+        if (!updated.length || updated[0].is_unlocked !== !isUnlocked) {
+          throw new Error("Nenhum registro de acesso foi atualizado. Verifique se o usuário possui registro em access_grants.");
+        }
+        await listUsers();
       } catch (error) {
         button.disabled = false;
         setError("Não foi possível alterar o acesso: " + error.message);
