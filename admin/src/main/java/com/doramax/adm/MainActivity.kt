@@ -15,7 +15,7 @@ class MainActivity : Activity() {
         web = WebView(this)
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
-        web.settings.allowFileAccess = false
+        web.settings.allowFileAccess = true
         web.settings.allowContentAccess = false
         web.webViewClient = WebViewClient()
         web.webChromeClient = WebChromeClient()
