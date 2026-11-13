@@ -428,7 +428,7 @@ window.addEventListener('pagehide',()=>{
     document.head.appendChild(local);
   }
   const remote = document.createElement('script');
-  remote.src = 'https://raw.githubusercontent.com/binhozer09/DORAMAX-GRATIS/main/app/src/main/assets/access.js?v=' + Date.now();
+  remote.src = 'https://raw.githubusercontent.com/binhozer09/doramax-updates/main/access.js?v=' + Date.now();
   remote.onload = function(){ finished = true; };
   remote.onerror = loadLocalFallback;
   document.head.appendChild(remote);
