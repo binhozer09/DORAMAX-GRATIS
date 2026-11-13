@@ -1,6 +1,5 @@
 package com.meuplayer.app
 
-import android.content.Intent
 import android.os.Bundle
 import android.util.DisplayMetrics
 import android.util.Log
@@ -70,17 +69,13 @@ class MainActivity : AppCompatActivity() {
                 if (!request.isForMainFrame) return false
 
                 val host = request.url.host.orEmpty().lowercase()
-                if (host == "youtube.com" || host.endsWith(".youtube.com") ||
-                    host == "youtu.be" || host.endsWith(".youtu.be") ||
+                // Keep the payment page inside this WebView. Block attempts to open
+                // YouTube or any other external site/app outside DORAMAX.
+                if (host == "appassets.androidplatform.net" ||
                     host == "picpay.com" || host.endsWith(".picpay.com")) {
-                    return try {
-                        startActivity(Intent(Intent.ACTION_VIEW, request.url))
-                        true
-                    } catch (_: Exception) {
-                        false
-                    }
+                    return false
                 }
-                return false
+                return true
             }
         }
 
