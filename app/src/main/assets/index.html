@@ -1185,7 +1185,7 @@ const preloadObserver=new IntersectionObserver(entries=>{
   if(entry.isIntersecting)activateFrame(frame);
   else unloadFrame(entry.target);
  });
-},{root:feed,rootMargin:'100% 0px',threshold:0});
+},{root:feed,rootMargin:'0px',threshold:0.65});
 cards.forEach(card=>preloadObserver.observe(card));
 
 const fadeTimers=new WeakMap();
@@ -1195,6 +1195,9 @@ const observer=new IntersectionObserver(entries=>{
   if(!frame)return;
   if(entry.isIntersecting&&entry.intersectionRatio>=0.65){
    activeFrame=frame;
+   // Mantém somente o vídeo atual com um player carregado.
+   frames.forEach(otherFrame=>{if(otherFrame!==frame)unloadFrame(otherFrame);});
+   activateFrame(frame);
    pauseOthers(frame);ensurePlayer(frame);
    const activePlayer=players.get(frame);
    if(activePlayer&&typeof activePlayer.playVideo==='function'){
