@@ -6,6 +6,14 @@ grant select on public.admin_users to authenticated;
 grant select on public.access_grants to authenticated;
 grant update on public.access_grants to authenticated;
 
+-- Permite que cada usuário autenticado confirme se sua própria conta é administradora.
+drop policy if exists users_view_own_admin_record on public.admin_users;
+create policy users_view_own_admin_record
+on public.admin_users
+for select
+to authenticated
+using (user_id = auth.uid());
+
 drop policy if exists admins_view_all_profiles on public.profiles;
 create policy admins_view_all_profiles
 on public.profiles
