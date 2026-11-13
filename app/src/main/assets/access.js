@@ -214,13 +214,15 @@
         : (unlocked ? "Acesso liberado. Aproveite todos os vídeos!" : "Conta conectada. Acesso aguardando liberação.");
       if (isAdmin) await listUsers();
     } catch (error) {
-      saveSession(null);
-      currentUser = null;
+      // Keep the authenticated session so the user can see the real permission/API error.
       isAdmin = false;
       unlocked = false;
       updateGate();
-      document.getElementById("dmStatus").textContent = "Sua sessão expirou. Entre novamente.";
+      document.getElementById("dmStatus").textContent = "Não foi possível verificar as permissões: " + (error.message || "erro desconhecido");
+      setError("Login realizado, mas a verificação do painel ADM falhou: " + (error.message || "erro desconhecido"));
+      return false;
     }
+    return true;
   }
 
   async function submitAuth(event) {
@@ -251,18 +253,22 @@
           body: JSON.stringify({ email, password })
         });
         saveSession(result);
-        await loadAccess();
-        if (isAdmin) {
+        const accessChecked = await loadAccess();
+        if (!accessChecked) {
+          // loadAccess already displayed the precise verification error.
+        } else if (isAdmin) {
+          document.getElementById("dmModal").style.display = "flex";
           document.getElementById("dmModalTitle").textContent = "Painel ADM";
           document.getElementById("dmAuthForm").style.display = "none";
           document.getElementById("dmSwitch").style.display = "none";
+          document.getElementById("dmAdmin").style.display = "block";
+          document.getElementById("dmLogout").style.display = "block";
+          document.getElementById("dmStatus").textContent = "Administrador conectado. Use Buscar usuário ou Listar usuários cadastrados para liberar o acesso.";
+          await listUsers();
         } else {
           closeModal();
-          if (!unlocked) {
-            document.getElementById("dmStatus").textContent = "Pagamento ainda não liberado. Após pagar R$ 5, aguarde o administrador.";
-            openModal("login");
-            document.getElementById("dmStatus").textContent = "Conta conectada, mas o acesso ainda está bloqueado.";
-          }
+          openModal("login");
+          document.getElementById("dmStatus").textContent = "Conta conectada, mas o acesso ainda está bloqueado. A conta usada não tem permissão de administrador.";
         }
       }
     } catch (error) {
