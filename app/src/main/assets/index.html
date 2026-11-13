@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>DORAMAX GRÁTIS</title>
+<style>
+:root{color-scheme:dark;--bg:#090b10;--panel:#141923;--muted:#9ba6b7;--accent:#ff3048}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#fff;font-family:Arial,Helvetica,sans-serif}
+header{position:sticky;top:0;z-index:10;background:#0c1018f2;border-bottom:1px solid #252c38;padding:15px 16px 12px}
+.brand{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:900;letter-spacing:.5px}
+.brand-mark{width:34px;height:34px;border-radius:10px;background:var(--accent);display:grid;place-items:center;font-size:18px}
+.brand span:last-child{color:var(--accent)}
+.tagline{color:var(--muted);font-size:12px;margin:5px 0 12px 44px}
+.search{width:100%;border:1px solid #303949;border-radius:12px;background:#171e2a;color:#fff;padding:13px 14px;font-size:15px;outline:none}
+.search:focus{border-color:var(--accent)}
+main{max-width:760px;margin:auto;padding:16px 14px 36px}
+.section-title{font-size:18px;font-weight:800;margin:4px 2px 14px}
+.video-card{background:var(--panel);border:1px solid #252e3c;border-radius:16px;overflow:hidden;margin-bottom:18px}
+.player{position:relative;width:100%;aspect-ratio:16/9;background:#000}
+.player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.details{padding:13px 14px 15px}
+.video-title{font-size:15px;line-height:1.4;font-weight:700;margin:0 0 6px}
+.channel{font-size:12px;color:var(--muted);margin-bottom:12px}
+.actions{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.yt-link{display:inline-flex;align-items:center;justify-content:center;background:#292f3b;color:#fff;text-decoration:none;border-radius:9px;padding:10px 13px;font-size:12px;font-weight:700}
+.yt-link:active{background:#414b5c}
+.note{font-size:11px;color:#7f8b9e;line-height:1.45}
+.empty{display:none;text-align:center;color:var(--muted);padding:35px 10px}
+footer{text-align:center;color:#657184;font-size:11px;padding:10px 20px 25px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="brand-mark">▶</span><span>DORA<span>MAX</span> GRÁTIS</span></div>
+  <div class="tagline">Seus vídeos em um só lugar</div>
+  <input id="search" class="search" type="search" placeholder="Buscar vídeos ou canais..." aria-label="Buscar vídeos">
+</header>
+<main>
+  <div class="section-title">Vídeos para assistir</div>
+  <section id="videos">
+    <article class="video-card" data-search="o rei força ele a casar jovem ativa espaço mágico fica rico esmaga invasores vence choque de drama">
+      <div class="player">
+        <iframe src="https://www.youtube.com/embed/CPnzS7G_1MI?playsinline=1&rel=0"
+          title="O Rei Força Ele a Casar" loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen></iframe>
+      </div>
+      <div class="details">
+        <h2 class="video-title">O Rei Força Ele a Casar: Jovem Ativa Espaço Mágico, Fica Rico, Esmaga Invasores e Vence!</h2>
+        <div class="channel">Choque de Drama</div>
+        <div class="actions"><a class="yt-link" href="https://www.youtube.com/watch?v=CPnzS7G_1MI">ASSISTIR NO YOUTUBE</a><span class="note">Player oficial incorporado</span></div>
+      </div>
+    </article>
+    <article class="video-card" data-search="um mundo inteiro cabia em sua caixa agora ele podia salvar um império com as próprias mãos choque de drama">
+      <div class="player">
+        <iframe src="https://www.youtube.com/embed/Tz3h5oY4cr4?playsinline=1&rel=0"
+          title="Um mundo inteiro cabia em sua caixa" loading="lazy"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen></iframe>
+      </div>
+      <div class="details">
+        <h2 class="video-title">Um mundo inteiro cabia em sua caixa... Agora ele podia salvar um império com as próprias mãos!</h2>
+        <div class="channel">Choque de Drama</div>
+        <div class="actions"><a class="yt-link" href="https://www.youtube.com/watch?v=Tz3h5oY4cr4">ASSISTIR NO YOUTUBE</a><span class="note">Player oficial incorporado</span></div>
+      </div>
+    </article>
+  </section>
+  <div id="empty" class="empty">Nenhum vídeo encontrado.</div>
+</main>
+<footer>DORAMAX GRÁTIS · Conteúdo reproduzido pelo player oficial do YouTube.</footer>
+<script>
+const search=document.getElementById('search');
+search.addEventListener('input',()=>{
+ const term=search.value.trim().toLocaleLowerCase('pt-BR');
+ let visible=0;
+ document.querySelectorAll('.video-card').forEach(card=>{
+   const match=card.dataset.search.includes(term);
+   card.style.display=match?'':'none';
+   if(match)visible++;
+ });
+ document.getElementById('empty').style.display=visible?'none':'block';
+});
+</script>
+</body>
+</html>
