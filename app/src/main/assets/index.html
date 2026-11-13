@@ -1291,6 +1291,7 @@ window.addEventListener('pagehide',()=>{
   function loadLocalFallback(reason){
     if(finished || window.__doramaxAccessLoaded) return;
     finished = true;
+    if(remote.parentNode) remote.remove();
     if(fallbackTimer) clearTimeout(fallbackTimer);
     console.warn('[DORAMAX] Script remoto indisponível; usando cópia local.', reason || '');
     const local = document.createElement('script');
@@ -1305,6 +1306,7 @@ window.addEventListener('pagehide',()=>{
   remote.async = true;
   remote.src = 'https://raw.githubusercontent.com/binhozer09/doramax-updates/main/access.js?v=' + Date.now();
   remote.onload = function(){
+    if(finished) return;
     if(window.__doramaxAccessSource === 'remote'){
       finished = true;
       if(fallbackTimer) clearTimeout(fallbackTimer);
@@ -1313,7 +1315,7 @@ window.addEventListener('pagehide',()=>{
       loadLocalFallback('script carregado sem confirmar execução remota');
     }
   };
-  remote.onerror = function(){ loadLocalFallback('erro de rede ao buscar GitHub'); };
+  remote.onerror = function(){ if(!finished) loadLocalFallback('erro de rede ao buscar GitHub'); };
   document.head.appendChild(remote);
 
   // Dá mais tempo para conexões móveis lentas antes de usar a cópia local.
