@@ -1,59 +1,82 @@
 package com.meuplayer.app
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.view.WindowManager
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
-import androidx.viewpager2.widget.ViewPager2
-import org.json.JSONArray
+import androidx.webkit.WebViewAssetLoader
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var pager: ViewPager2
-    private lateinit var adapter: VideoAdapter
+    private lateinit var siteWeb: WebView
+    private lateinit var assetLoader: WebViewAssetLoader
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setContentView(R.layout.activity_main)
 
-        val videos = loadVideos()
-        pager = findViewById(R.id.pager)
-        adapter = VideoAdapter(videos) { position ->
-            // Quando um vídeo termina, passa para o próximo
-            if (position + 1 < videos.size) pager.setCurrentItem(position + 1, true)
-        }
-        pager.orientation = ViewPager2.ORIENTATION_VERTICAL
-        pager.adapter = adapter
-        pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(position: Int) {
-                adapter.setCurrent(position)
-            }
-        })
-    }
+        assetLoader = WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+            .build()
 
-    private fun loadVideos(): List<Video> {
-        val text = assets.open("videos.json").bufferedReader().use { it.readText() }
-        val array = JSONArray(text)
-        val list = mutableListOf<Video>()
-        for (i in 0 until array.length()) {
-            val o = array.getJSONObject(i)
-            list.add(Video(o.getString("id"), o.optString("title"), o.optString("channel")))
+        siteWeb = findViewById(R.id.siteWeb)
+        siteWeb.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            mediaPlaybackRequiresUserGesture = true
+            loadsImagesAutomatically = true
+            javaScriptCanOpenWindowsAutomatically = false
+            setSupportMultipleWindows(false)
         }
-        return list
+
+        siteWeb.webChromeClient = WebChromeClient()
+        siteWeb.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(
+                view: WebView,
+                request: WebResourceRequest
+            ) = assetLoader.shouldInterceptRequest(request.url)
+
+            override fun shouldOverrideUrlLoading(
+                view: WebView,
+                request: WebResourceRequest
+            ): Boolean {
+                if (!request.isForMainFrame) return false
+
+                val host = request.url.host.orEmpty().lowercase()
+                if (host == "youtube.com" || host.endsWith(".youtube.com") ||
+                    host == "youtu.be" || host.endsWith(".youtu.be")) {
+                    return try {
+                        startActivity(Intent(Intent.ACTION_VIEW, request.url))
+                        true
+                    } catch (_: Exception) {
+                        false
+                    }
+                }
+                return false
+            }
+        }
+
+        // Serve the local site through a secure HTTPS-style origin so embedded
+        // players receive a normal page context instead of a file:// URL.
+        siteWeb.loadUrl("https://appassets.androidplatform.net/assets/index.html")
     }
 
     override fun onPause() {
+        siteWeb.onPause()
         super.onPause()
-        adapter.pauseAll()
     }
 
     override fun onResume() {
         super.onResume()
-        adapter.resumeAll()
+        siteWeb.onResume()
     }
 
     override fun onDestroy() {
-        adapter.destroyAll()
+        siteWeb.destroy()
         super.onDestroy()
     }
 }
