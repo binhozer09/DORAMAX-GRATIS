@@ -274,6 +274,10 @@ function ensurePlayer(frame){
      players.set(frame,event.target);
      const id=videoId(frame),seek=pendingSeek.get(id);
      if(Number.isFinite(seek)){event.target.seekTo(seek,true);pendingSeek.delete(id);}
+     const card=frame.closest('.video');
+     if(card&&card.getBoundingClientRect().top<innerHeight*0.65&&card.getBoundingClientRect().bottom>innerHeight*0.35){
+      try{event.target.playVideo();}catch(_){}
+     }
     },
     onStateChange:event=>{
      if(event.data===YT.PlayerState.PLAYING){
@@ -317,6 +321,10 @@ const observer=new IntersectionObserver(entries=>{
   if(!frame)return;
   if(entry.isIntersecting&&entry.intersectionRatio>=0.65){
    pauseOthers(frame);ensurePlayer(frame);
+   const activePlayer=players.get(frame);
+   if(activePlayer&&typeof activePlayer.playVideo==='function'){
+    try{activePlayer.playVideo();}catch(_){}
+   }
    if(info&&!info.classList.contains('is-fading')&&!fadeTimers.has(card)){
     const timer=setTimeout(()=>{info.classList.add('is-fading');fadeTimers.delete(card);},4000);fadeTimers.set(card,timer);
    }
