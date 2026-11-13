@@ -9,7 +9,7 @@
   const STORAGE_KEY = "doramax_session_v1";
 
   const feed = document.getElementById("feed");
-  const cards = [...document.querySelectorAll("#feed .video")];
+  let cards = [...document.querySelectorAll("#feed .video")];
   if (!feed || cards.length < 3) return;
 
   let session = null;
@@ -248,6 +248,7 @@
   }
 
   function updateGate() {
+    cards = [...document.querySelectorAll("#feed .video")];
     cards.forEach((card, index) => {
       const existing = card.querySelector(".dm-cover");
       if (index < 2 || unlocked || isAdmin) {
@@ -265,6 +266,7 @@
       }
     });
   }
+  window.doramaxRefreshAccessGate = function () { updateGate(); };
 
   async function loadAccess() {
     if (!session || !session.access_token) {
