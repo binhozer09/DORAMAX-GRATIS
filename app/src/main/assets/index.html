@@ -200,8 +200,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
 </main>
 <script>
 const feed=document.getElementById('feed');
-const cards=[...document.querySelectorAll('.video')];
-const frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
+let cards=[...document.querySelectorAll('.video')];
+let frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
 const HISTORY_KEY='doramax_continue_watching_v1';
 const historyPanel=document.getElementById('historyPanel');
 const historyList=document.getElementById('historyList');
@@ -374,6 +374,38 @@ document.addEventListener('visibilitychange',()=>{
   });
  }
 });
+
+async function loadRemoteVideos(){
+ try{
+  const response=await fetch('https://raw.githubusercontent.com/binhozer09/DORAMAX-GRATIS/main/data/videos.json?ts='+Date.now(),{cache:'no-store'});
+  if(!response.ok)throw new Error('HTTP '+response.status);
+  const data=await response.json();
+  if(!Array.isArray(data.videos))return;
+  const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
+  const fresh=data.videos.filter(video=>video&&video.id&&!known.has(video.id));
+  fresh.reverse().forEach(video=>{
+   const section=document.createElement('section');section.className='video';
+   const player=document.createElement('div');player.className='player';
+   const frame=document.createElement('iframe');
+   frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
+   frame.title=video.title||'Vídeo novo';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
+   frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';frame.allowFullscreen=true;
+   player.appendChild(frame);section.appendChild(player);
+   const info=document.createElement('div');info.className='info';
+   const heading=document.createElement('h2');heading.className='title';heading.textContent=video.title||'Vídeo novo';
+   info.appendChild(heading);section.appendChild(info);
+   feed.insertBefore(section,feed.firstChild);
+  });
+  if(fresh.length){
+   cards=[...document.querySelectorAll('#feed .video')];
+   frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
+   cards.forEach(card=>{preloadObserver.observe(card);observer.observe(card);});
+   if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();
+  }
+ }catch(error){console.warn('Não foi possível atualizar a lista online de vídeos:',error);}
+}
+loadRemoteVideos();
+
 window.addEventListener('pagehide',()=>{
  frames.forEach(frame=>{
   pauseFrame(frame);const player=players.get(frame);
