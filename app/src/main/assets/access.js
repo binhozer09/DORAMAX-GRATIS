@@ -92,7 +92,8 @@
         <div class="dm-status" id="dmStatus"></div>
         <div id="dmAdmin" style="display:none">
           <h2>Painel ADM</h2>
-          <p>Libere ou bloqueie o acesso pesquisando pelo e-mail cadastrado.</p>
+          <p id="dmPendingNotice" class="dm-status">Verificando solicitações de acesso...</p>
+          <p>Contas novas aparecem como aguardando aprovação. Confira o pagamento e escolha se deseja liberar o acesso completo.</p>
           <input id="dmSearch" type="email" placeholder="E-mail do usuário">
           <button class="dm-btn" id="dmSearchBtn" type="button">Buscar usuário</button>
           <div class="dm-admin-list" id="dmAdminResult"></div>
@@ -242,10 +243,26 @@
         });
         if (result && result.access_token) {
           saveSession(result);
-          await loadAccess();
-          closeModal();
+          const checked = await loadAccess();
+          if (checked && !isAdmin) {
+            authMode = "login";
+            updateAuthMode();
+            document.getElementById("dmEmail").value = email;
+            document.getElementById("dmStatus").textContent = "Conta criada! Sua solicitação está aguardando aprovação do administrador. Se o acesso ainda não foi liberado, os vídeos pagos continuarão bloqueados.";
+            setError("");
+          } else if (isAdmin) {
+            document.getElementById("dmModal").style.display = "flex";
+            document.getElementById("dmAuthForm").style.display = "none";
+            document.getElementById("dmSwitch").style.display = "none";
+            document.getElementById("dmAdmin").style.display = "block";
+            await listUsers();
+          }
         } else {
-          setError("Cadastro iniciado. Confira seu e-mail para confirmar a conta e depois entre.");
+          authMode = "login";
+          updateAuthMode();
+          document.getElementById("dmEmail").value = email;
+          document.getElementById("dmStatus").textContent = "Cadastro recebido pelo Supabase. Se a confirmação por e-mail estiver ativada, abra o e-mail de confirmação e depois entre com esta conta. Após confirmar, ela aparecerá no painel ADM como aguardando aprovação.";
+          setError("");
         }
       } else {
         const result = await api("/auth/v1/token?grant_type=password", {
@@ -301,7 +318,7 @@
     const row = document.createElement("div");
     row.className = "dm-user";
     const label = document.createElement("span");
-    label.textContent = profile.email + " — " + (isUnlocked ? "LIBERADO" : "BLOQUEADO");
+    label.textContent = profile.email + " — " + (isUnlocked ? "ACESSO COMPLETO LIBERADO" : "🔔 AGUARDANDO APROVAÇÃO");
     const button = document.createElement("button");
     button.className = isUnlocked ? "lock" : "";
     button.textContent = isUnlocked ? "BLOQUEAR ACESSO COMPLETO" : "DESBLOQUEAR ACESSO COMPLETO";
@@ -333,6 +350,9 @@
     target.textContent = "Carregando usuários...";
     try {
       const profiles = await api("/rest/v1/profiles?select=user_id,email&order=created_at.desc&limit=100", { method: "GET" }, session.access_token);
+      const pending = await api("/rest/v1/access_grants?select=user_id&is_unlocked=eq.false", { method: "GET" }, session.access_token);
+      const notice = document.getElementById("dmPendingNotice");
+      if (notice) notice.textContent = "🔔 " + pending.length + " solicitação(ões) aguardando sua aprovação.";
       target.innerHTML = "";
       if (!profiles.length) { target.textContent = "Ainda não há usuários cadastrados."; return; }
       for (const profile of profiles) await renderAdminUser(profile, target);
