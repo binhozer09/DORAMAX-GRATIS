@@ -1323,7 +1323,9 @@ function loadCachedVideoCatalog(){
  try{const cached=localStorage.getItem(VIDEO_CATALOG_CACHE_KEY);if(cached)applyVideoCatalog(JSON.parse(cached));}catch(error){console.warn('Cache local do catálogo indisponível:',error);}
 }
 async function loadRemoteVideos(){
+ // Primeiro usa o catálogo local; sem conexão, não inicia uma requisição que só vai expirar.
  loadCachedVideoCatalog();
+ if(!navigator.onLine)return false;
  if(catalogRequest)return catalogRequest;
  const controller=new AbortController();
  const timeout=setTimeout(()=>controller.abort(),9000);
@@ -1347,6 +1349,8 @@ window.setInterval(loadRemoteVideos, 15 * 60 * 1000);
 document.addEventListener('visibilitychange', () => {
  if (!document.hidden) loadRemoteVideos();
 });
+// Só sincroniza novamente quando a conexão voltar; o catálogo salvo continua disponível offline.
+window.addEventListener('online', () => loadRemoteVideos());
 
 window.addEventListener('pagehide',()=>{
  if(progressTimer){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
