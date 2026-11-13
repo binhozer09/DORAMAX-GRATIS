@@ -1000,6 +1000,43 @@ function videoId(frame){
  const match=(frame.src||frame.dataset.src||'').match(/youtube\.com\/embed\/([^?&]+)/);
  return match?match[1]:'';
 }
+
+const SCROLL_POSITION_KEY='doramax_feed_scroll_v1';
+let scrollSaveTimer=null;
+let scrollRestored=false;
+function saveFeedPosition(){
+ if(scrollSaveTimer)clearTimeout(scrollSaveTimer);
+ scrollSaveTimer=setTimeout(()=>{
+  const feedTop=feed.getBoundingClientRect().top;
+  const visible=cards.find(card=>{
+   const rect=card.getBoundingClientRect();
+   return rect.bottom>feedTop+8&&rect.top<feedTop+feed.clientHeight;
+  });
+  const frame=visible?.querySelector('iframe');
+  const position={id:frame?videoId(frame):'',scrollTop:feed.scrollTop,offset:visible?visible.getBoundingClientRect().top-feedTop:0,savedAt:Date.now()};
+  try{localStorage.setItem(SCROLL_POSITION_KEY,JSON.stringify(position));}catch(_){}
+ },180);
+}
+function restoreFeedPosition(){
+ if(scrollRestored)return;
+ scrollRestored=true;
+ let saved=null;
+ try{saved=JSON.parse(localStorage.getItem(SCROLL_POSITION_KEY)||'null');}catch(_){}
+ if(!saved)return;
+ requestAnimationFrame(()=>{
+  const target=saved.id?cards.find(card=>videoId(card.querySelector('iframe'))===saved.id):null;
+  if(target){
+   const top=target.getBoundingClientRect().top-feed.getBoundingClientRect().top;
+   feed.scrollTop+=top-(Number(saved.offset)||0);
+  }else if(Number.isFinite(saved.scrollTop)){
+   feed.scrollTop=saved.scrollTop;
+  }
+  requestAnimationFrame(saveFeedPosition);
+ });
+}
+feed.addEventListener('scroll',saveFeedPosition,{passive:true});
+window.addEventListener('pagehide',saveFeedPosition);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveFeedPosition();});
 function cardData(card){
  const frame=card.querySelector('iframe');
  return {id:videoId(frame),title:card.querySelector('.title')?.textContent?.trim()||frame?.title||'Vídeo',card,frame};
@@ -1186,7 +1223,11 @@ async function loadRemoteVideos(){
    cards.forEach(card=>{preloadObserver.observe(card);observer.observe(card);});
    if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();
   }
- }catch(error){console.warn('Não foi possível atualizar a lista online de vídeos:',error);}
+  restoreFeedPosition();
+ }catch(error){
+  console.warn('Não foi possível atualizar a lista online de vídeos:',error);
+  restoreFeedPosition();
+ }
 }
 loadRemoteVideos();
 // Atualiza o catálogo periodicamente enquanto o aplicativo estiver aberto.
