@@ -1,6 +1,6 @@
 workflows:
   android-debug:
-    name: Meu Player APK
+    name: DORAMAX-GRATIS APK
     instance_type: mac_mini_m2
     max_build_duration: 30
     environment:
@@ -11,10 +11,30 @@ workflows:
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
       - name: Instalar Gradle 8.7
         script: |
-          curl -sL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle.zip
+          curl -fL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d "$HOME"
-      - name: Compilar APK
+      - name: Compilar DORAMAX-GRATIS
         script: |
-          "$HOME/gradle-8.7/bin/gradle" assembleDebug --no-daemon
+          "$HOME/gradle-8.7/bin/gradle" :app:assembleDebug --no-daemon
     artifacts:
       - app/build/outputs/apk/debug/*.apk
+
+  doramax-adm:
+    name: DORAMAX ADM APK
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      java: 17
+    scripts:
+      - name: Configurar Android SDK
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+      - name: Instalar Gradle 8.7
+        script: |
+          curl -fL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d "$HOME"
+      - name: Compilar DORAMAX ADM
+        script: |
+          "$HOME/gradle-8.7/bin/gradle" :admin:assembleDebug --no-daemon
+    artifacts:
+      - admin/build/outputs/apk/debug/*.apk
