@@ -998,6 +998,54 @@ let progressFrame=null;
 let history=[];
 try{history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');if(!Array.isArray(history))history=[];}catch(_){history=[];}
 
+const WATCHED_KEY='doramax_watched_videos_v1';
+let watchedVideoIds=new Set();
+let remoteCatalogVideos=[];
+try{watchedVideoIds=new Set(JSON.parse(localStorage.getItem(WATCHED_KEY)||'[]'));}catch(_){watchedVideoIds=new Set();}
+function saveWatchedVideos(){
+ try{localStorage.setItem(WATCHED_KEY,JSON.stringify([...watchedVideoIds].slice(-5000)));}catch(_){}
+}
+function refreshFeedCollections(){
+ cards=[...document.querySelectorAll('#feed .video')];
+ frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
+}
+function buildVideoCard(video){
+ const section=document.createElement('section');section.className='video';
+ const player=document.createElement('div');player.className='player';
+ const frame=document.createElement('iframe');
+ frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
+ frame.title=video.title||'Vídeo novo';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
+ frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';frame.allowFullscreen=true;
+ player.appendChild(frame);section.appendChild(player);
+ const info=document.createElement('div');info.className='info';
+ const heading=document.createElement('h2');heading.className='title';heading.textContent=video.title||'Vídeo novo';
+ info.appendChild(heading);section.appendChild(info);
+ return section;
+}
+function nextUnusedCatalogVideo(){
+ const currentIds=new Set(frames.map(frame=>videoId(frame)).filter(Boolean));
+ return remoteCatalogVideos.find(video=>!currentIds.has(video.id)&&!watchedVideoIds.has(video.id))||null;
+}
+function replaceCompletedVideo(frame){
+ const oldCard=frame&&frame.closest('.video');
+ if(!oldCard||oldCard.dataset.replacing==='true')return;
+ const completedId=videoId(frame);
+ if(!completedId)return;
+ const nextVideo=nextUnusedCatalogVideo();
+ if(!nextVideo)return;
+ oldCard.dataset.replacing='true';
+ watchedVideoIds.add(completedId);saveWatchedVideos();
+ history=history.filter(item=>item.id!==completedId);saveHistory();
+ try{observer.unobserve(oldCard);}catch(_){}
+ try{pauseFrame(frame);}catch(_){}
+ if(activeFrame===frame)activeFrame=null;
+ const replacement=buildVideoCard(nextVideo);
+ oldCard.replaceWith(replacement);
+ refreshFeedCollections();
+ observer.observe(replacement);
+ if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();
+}
+
 function videoId(frame){
  const match=(frame.src||frame.dataset.src||'').match(/youtube\.com\/embed\/([^?&]+)/);
  return match?match[1]:'';
@@ -1118,6 +1166,12 @@ function ensurePlayer(frame){
     },
     onStateChange:event=>{
      if(players.get(frame)!==event.target)return;
+     if(event.data===YT.PlayerState.ENDED){
+      if(progressTimer&&progressFrame===frame){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
+      try{upsertProgress(frame.closest('.video'),event.target.getDuration(),event.target.getDuration());}catch(_){}
+      replaceCompletedVideo(frame);
+      return;
+     }
      if(event.data===YT.PlayerState.PLAYING){
       if(activeFrame!==frame){try{event.target.pauseVideo();}catch(_){}return;}
       pauseOthers(frame);
@@ -1240,30 +1294,23 @@ async function loadRemoteVideos(){
   if(!response.ok)throw new Error('GitHub HTTP '+response.status);
   const data=await response.json();
   if(!data||!Array.isArray(data.videos))throw new Error('Formato inválido do catálogo remoto');
+  remoteCatalogVideos=data.videos
+   .map(video=>({...video,id:String(video&&video.id||'').trim()}))
+   .filter(video=>video.id);
   const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
   const fresh=[];
-  for(const video of data.videos){
-   const id=String(video&&video.id||'').trim();
-   if(!id||known.has(id))continue;
-   known.add(id);
-   fresh.push({...video,id});
+  for(const video of remoteCatalogVideos){
+   if(known.has(video.id)||watchedVideoIds.has(video.id))continue;
+   known.add(video.id);
+   fresh.push(video);
   }
-  fresh.reverse().forEach(video=>{
-   const section=document.createElement('section');section.className='video';
-   const player=document.createElement('div');player.className='player';
-   const frame=document.createElement('iframe');
-   frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
-   frame.title=video.title||'Vídeo novo';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
-   frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';frame.allowFullscreen=true;
-   player.appendChild(frame);section.appendChild(player);
-   const info=document.createElement('div');info.className='info';
-   const heading=document.createElement('h2');heading.className='title';heading.textContent=video.title||'Vídeo novo';
-   info.appendChild(heading);section.appendChild(info);
-   feed.insertBefore(section,feed.firstChild);
+  // Mantém no máximo 1.000 vídeos visíveis; os demais ficam na fila de reposição.
+  const slots=Math.max(0,1000-feed.querySelectorAll('.video').length);
+  fresh.slice(0,slots).reverse().forEach(video=>{
+   feed.insertBefore(buildVideoCard(video),feed.firstChild);
   });
-  if(fresh.length){
-   cards=[...document.querySelectorAll('#feed .video')];
-   frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
+  if(fresh.length&&slots>0){
+   refreshFeedCollections();
    cards.forEach(card=>observer.observe(card));
    if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();
   }
