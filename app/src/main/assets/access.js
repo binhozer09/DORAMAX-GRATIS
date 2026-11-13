@@ -208,12 +208,22 @@
       <div class="dm-cover-card">
         <h2>Continue assistindo</h2>
         <p>Os 2 primeiros vídeos são grátis. Para liberar os demais, faça seu cadastro e pague R$ 5,00 uma única vez.</p>
-        <button class="dm-btn" type="button">Entrar / Criar conta</button>
-        <button class="dm-btn green" type="button">PAGUE 5 REAIS APENAS UMA VEZ</button>
+        <button class="dm-btn" type="button">CRIAR CONTA / ENTRAR</button>
+        <button class="dm-btn green dm-pay-button" type="button" style="display:none">PAGUE 5 REAIS APENAS UMA VEZ</button>
+        <p class="dm-small dm-pay-hint">Crie sua conta ou entre nela para liberar a opção de pagamento.</p>
         <p class="dm-small">Depois do pagamento, aguarde a confirmação e liberação pelo administrador.</p>
       </div>`;
-    cover.querySelector(".dm-btn").onclick = () => openModal("login");
-    cover.querySelector(".dm-btn.green").onclick = async (event) => {
+    cover.querySelector(".dm-btn").onclick = () => openModal(session && currentUser ? "login" : "signup");
+    const payButton = cover.querySelector(".dm-pay-button");
+    const payHint = cover.querySelector(".dm-pay-hint");
+    const isLoggedIn = !!(session && currentUser && currentUser.id);
+    payButton.style.display = isLoggedIn ? "block" : "none";
+    payHint.style.display = isLoggedIn ? "none" : "block";
+    payButton.onclick = async (event) => {
+      if (!session || !currentUser || !currentUser.id) {
+        openModal("signup");
+        return;
+      }
       const button = event.currentTarget;
       button.disabled = true;
       button.textContent = "Abrindo PicPay...";
@@ -244,6 +254,14 @@
         if (existing) existing.remove();
       } else {
         makeCover(card, index);
+        const cover = card.querySelector(".dm-cover");
+        if (cover) {
+          const loggedIn = !!(session && currentUser && currentUser.id);
+          const payButton = cover.querySelector(".dm-pay-button");
+          const payHint = cover.querySelector(".dm-pay-hint");
+          if (payButton) payButton.style.display = loggedIn ? "block" : "none";
+          if (payHint) payHint.style.display = loggedIn ? "none" : "block";
+        }
       }
     });
   }
