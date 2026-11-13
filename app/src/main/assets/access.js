@@ -251,7 +251,7 @@
     cards = [...document.querySelectorAll("#feed .video")];
     cards.forEach((card, index) => {
       const existing = card.querySelector(".dm-cover");
-      if (index < 2 || unlocked || isAdmin) {
+      if (card.dataset.freePreview === "true" || unlocked || isAdmin) {
         if (existing) existing.remove();
       } else {
         makeCover(card, index);
