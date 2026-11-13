@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "MeuPlayer"
-include(":app")
+include(":app", ":admin")
