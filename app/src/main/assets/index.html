@@ -1188,9 +1188,15 @@ const observer=new IntersectionObserver(entries=>{
   if(!frame)return;
   if(entry.isIntersecting&&entry.intersectionRatio>=0.65){
    activeFrame=frame;
-   // Mantém somente o vídeo atual com um player carregado.
-   frames.forEach(otherFrame=>{if(otherFrame!==frame)unloadFrame(otherFrame);});
-   activateFrame(frame);
+   // Mantém o vídeo atual e os vizinhos preparados para reduzir a espera ao deslizar.
+   const activeIndex=frames.indexOf(frame);
+   frames.forEach((otherFrame,index)=>{
+    if(Math.abs(index-activeIndex)<=1){
+     activateFrame(otherFrame);
+    }else{
+     unloadFrame(cards[index]);
+    }
+   });
    pauseOthers(frame);ensurePlayer(frame);
    const activePlayer=players.get(frame);
    if(activePlayer&&typeof activePlayer.playVideo==='function'){
