@@ -420,19 +420,40 @@ window.addEventListener('pagehide',()=>{
    Se a rede/GitHub falhar, usa a cópia local incluída no APK. */
 (function(){
   let finished = false;
-  function loadLocalFallback(){
-    if(finished) return;
+  let fallbackTimer = null;
+
+  function loadLocalFallback(reason){
+    if(finished || window.__doramaxAccessLoaded) return;
     finished = true;
+    if(fallbackTimer) clearTimeout(fallbackTimer);
+    console.warn('[DORAMAX] Script remoto indisponível; usando cópia local.', reason || '');
     const local = document.createElement('script');
     local.src = './access.js';
+    local.onerror = function(){
+      console.error('[DORAMAX] Não foi possível carregar nem a cópia local de access.js.');
+    };
     document.head.appendChild(local);
   }
+
   const remote = document.createElement('script');
+  remote.async = true;
   remote.src = 'https://raw.githubusercontent.com/binhozer09/doramax-updates/main/access.js?v=' + Date.now();
-  remote.onload = function(){ finished = true; };
-  remote.onerror = loadLocalFallback;
+  remote.onload = function(){
+    if(window.__doramaxAccessSource === 'remote'){
+      finished = true;
+      if(fallbackTimer) clearTimeout(fallbackTimer);
+      console.info('[DORAMAX] Atualização remota carregada:', window.__doramaxAccessVersion || 'versão não identificada');
+    } else {
+      loadLocalFallback('script carregado sem confirmar execução remota');
+    }
+  };
+  remote.onerror = function(){ loadLocalFallback('erro de rede ao buscar GitHub'); };
   document.head.appendChild(remote);
-  setTimeout(loadLocalFallback, 7000);
+
+  // Dá mais tempo para conexões móveis lentas antes de usar a cópia local.
+  fallbackTimer = setTimeout(function(){
+    loadLocalFallback('tempo limite de 15 segundos');
+  }, 15000);
 })();
 </script>
 </body>
