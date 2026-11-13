@@ -407,7 +407,7 @@
     if (!list || !count) return;
     try {
       const rows = await api("/rest/v1/payment_click_notifications?select=id,email,amount,clicked_at&order=clicked_at.desc&limit=30", { method: "GET" }, session.access_token);
-      count.textContent = rows.length + " clique(s) registrado(s) — isso não significa pagamento confirmado.";
+      count.textContent = "Exibindo " + rows.length + " clique(s) recente(s) — isso não significa pagamento confirmado.";
       list.innerHTML = "";
       if (!rows.length) {
         const empty = document.createElement("p");
