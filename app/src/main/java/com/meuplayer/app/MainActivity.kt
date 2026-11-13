@@ -132,6 +132,15 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    @Suppress("DEPRECATION")
+    override fun onBackPressed() {
+        if (::siteWeb.isInitialized && siteWeb.canGoBack()) {
+            siteWeb.goBack()
+        } else {
+            super.onBackPressed()
+        }
+    }
+
     override fun onPause() {
         siteWeb.onPause()
         super.onPause()
