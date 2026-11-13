@@ -109,6 +109,8 @@
       .dm-user button{border:0;border-radius:9px;padding:10px 12px;background:#159b60;color:#fff;font-size:11px;font-weight:800;white-space:normal;min-width:150px}.dm-user{align-items:flex-start}.dm-user span{flex:1;overflow-wrap:anywhere}
       .dm-user button.lock{background:#b52b3f}
       .dm-status{font-size:12px;color:#bbb;margin:8px 0}\n      .dm-logged-as{max-width:112px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;font-weight:600;color:#fff;background:#0009;border:1px solid #ffffff30;border-radius:12px;padding:4px 6px;pointer-events:none}
+      .dm-adm-shortcut{position:fixed;z-index:23;top:calc(42px + env(safe-area-inset-top,0px));left:72px;border:1px solid #ff3048;border-radius:14px;padding:6px 10px;background:#160307;color:#ff3048;font-size:10px;font-weight:900;letter-spacing:.5px;text-shadow:0 0 7px #ff3048;box-shadow:0 0 6px #ff304888,inset 0 0 5px #ff304833;cursor:pointer;-webkit-tap-highlight-color:transparent}
+      .dm-adm-shortcut:active{transform:scale(.94)}
     `;
     document.head.appendChild(style);
   }
@@ -500,6 +502,16 @@
   function installAdminEntry() {
     const brand = document.querySelector(".brand");
     const adminButton = document.getElementById("adminAccessBtn");
+    if (!document.getElementById("dmAdmShortcut")) {
+      const shortcut = document.createElement("button");
+      shortcut.id = "dmAdmShortcut";
+      shortcut.className = "dm-adm-shortcut";
+      shortcut.type = "button";
+      shortcut.textContent = "ADM";
+      shortcut.setAttribute("aria-label", "Abrir painel de administração");
+      shortcut.addEventListener("click", () => openModal("admin"));
+      document.body.appendChild(shortcut);
+    }
     if (adminButton) adminButton.addEventListener("click", () => {
       if (session && currentUser) logout();
       else openModal("login");
