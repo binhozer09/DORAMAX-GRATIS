@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://www.youtube.com">
+<link rel="preconnect" href="https://www.googlevideo.com">
+<link rel="preconnect" href="https://i.ytimg.com">
+<link rel="dns-prefetch" href="//www.youtube.com">
+<link rel="dns-prefetch" href="//www.googlevideo.com">
+<link rel="dns-prefetch" href="//i.ytimg.com">
 <title>DORAMAX GRÁTIS</title>
 <style>
 :root{color-scheme:dark;--accent:#ff3048;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
@@ -1101,6 +1107,7 @@ function resumeVideo(item){
 }
 function activateFrame(frame){
  if(frame&&!frame.src&&frame.dataset.src){
+  frame.loading='eager';
   frame.src=frame.dataset.src;
   frame.removeAttribute('data-src');
  }
