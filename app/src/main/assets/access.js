@@ -109,8 +109,7 @@
       .dm-user button{border:0;border-radius:9px;padding:10px 12px;background:#159b60;color:#fff;font-size:11px;font-weight:800;white-space:normal;min-width:150px}.dm-user{align-items:flex-start}.dm-user span{flex:1;overflow-wrap:anywhere}
       .dm-user button.lock{background:#b52b3f}
       .dm-status{font-size:12px;color:#bbb;margin:8px 0}\n      .dm-logged-as{max-width:112px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;font-weight:600;color:#fff;background:#0009;border:1px solid #ffffff30;border-radius:12px;padding:4px 6px;pointer-events:none}
-      .dm-adm-shortcut{position:fixed;z-index:23;top:calc(42px + env(safe-area-inset-top,0px));left:72px;border:1px solid #ff3048;border-radius:14px;padding:6px 10px;background:#160307;color:#ff3048;font-size:10px;font-weight:900;letter-spacing:.5px;text-shadow:0 0 7px #ff3048;box-shadow:0 0 6px #ff304888,inset 0 0 5px #ff304833;cursor:pointer;-webkit-tap-highlight-color:transparent}
-      .dm-adm-shortcut:active{transform:scale(.94)}
+      
     `;
     document.head.appendChild(style);
   }
@@ -133,16 +132,6 @@
         <button class="dm-btn secondary" id="dmLogout" type="button" style="display:none">Sair da conta</button>
         <div class="dm-error" id="dmError" role="status"></div>
         <div class="dm-status" id="dmStatus"></div>
-        <div id="dmAdmin" style="display:none">
-          <h2>Painel ADM</h2>
-          <div class="dm-payment-box"><h3>🔔 Cliques em pagar R$ 5</h3><p class="dm-payment-count" id="dmPaymentCount">Carregando notificações...</p><div id="dmPaymentNotifications" class="dm-admin-list"></div><button class="dm-btn secondary" id="dmPaymentRefresh" type="button">Atualizar notificações</button></div>
-          <p id="dmPendingNotice" class="dm-status">Verificando solicitações de acesso...</p>
-          <p>Contas novas aparecem como aguardando aprovação. Confira o pagamento e escolha se deseja liberar o acesso completo.</p>
-          <input id="dmSearch" type="email" placeholder="E-mail do usuário">
-          <button class="dm-btn" id="dmSearchBtn" type="button">Buscar usuário</button>
-          <div class="dm-admin-list" id="dmAdminResult"></div>
-          <button class="dm-btn secondary" id="dmRefreshBtn" type="button">Listar usuários cadastrados</button>
-        </div>
         <p class="dm-small">O pagamento é conferido manualmente. Use o mesmo e-mail cadastrado no aplicativo.</p>
       </section>`;
     document.body.appendChild(backdrop);
@@ -154,9 +143,6 @@
     };
     document.getElementById("dmAuthForm").addEventListener("submit", submitAuth);
     document.getElementById("dmLogout").onclick = logout;
-    document.getElementById("dmSearchBtn").onclick = searchUser;
-    document.getElementById("dmRefreshBtn").onclick = listUsers;
-    document.getElementById("dmPaymentRefresh").onclick = loadPaymentNotifications;
   }
 
   function updateAuthMode() {
@@ -174,23 +160,10 @@
     authMode = mode;
     updateAuthMode();
     document.getElementById("dmError").textContent = "";
-    const adminPanel = document.getElementById("dmAdmin");
-    const authForm = document.getElementById("dmAuthForm");
-    const switchButton = document.getElementById("dmSwitch");
-    if (isAdmin && session) {
-      authForm.style.display = "none";
-      switchButton.style.display = "none";
-      adminPanel.style.display = "block";
-      document.getElementById("dmModalTitle").textContent = "Painel ADM";
-      document.getElementById("dmLogout").style.display = "block";
-      listUsers();
-    } else {
-      authForm.style.display = "block";
-      switchButton.style.display = "block";
-      adminPanel.style.display = "none";
-      document.getElementById("dmLogout").style.display = session ? "block" : "none";
-      document.getElementById("dmModalTitle").textContent = mode === "signup" ? "Criar conta" : "Entrar no DORAMAX";
-    }
+    document.getElementById("dmAuthForm").style.display = "block";
+    document.getElementById("dmSwitch").style.display = "block";
+    document.getElementById("dmLogout").style.display = session ? "block" : "none";
+    document.getElementById("dmModalTitle").textContent = mode === "signup" ? "Criar conta" : "Entrar no DORAMAX";
     document.getElementById("dmModal").style.display = "flex";
   }
 
@@ -294,11 +267,9 @@
       }
       updateGate();
       document.getElementById("dmLogout").style.display = "block";
-      document.getElementById("dmAdmin").style.display = isAdmin ? "block" : "none";
-      document.getElementById("dmStatus").textContent = isAdmin
-        ? "Administrador conectado."
-        : (unlocked ? "Acesso liberado. Aproveite todos os vídeos!" : "Conta conectada. Acesso aguardando liberação.");
-      if (isAdmin) await listUsers();
+      document.getElementById("dmStatus").textContent = unlocked
+        ? "Acesso liberado. Aproveite todos os vídeos!"
+        : "Conta conectada. Acesso aguardando liberação.";
     } catch (error) {
       // Keep the authenticated session so the user can see the real permission/API error.
       isAdmin = false;
@@ -335,12 +306,6 @@
             document.getElementById("dmEmail").value = email;
             document.getElementById("dmStatus").textContent = "Conta criada! Sua solicitação está aguardando aprovação do administrador. Se o acesso ainda não foi liberado, os vídeos pagos continuarão bloqueados.";
             setError("");
-          } else if (isAdmin) {
-            document.getElementById("dmModal").style.display = "flex";
-            document.getElementById("dmAuthForm").style.display = "none";
-            document.getElementById("dmSwitch").style.display = "none";
-            document.getElementById("dmAdmin").style.display = "block";
-            await listUsers();
           }
         } else {
           authMode = "login";
@@ -358,15 +323,6 @@
         const accessChecked = await loadAccess();
         if (!accessChecked) {
           // loadAccess already displayed the precise verification error.
-        } else if (isAdmin) {
-          document.getElementById("dmModal").style.display = "flex";
-          document.getElementById("dmModalTitle").textContent = "Painel ADM";
-          document.getElementById("dmAuthForm").style.display = "none";
-          document.getElementById("dmSwitch").style.display = "none";
-          document.getElementById("dmAdmin").style.display = "block";
-          document.getElementById("dmLogout").style.display = "block";
-          document.getElementById("dmStatus").textContent = "Administrador conectado. Use Buscar usuário ou Listar usuários cadastrados para liberar o acesso.";
-          await listUsers();
         } else {
           closeModal();
           openModal("login");
@@ -491,7 +447,6 @@
     currentUser = null;
     isAdmin = false;
     unlocked = false;
-    document.getElementById("dmAdmin").style.display = "none";
     document.getElementById("dmAuthForm").style.display = "block";
     document.getElementById("dmSwitch").style.display = "block";
     document.getElementById("dmLogout").style.display = "none";
@@ -500,30 +455,11 @@
   }
 
   function installAdminEntry() {
-    const brand = document.querySelector(".brand");
     const adminButton = document.getElementById("adminAccessBtn");
-    if (!document.getElementById("dmAdmShortcut")) {
-      const shortcut = document.createElement("button");
-      shortcut.id = "dmAdmShortcut";
-      shortcut.className = "dm-adm-shortcut";
-      shortcut.type = "button";
-      shortcut.textContent = "ADM";
-      shortcut.setAttribute("aria-label", "Abrir painel de administração");
-      shortcut.addEventListener("click", () => openModal("admin"));
-      document.body.appendChild(shortcut);
-    }
     if (adminButton) adminButton.addEventListener("click", () => {
       if (session && currentUser) logout();
       else openModal("login");
     });
-    if (!brand) return;
-    let pressTimer;
-    brand.style.pointerEvents = "auto";
-    brand.addEventListener("touchstart", () => {
-      pressTimer = setTimeout(() => openModal("login"), 900);
-    }, { passive: true });
-    ["touchend", "touchcancel", "touchmove"].forEach(name => brand.addEventListener(name, () => clearTimeout(pressTimer), { passive: true }));
-    brand.addEventListener("dblclick", () => openModal("login"));
   }
 
   addStyles();
