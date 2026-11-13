@@ -7,7 +7,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.webkit.CookieManager
+import android.widget.Toast
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
@@ -60,6 +65,13 @@ class VideoAdapter(
         }
 
         @JavascriptInterface
+        fun onError(code: Int) {
+            h.web.post {
+                Toast.makeText(h.web.context, "Não foi possível reproduzir este vídeo (YouTube: $code).", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        @JavascriptInterface
         fun onTime(t: Double, d: Double) {
             h.web.post { if (d > 0) h.progress.progress = (t / d * 1000).toInt() }
         }
@@ -74,6 +86,18 @@ class VideoAdapter(
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.mediaPlaybackRequiresUserGesture = false
+            settings.javaScriptCanOpenWindowsAutomatically = true
+            settings.loadsImagesAutomatically = true
+            CookieManager.getInstance().setAcceptCookie(true)
+            CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+            webViewClient = object : WebViewClient() {
+                override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+                    super.onReceivedError(view, request, error)
+                    if (request.isForMainFrame) {
+                        Toast.makeText(context, "Falha ao carregar o player. Confira sua conexão.", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
             webChromeClient = WebChromeClient()
@@ -153,10 +177,11 @@ var player;
 function onYouTubeIframeAPIReady(){
   player = new YT.Player('p', {
     videoId: '__ID__',
-    playerVars: {autoplay:0, controls:0, playsinline:1, rel:0, modestbranding:1, fs:0, iv_load_policy:3},
+    playerVars: {autoplay:0, controls:0, playsinline:1, enablejsapi:1, origin:'https://www.youtube.com', rel:0, modestbranding:1, fs:0, iv_load_policy:3},
     events: {
       onReady: function(){ Android.onReady(); },
-      onStateChange: function(e){ Android.onState(e.data); }
+      onStateChange: function(e){ Android.onState(e.data); },
+      onError: function(e){ Android.onError(e.data); }
     }
   });
 }
