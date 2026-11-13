@@ -311,7 +311,7 @@
           authMode = "login";
           updateAuthMode();
           document.getElementById("dmEmail").value = email;
-          document.getElementById("dmStatus").textContent = "Cadastro recebido pelo Supabase. Se a confirmação por e-mail estiver ativada, abra o e-mail de confirmação e depois entre com esta conta. Após confirmar, ela aparecerá no painel ADM como aguardando aprovação.";
+          document.getElementById("dmStatus").textContent = "Cadastro recebido pelo Supabase. Se a confirmação por e-mail estiver ativada, abra o e-mail de confirmação e depois entre com esta conta. Após confirmar, sua conta ficará aguardando aprovação do administrador.";
           setError("");
         }
       } else {
@@ -323,10 +323,12 @@
         const accessChecked = await loadAccess();
         if (!accessChecked) {
           // loadAccess already displayed the precise verification error.
+        } else if (unlocked) {
+          closeModal();
         } else {
           closeModal();
           openModal("login");
-          document.getElementById("dmStatus").textContent = "Conta conectada, mas o acesso ainda está bloqueado. A conta usada não tem permissão de administrador.";
+          document.getElementById("dmStatus").textContent = "Conta conectada. Seu acesso completo ainda aguarda aprovação do administrador.";
         }
       }
     } catch (error) {
