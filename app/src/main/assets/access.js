@@ -6,6 +6,8 @@
   // Impede que o fallback local e o script remoto inicializem o app duas vezes.
   if (window.__doramaxAccessLoaded) return;
   window.__doramaxAccessLoaded = true;
+  window.__doramaxAccessSource = "local";
+  window.__doramaxAccessVersion = "2026.11.13";
 
   const SUPABASE_URL = "https://qbwsaahlkovrejwliefv.supabase.co";
   const SUPABASE_KEY = "sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK";
