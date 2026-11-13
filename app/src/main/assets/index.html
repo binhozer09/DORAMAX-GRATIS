@@ -1303,48 +1303,44 @@ document.addEventListener('visibilitychange',()=>{
  }
 });
 
+const VIDEO_CATALOG_CACHE_KEY='doramax_video_catalog_cache_v1';
 let catalogRequest=null;
+let catalogCacheApplied=false;
+function applyVideoCatalog(data){
+ if(!data||!Array.isArray(data.videos))return;
+ remoteCatalogVideos=data.videos.map(video=>({...video,id:String(video&&video.id||'').trim()})).filter(video=>video.id);
+ const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
+ const fresh=[];
+ for(const video of remoteCatalogVideos){if(known.has(video.id)||watchedVideoIds.has(video.id))continue;known.add(video.id);fresh.push(video);}
+ const slots=Math.max(0,1000-feed.querySelectorAll('.video').length);
+ fresh.slice(0,slots).reverse().forEach(video=>feed.insertBefore(buildVideoCard(video),feed.firstChild));
+ if(fresh.length&&slots>0){refreshFeedCollections();cards.forEach(card=>observer.observe(card));if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();}
+ restoreFeedPosition();
+}
+function loadCachedVideoCatalog(){
+ if(catalogCacheApplied)return;
+ catalogCacheApplied=true;
+ try{const cached=localStorage.getItem(VIDEO_CATALOG_CACHE_KEY);if(cached)applyVideoCatalog(JSON.parse(cached));}catch(error){console.warn('Cache local do catálogo indisponível:',error);}
+}
 async function loadRemoteVideos(){
+ loadCachedVideoCatalog();
  if(catalogRequest)return catalogRequest;
  const controller=new AbortController();
- const timeout=setTimeout(()=>controller.abort(),12000);
+ const timeout=setTimeout(()=>controller.abort(),9000);
  catalogRequest=(async()=>{
- try{
-  const response=await fetch('https://raw.githubusercontent.com/binhozer09/doramax-updates/main/videos.json?ts='+Date.now(),{cache:'no-store',signal:controller.signal});
-  if(!response.ok)throw new Error('GitHub HTTP '+response.status);
-  const data=await response.json();
-  if(!data||!Array.isArray(data.videos))throw new Error('Formato inválido do catálogo remoto');
-  remoteCatalogVideos=data.videos
-   .map(video=>({...video,id:String(video&&video.id||'').trim()}))
-   .filter(video=>video.id);
-  const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
-  const fresh=[];
-  for(const video of remoteCatalogVideos){
-   if(known.has(video.id)||watchedVideoIds.has(video.id))continue;
-   known.add(video.id);
-   fresh.push(video);
-  }
-  // Mantém no máximo 1.000 vídeos visíveis; os demais ficam na fila de reposição.
-  const slots=Math.max(0,1000-feed.querySelectorAll('.video').length);
-  fresh.slice(0,slots).reverse().forEach(video=>{
-   feed.insertBefore(buildVideoCard(video),feed.firstChild);
-  });
-  if(fresh.length&&slots>0){
-   refreshFeedCollections();
-   cards.forEach(card=>observer.observe(card));
-   if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();
-  }
-  restoreFeedPosition();
- }catch(error){
-  console.warn('Não foi possível atualizar a lista online de vídeos:',error);
-  restoreFeedPosition();
- }finally{
-  clearTimeout(timeout);
-  catalogRequest=null;
- }
+  try{
+   const response=await fetch('https://raw.githubusercontent.com/binhozer09/doramax-updates/main/videos.json',{cache:'no-cache',signal:controller.signal});
+   if(!response.ok)throw new Error('GitHub HTTP '+response.status);
+   const data=await response.json();
+   if(!data||!Array.isArray(data.videos))throw new Error('Formato inválido do catálogo remoto');
+   try{localStorage.setItem(VIDEO_CATALOG_CACHE_KEY,JSON.stringify(data));}catch(cacheError){console.warn('Não foi possível salvar o catálogo local:',cacheError);}
+   applyVideoCatalog(data);
+  }catch(error){console.warn('Não foi possível atualizar a lista online; mantendo catálogo salvo:',error);restoreFeedPosition();}
+  finally{clearTimeout(timeout);catalogRequest=null;}
  })();
  return catalogRequest;
 }
+loadCachedVideoCatalog();
 loadRemoteVideos();
 // Atualiza o catálogo periodicamente enquanto o aplicativo estiver aberto.
 window.setInterval(loadRemoteVideos, 15 * 60 * 1000);
@@ -1399,10 +1395,10 @@ window.addEventListener('pagehide',()=>{
   remote.onerror = function(){ if(!finished) loadLocalFallback('erro de rede ao buscar GitHub'); };
   document.head.appendChild(remote);
 
-  // Dá mais tempo para conexões móveis lentas antes de usar a cópia local.
+  // Não deixa a conexão lenta ao GitHub atrasar a inicialização do acesso.
   fallbackTimer = setTimeout(function(){
-    loadLocalFallback('tempo limite de 15 segundos');
-  }, 15000);
+    loadLocalFallback('tempo limite de 3 segundos');
+  }, 3000);
 })();
 </script>
 </body>
