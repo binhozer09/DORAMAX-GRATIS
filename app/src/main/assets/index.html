@@ -1036,10 +1036,7 @@ function restoreFeedPosition(){
   requestAnimationFrame(saveFeedPosition);
  });
 }
-feed.addEventListener('scroll',()=>{
- if(activeFrame){pauseFrame(activeFrame);activeFrame=null;}
- saveFeedPosition();
-},{passive:true});
+feed.addEventListener('scroll',saveFeedPosition,{passive:true});
 window.addEventListener('pagehide',saveFeedPosition);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveFeedPosition();});
 function cardData(card){
@@ -1184,17 +1181,6 @@ function unloadFrame(card){
   frame.src='about:blank';
  }
 }
-const preloadObserver=new IntersectionObserver(entries=>{
- entries.forEach(entry=>{
-  if(entry.isIntersecting&&entry.intersectionRatio>=0.65){
-   activateFrame(entry.target.querySelector('iframe'));
-  }else{
-   unloadFrame(entry.target);
-  }
- });
-},{root:feed,rootMargin:'0px',threshold:0.65});
-cards.forEach(card=>preloadObserver.observe(card));
-
 const fadeTimers=new WeakMap();
 const observer=new IntersectionObserver(entries=>{
  entries.forEach(entry=>{
@@ -1222,6 +1208,7 @@ const observer=new IntersectionObserver(entries=>{
    }
    const timer=fadeTimers.get(card);if(timer){clearTimeout(timer);fadeTimers.delete(card);}
    if(info)info.classList.remove('is-fading');
+   if(entry.intersectionRatio===0&&activeFrame!==frame)unloadFrame(card);
   }
  });
 },{root:feed,threshold:[0,0.25,0.65,0.9]});
@@ -1237,14 +1224,25 @@ document.addEventListener('visibilitychange',()=>{
  }
 });
 
+let catalogRequest=null;
 async function loadRemoteVideos(){
+ if(catalogRequest)return catalogRequest;
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),12000);
+ catalogRequest=(async()=>{
  try{
-  const response=await fetch('https://raw.githubusercontent.com/binhozer09/doramax-updates/main/videos.json?ts='+Date.now(),{cache:'no-store'});
+  const response=await fetch('https://raw.githubusercontent.com/binhozer09/doramax-updates/main/videos.json?ts='+Date.now(),{cache:'no-store',signal:controller.signal});
   if(!response.ok)throw new Error('GitHub HTTP '+response.status);
   const data=await response.json();
-  if(!Array.isArray(data.videos))return;
+  if(!data||!Array.isArray(data.videos))throw new Error('Formato inválido do catálogo remoto');
   const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
-  const fresh=data.videos.filter(video=>video&&video.id&&!known.has(String(video.id)));
+  const fresh=[];
+  for(const video of data.videos){
+   const id=String(video&&video.id||'').trim();
+   if(!id||known.has(id))continue;
+   known.add(id);
+   fresh.push({...video,id});
+  }
   fresh.reverse().forEach(video=>{
    const section=document.createElement('section');section.className='video';
    const player=document.createElement('div');player.className='player';
@@ -1261,14 +1259,19 @@ async function loadRemoteVideos(){
   if(fresh.length){
    cards=[...document.querySelectorAll('#feed .video')];
    frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
-   cards.forEach(card=>{preloadObserver.observe(card);observer.observe(card);});
+   cards.forEach(card=>observer.observe(card));
    if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();
   }
   restoreFeedPosition();
  }catch(error){
   console.warn('Não foi possível atualizar a lista online de vídeos:',error);
   restoreFeedPosition();
+ }finally{
+  clearTimeout(timeout);
+  catalogRequest=null;
  }
+ })();
+ return catalogRequest;
 }
 loadRemoteVideos();
 // Atualiza o catálogo periodicamente enquanto o aplicativo estiver aberto.
