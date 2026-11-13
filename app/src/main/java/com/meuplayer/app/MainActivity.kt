@@ -130,7 +130,9 @@ class MainActivity : AppCompatActivity() {
 
             override fun onAdFailedToLoad(adError: LoadAdError) {
                 Log.w(TAG, "DORAMAX banner failed to load: $adError")
-                adContainer.removeAllViews()
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) adContainer.removeAllViews()
+                }
             }
         })
     }
