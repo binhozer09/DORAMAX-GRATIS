@@ -5,7 +5,6 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.TextView
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -110,12 +109,11 @@ class MainActivity : AppCompatActivity() {
         val adView = AdView(this)
         bannerAdView = adView
 
-        val density = resources.displayMetrics.density
-        val widthDp = (resources.displayMetrics.widthPixels / density).toInt()
-        val adSize = AdSize.getLargeAnchoredAdaptiveBannerAdSize(this, widthDp)
+        val adSize = AdSize.BANNER // Banner padrão compacto: 320 x 50 dp.
         val request = BannerAdRequest.Builder(BANNER_AD_UNIT_ID, adSize).build()
 
         adContainer.removeAllViews()
+        adContainer.visibility = android.view.View.VISIBLE
         adContainer.addView(
             adView,
             FrameLayout.LayoutParams(
@@ -127,6 +125,9 @@ class MainActivity : AppCompatActivity() {
         adView.loadAd(request, object : AdLoadCallback<BannerAd> {
             override fun onAdLoaded(ad: BannerAd) {
                 Log.d(TAG, "DORAMAX production banner loaded")
+                runOnUiThread {
+                    if (!isFinishing && !isDestroyed) adContainer.visibility = android.view.View.VISIBLE
+                }
             }
 
             override fun onAdFailedToLoad(adError: LoadAdError) {
@@ -134,29 +135,12 @@ class MainActivity : AppCompatActivity() {
                 Log.e(TAG, "DORAMAX banner failed to load: $diagnostic")
                 runOnUiThread {
                     if (!isFinishing && !isDestroyed) {
-                        showAdDiagnostic("Não foi possível carregar o anúncio", diagnostic)
+                        adContainer.removeAllViews()
+                        adContainer.visibility = android.view.View.GONE
                     }
                 }
             }
         })
-    }
-
-    private fun showAdDiagnostic(title: String, details: String) {
-        adContainer.removeAllViews()
-        val diagnosticView = TextView(this).apply {
-            text = "$title\n$details"
-            textSize = 11f
-            setTextColor(android.graphics.Color.WHITE)
-            setPadding(16, 10, 16, 10)
-            gravity = android.view.Gravity.CENTER
-        }
-        adContainer.addView(
-            diagnosticView,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        )
     }
 
     @Suppress("DEPRECATION")
