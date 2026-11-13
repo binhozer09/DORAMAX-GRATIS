@@ -18,6 +18,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
 .top-label{font-size:12px;font-weight:700;background:#0008;padding:7px 11px;border-radius:20px}.top-actions{display:flex;align-items:center;gap:8px;pointer-events:auto}.admin-entry{border:1px solid #ffffff66;border-radius:18px;padding:7px 10px;background:#0009;color:#fff;font-size:11px;font-weight:800;letter-spacing:.5px}
 .donate{position:fixed;z-index:22;right:16px;bottom:calc(108px + var(--safe-bottom));width:58px;height:58px;border-radius:50%;background:#16a765;color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:center;font-size:25px;box-shadow:0 4px 16px #000b;border:2px solid #ffffffd9;pointer-events:auto;-webkit-tap-highlight-color:transparent}.donate:active{transform:scale(.94)}
 .info{position:absolute;z-index:5;left:14px;right:76px;bottom:calc(22px + var(--safe-bottom));padding:42px 0 8px;background:linear-gradient(transparent,#0009 28%,#000c);pointer-events:none}
+.info{opacity:1;transition:opacity 4s ease}.info.is-fading{opacity:0}
 .channel{font-size:14px;font-weight:800;margin-bottom:8px;text-shadow:0 1px 5px #000}
 .title{font-size:14px;line-height:1.4;font-weight:600;margin:0 0 12px;text-shadow:0 1px 5px #000}
 .hint{position:absolute;z-index:7;top:calc(58px + var(--safe-top));left:50%;transform:translateX(-50%);font-size:10px;color:#fff9;background:#0007;border-radius:15px;padding:6px 10px;white-space:nowrap;pointer-events:none}
@@ -31,31 +32,31 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
 <section class="video">
  <div class="player"><iframe src="https://www.youtube.com/embed/CPnzS7G_1MI?playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="O Rei Força Ele a Casar" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
  <div class="hint">Deslize para cima para próximo vídeo</div>
- <div class="info"><div class="channel">▶ Choque de Drama</div><h2 class="title">O Rei Força Ele a Casar: Jovem Ativa Espaço Mágico, Fica Rico, Esmaga Invasores e Vence!</h2></div>
+ <div class="info"><h2 class="title">O Rei Força Ele a Casar: Jovem Ativa Espaço Mágico, Fica Rico, Esmaga Invasores e Vence!</h2></div>
 </section>
 <section class="video">
  <div class="player"><iframe src="https://www.youtube.com/embed/Tz3h5oY4cr4?playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Um mundo inteiro cabia em sua caixa" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
- <div class="info"><div class="channel">▶ Choque de Drama</div><h2 class="title">Um mundo inteiro cabia em sua caixa... Agora ele podia salvar um império com as próprias mãos!</h2></div>
+ <div class="info"><h2 class="title">Um mundo inteiro cabia em sua caixa... Agora ele podia salvar um império com as próprias mãos!</h2></div>
 </section>
 <section class="video">
  <div class="player"><iframe src="https://www.youtube.com/embed/P0cK1mDmGhY?playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Vídeo 3 do DORAMAX" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
- <div class="info"><div class="channel">▶ DORAMAX GRÁTIS</div><h2 class="title">Vídeo adicionado ao DORAMAX</h2></div>
+ <div class="info"><h2 class="title">Vídeo adicionado ao DORAMAX</h2></div>
 </section>
 <section class="video">
  <div class="player"><iframe src="https://www.youtube.com/embed/BytNPV7NiCg?playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Vídeo 4 do DORAMAX" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
- <div class="info"><div class="channel">▶ DORAMAX GRÁTIS</div><h2 class="title">Vídeo adicionado ao DORAMAX</h2></div>
+ <div class="info"><h2 class="title">Vídeo adicionado ao DORAMAX</h2></div>
 </section>
 <section class="video">
  <div class="player"><iframe src="https://www.youtube.com/embed/KuIAgKBNfp8?playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Vídeo 5 do DORAMAX" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
- <div class="info"><div class="channel">▶ DORAMAX GRÁTIS</div><h2 class="title">Vídeo adicionado ao DORAMAX</h2></div>
+ <div class="info"><h2 class="title">Vídeo adicionado ao DORAMAX</h2></div>
 </section>
 <section class="video">
  <div class="player"><iframe src="https://www.youtube.com/embed/x72yqWnI_AE?playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Vídeo 6 do DORAMAX" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
- <div class="info"><div class="channel">▶ DORAMAX GRÁTIS</div><h2 class="title">Vídeo adicionado ao DORAMAX</h2></div>
+ <div class="info"><h2 class="title">Vídeo adicionado ao DORAMAX</h2></div>
 </section>
 <section class="video">
  <div class="player"><iframe src="https://www.youtube.com/embed/p6lgTc8ajoA?playsinline=1&rel=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Vídeo 7 do DORAMAX" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>
- <div class="info"><div class="channel">▶ DORAMAX GRÁTIS</div><h2 class="title">Vídeo adicionado ao DORAMAX</h2></div>
+ <div class="info"><h2 class="title">Vídeo adicionado ao DORAMAX</h2></div>
 </section>
 </main>
 <script>
@@ -79,14 +80,32 @@ function pauseOthers(activeFrame){
   });
 }
 
+const fadeTimers=new WeakMap();
+
 const observer=new IntersectionObserver(entries=>{
   entries.forEach(entry=>{
-    const frame=entry.target.querySelector('iframe');
+    const card=entry.target;
+    const frame=card.querySelector('iframe');
+    const info=card.querySelector('.info');
     if(!frame) return;
+
     if(entry.isIntersecting && entry.intersectionRatio>=0.65){
       pauseOthers(frame);
+      if(info && !info.classList.contains('is-fading') && !fadeTimers.has(card)){
+        const timer=setTimeout(()=>{
+          info.classList.add('is-fading');
+          fadeTimers.delete(card);
+        },4000);
+        fadeTimers.set(card,timer);
+      }
     }else{
       pauseFrame(frame);
+      const timer=fadeTimers.get(card);
+      if(timer){
+        clearTimeout(timer);
+        fadeTimers.delete(card);
+      }
+      if(info) info.classList.remove('is-fading');
     }
   });
 },{root:feed,threshold:[0,0.25,0.65,0.9]});
