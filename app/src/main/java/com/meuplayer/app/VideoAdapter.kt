@@ -2,6 +2,8 @@ package com.meuplayer.app
 
 import android.annotation.SuppressLint
 import android.graphics.Color
+import android.content.Intent
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -61,6 +63,16 @@ class VideoAdapter(
             h.web.post {
                 h.playing = (s == 1)
                 if (s == 0 && h.itemPosition == current) onEnded(h.itemPosition)
+            }
+        }
+
+        @JavascriptInterface
+        fun openOnYoutube() {
+            h.web.post {
+                val id = h.videoId ?: return@post
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=$id"))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                h.web.context.startActivity(intent)
             }
         }
 
@@ -166,11 +178,14 @@ class VideoAdapter(
 <html><head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-html,body{margin:0;height:100%;background:#000;overflow:hidden}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:Arial,sans-serif}
 #p{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+#embedError{display:none;position:absolute;inset:0;background:#111;color:#fff;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px;box-sizing:border-box;z-index:5}
+#embedError button{margin-top:18px;padding:13px 22px;border:0;border-radius:8px;background:#ff0033;color:#fff;font-size:15px;font-weight:bold}
 </style></head>
 <body>
 <div id="p"></div>
+<div id="embedError"><div id="errorText">Este vídeo não pode ser reproduzido aqui.</div><button onclick="Android.openOnYoutube()">ASSISTIR NO YOUTUBE</button></div>
 <script src="https://www.youtube.com/iframe_api"></script>
 <script>
 var player;
@@ -181,7 +196,17 @@ function onYouTubeIframeAPIReady(){
     events: {
       onReady: function(){ Android.onReady(); },
       onStateChange: function(e){ Android.onState(e.data); },
-      onError: function(e){ Android.onError(e.data); }
+      onError: function(e){
+        Android.onError(e.data);
+        var box = document.getElementById('embedError');
+        if (box) {
+          box.style.display = 'flex';
+          document.getElementById('errorText').textContent =
+            (e.data === 101 || e.data === 150 || e.data === 152)
+              ? 'Este vídeo não permite reprodução dentro do aplicativo.'
+              : 'Não foi possível reproduzir este vídeo.';
+        }
+      }
     }
   });
 }
