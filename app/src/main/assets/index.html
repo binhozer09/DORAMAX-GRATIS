@@ -405,6 +405,11 @@ async function loadRemoteVideos(){
  }catch(error){console.warn('Não foi possível atualizar a lista online de vídeos:',error);}
 }
 loadRemoteVideos();
+// Atualiza o catálogo periodicamente enquanto o aplicativo estiver aberto.
+window.setInterval(loadRemoteVideos, 15 * 60 * 1000);
+document.addEventListener('visibilitychange', () => {
+ if (!document.hidden) loadRemoteVideos();
+});
 
 window.addEventListener('pagehide',()=>{
  frames.forEach(frame=>{
