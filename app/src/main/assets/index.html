@@ -1253,25 +1253,34 @@ function unloadFrame(card){
  preparedFrames.delete(frame);
 }
 const fadeTimers=new WeakMap();
+let lastFeedScrollTop=feed.scrollTop;
+let scrollDirection=1;
+feed.addEventListener('scroll',()=>{
+ const top=feed.scrollTop;
+ if(Math.abs(top-lastFeedScrollTop)>2)scrollDirection=top>lastFeedScrollTop?1:-1;
+ lastFeedScrollTop=top;
+},{passive:true});
+
 const observer=new IntersectionObserver(entries=>{
  entries.forEach(entry=>{
   const card=entry.target,frame=card.querySelector('iframe'),info=card.querySelector('.info');
   if(!frame)return;
   if(entry.isIntersecting&&entry.intersectionRatio>=0.65){
    activeFrame=frame;
-   // Mantém o vídeo atual e os vizinhos preparados para reduzir a espera ao deslizar.
    const activeIndex=frames.indexOf(frame);
-   if(activeIndex>=0){
-    const first=Math.max(0,activeIndex-1);
-    const last=Math.min(frames.length-1,activeIndex+1);
-    for(let index=first;index<=last;index++)activateFrame(frames[index]);
-    [...preparedFrames].forEach(otherFrame=>{
-     const index=frames.indexOf(otherFrame);
-     if(index<first||index>last)unloadFrame(cards[index]);
-    });
-   }
-   activateFrame(frame);
-   pauseOthers(frame);ensurePlayer(frame);
+   // Mantém apenas o player atual e um único próximo, conforme o sentido da rolagem.
+   const nextIndex=activeIndex+scrollDirection;
+   const keepFrames=new Set([frame]);
+   if(nextIndex>=0&&nextIndex<frames.length)keepFrames.add(frames[nextIndex]);
+   keepFrames.forEach(readyFrame=>activateFrame(readyFrame));
+   [...preparedFrames].forEach(readyFrame=>{
+    if(!keepFrames.has(readyFrame)){
+     const oldIndex=frames.indexOf(readyFrame);
+     if(oldIndex>=0)unloadFrame(cards[oldIndex]);
+    }
+   });
+   pauseOthers(frame);
+   ensurePlayer(frame);
    const activePlayer=players.get(frame);
    if(activePlayer&&typeof activePlayer.playVideo==='function'){
     try{activePlayer.playVideo();}catch(_){}
