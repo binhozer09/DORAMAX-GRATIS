@@ -19,7 +19,8 @@ ARQUITETURA DO APLICATIVO
 - Nao ha imagens estaticas externas do projeto para armazenar no Supabase Storage neste momento; as miniaturas sao servidas pelo YouTube.
 - GitHub guarda somente o codigo-fonte, as migrations SQL, o codigo das Edge Functions e a configuracao do build. O app nao baixa catalogo, configuracoes ou scripts do GitHub em tempo de execucao.
 - Os catalogos JSON antigos foram removidos do repositorio; public.videos e a fonte oficial.
-- As alteracoes de schema e RLS estao versionadas em supabase/migrations/.
+- As 13 migrations versionadas em supabase/migrations/ correspondem ao historico aplicado no projeto Supabase.
+- Os testes de isolamento RLS e notificacoes estao em supabase/tests/rls_access.sql.
 
 COMO GERAR O APK
 Opcao 1 - Codemagic
