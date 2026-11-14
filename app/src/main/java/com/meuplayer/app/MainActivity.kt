@@ -54,6 +54,17 @@ class MainActivity : AppCompatActivity() {
         fun downloadUpdate(url: String) {
             runOnUiThread { enqueueUpdateDownload(url) }
         }
+
+        @JavascriptInterface
+        fun hasDownloadedUpdate(): Boolean {
+            val apkFile = File(cacheDir, "updates/doramax-update.apk")
+            return apkFile.exists() && apkFile.length() >= 1024 * 1024
+        }
+
+        @JavascriptInterface
+        fun installDownloadedUpdate() {
+            runOnUiThread { openDownloadedUpdateInstaller() }
+        }
     }
 
     private fun reportUpdateProgress(percent: Int, message: String) {
@@ -65,6 +76,33 @@ class MainActivity : AppCompatActivity() {
                     null
                 )
             }
+        }
+    }
+
+    private fun openDownloadedUpdateInstaller() {
+        val apkFile = File(cacheDir, "updates/doramax-update.apk")
+        if (!apkFile.exists() || apkFile.length() < 1024 * 1024) {
+            Toast.makeText(this, "O arquivo da atualização não está mais disponível. Baixe novamente.", Toast.LENGTH_LONG).show()
+            reportUpdateProgress(-2, "O arquivo não está disponível. Baixe a atualização novamente.")
+            return
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            !packageManager.canRequestPackageInstalls()) {
+            startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+            Toast.makeText(this, "Autorize a instalação e toque em Instalar agora novamente.", Toast.LENGTH_LONG).show()
+            return
+        }
+        try {
+            val apkUri = FileProvider.getUriForFile(this, "$packageName.fileprovider", apkFile)
+            val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(apkUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(installIntent)
+        } catch (error: Exception) {
+            Log.e(TAG, "Could not reopen APK installer", error)
+            Toast.makeText(this, "Não foi possível abrir a instalação. Tente novamente.", Toast.LENGTH_LONG).show()
         }
     }
 
