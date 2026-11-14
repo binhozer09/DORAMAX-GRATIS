@@ -6,7 +6,7 @@ workflows:
     environment:
       java: 17
       android_signing:
-        - doramax-release-key
+        - A2:2F:14:97:DE:37:9D:55:B8:D5:ED:AC:C0:06:C4:88:ED:76:BB:B2:06:5B:D2:59:86:4F:79:AE:1B:5A:65:FD
     scripts:
       - name: Configurar Android SDK
         script: |
@@ -35,7 +35,7 @@ workflows:
     environment:
       java: 17
       android_signing:
-        - doramax-release-key
+        - A2:2F:14:97:DE:37:9D:55:B8:D5:ED:AC:C0:06:C4:88:ED:76:BB:B2:06:5B:D2:59:86:4F:79:AE:1B:5A:65:FD
     scripts:
       - name: Configurar Android SDK
         script: |
