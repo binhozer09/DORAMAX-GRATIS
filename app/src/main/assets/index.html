@@ -1160,7 +1160,7 @@ function renderHistory(){
 }
 function openHistory(){renderHistory();historyPanel.classList.add('open');historyPanel.setAttribute('aria-hidden','false');}
 function hideHistory(){historyPanel.classList.remove('open');historyPanel.setAttribute('aria-hidden','true');}
-continueBtn.addEventListener('click',openHistory);
+continueBtn.addEventListener('click',()=>{const latest=history.slice().sort((a,b)=>(Number(b.updated)||0)-(Number(a.updated)||0))[0];if(latest)resumeVideo(latest);else openHistory();});
 closeHistory.addEventListener('click',hideHistory);
 historyPanel.addEventListener('click',event=>{if(event.target===historyPanel)hideHistory();});
 renderHistory();
