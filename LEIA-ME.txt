@@ -5,7 +5,7 @@ ARQUITETURA DO APLICATIVO
 - O catalogo oficial fica em public.videos; o app consulta somente is_active = true.
 - Configuracoes remotas ficam em public.app_settings.
 - Login, perfis, permissoes e notificacoes administrativas usam Supabase Auth e Postgres.
-- O painel ADM permite sincronizar os videos recentes diretamente do feed RSS do canal do YouTube para o Supabase pela Edge Function sync-videos.
+- O painel ADM permite sincronizar os videos recentes diretamente do feed RSS do canal do YouTube para o Supabase pela Edge Function sync-videos. O codigo da funcao fica versionado em supabase/functions/sync-videos/.
 - A sincronizacao e restrita a administradores autenticados e preserva videos marcados como manual_override.
 - O catalogo e aplicado primeiro a partir do cache local e atualizado em segundo plano.
 - Configuracoes remotas tambem sao armazenadas localmente para manter tema e avisos disponiveis sem rede.
@@ -14,8 +14,9 @@ ARQUITETURA DO APLICATIVO
 - O catalogo e as configuracoes em cache ficam disponiveis offline; a reproducao dos videos continua dependendo da internet e do YouTube.
 - O YouTube continua hospedando e transmitindo os videos.
 - Nao ha imagens estaticas externas do projeto para armazenar no Supabase Storage neste momento; as miniaturas sao servidas pelo YouTube.
-- GitHub guarda somente o codigo-fonte e a configuracao do build. O app nao baixa catalogo, configuracoes ou scripts do GitHub em tempo de execucao.
+- GitHub guarda somente o codigo-fonte, as migrations SQL, o codigo das Edge Functions e a configuracao do build. O app nao baixa catalogo, configuracoes ou scripts do GitHub em tempo de execucao.
 - Os catalogos JSON antigos foram removidos do repositorio; public.videos e a fonte oficial.
+- As alteracoes de schema e RLS estao versionadas em supabase/migrations/.
 
 COMO GERAR O APK
 Opcao 1 - Codemagic
