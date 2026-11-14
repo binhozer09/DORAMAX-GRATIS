@@ -49,6 +49,19 @@ async function refreshSession(){
  })();
  try{return await refreshPromise}finally{refreshPromise=null}
 }
+async function authenticatedFetch(path,opts={},retried=false){
+ const usedToken=session?.access_token;
+ if(!usedToken)throw Error("Entre novamente no DORAMAX ADM.");
+ const response=await fetch(URL+path,{...opts,headers:{"apikey":KEY,"Authorization":"Bearer "+usedToken,...(opts.headers||{})}});
+ if((response.status===401||response.status===403)&&!retried){
+  const body=await response.clone().text();
+  if(/exp.*claim.*timestamp|claim timestamp check failed|JWT expired|token is expired/i.test(body)){
+   const fresh=await refreshSession();
+   return authenticatedFetch(path,opts,true);
+  }
+ }
+ return response;
+}
 async function api(path,opts={},token,retried=false){
  const usedToken=token||KEY;
  const r=await fetch(URL+path,{...opts,headers:{...headers(usedToken),...(opts.headers||{})}});
@@ -80,7 +93,7 @@ async function publishApk(){
  const btn=$("publishApkBtn");btn.disabled=true;status("apkStatus","Enviando APK para o Supabase...");
  try{
   const path="releases/doramax-"+code+".apk";
-  const upload=await fetch(URL+"/storage/v1/object/doramax-apk-updates/"+path,{method:"POST",headers:{"apikey":KEY,"Authorization":"Bearer "+session.access_token,"Content-Type":"application/vnd.android.package-archive","x-upsert":"true"},body:file});
+  const upload=await authenticatedFetch("/storage/v1/object/doramax-apk-updates/"+path,{method:"POST",headers:{"Content-Type":"application/vnd.android.package-archive","x-upsert":"true"},body:file});
   if(!upload.ok)throw Error("Falha no envio: "+await upload.text());
   const rows=await api("/rest/v1/app_settings?select=value&key=eq.remote_config&limit=1",{},session.access_token);
   if(!Array.isArray(rows)||!rows.length)throw Error("Configuração remota não encontrada.");
