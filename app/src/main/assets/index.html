@@ -386,7 +386,7 @@ function playCatalogVideo(id){
  if(!target){console.warn('[DORAMAX] Vídeo não encontrado no catálogo:',id);return;}
  openPlayerMode();
  requestAnimationFrame(()=>{
-  target.scrollIntoView({behavior:'instant',block:'start'});
+  target.scrollIntoView({behavior:'auto',block:'start'});
   const frame=target.querySelector('iframe');
   activateFrame(frame);
   ensurePlayer(frame);
