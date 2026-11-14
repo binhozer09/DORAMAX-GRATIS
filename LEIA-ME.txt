@@ -6,6 +6,9 @@ ARQUITETURA DO APLICATIVO
 - Configuracoes remotas ficam em public.app_settings.
 - Login, perfis, permissoes e notificacoes administrativas usam Supabase Auth e Postgres.
 - O painel ADM permite sincronizar os videos recentes diretamente do feed RSS do canal do YouTube para o Supabase pela Edge Function sync-videos. O codigo da funcao fica versionado em supabase/functions/sync-videos/.
+- O Supabase tambem executa uma sincronizacao automatica a cada 30 minutos usando pg_cron + pg_net, sem depender do GitHub em tempo de execucao.
+- A sincronizacao automatica usa o ID imutavel verificado do canal Lucas (UCmbVDAVpU2jKOQ_HTLtvxwA) e valida o nome do feed antes de gravar, evitando importar videos de outro canal se o @ mudar de destino.
+- O catalogo ativo conferido nesta revisao contem 542 videos do canal Lucas e nenhum video ativo de outra origem.
 - A sincronizacao e restrita a administradores autenticados e preserva videos marcados como manual_override.
 - O catalogo e aplicado primeiro a partir do cache local e atualizado em segundo plano.
 - Configuracoes remotas tambem sao armazenadas localmente para manter tema e avisos disponiveis sem rede.
