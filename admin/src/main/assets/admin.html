@@ -92,13 +92,15 @@ async function publishApk(){
  if(file.size>200*1024*1024){status("apkStatus","O APK ultrapassa o limite de 200 MB.");return}
  const btn=$("publishApkBtn");btn.disabled=true;status("apkStatus","Enviando APK para o Supabase...");
  try{
-  const path="releases/doramax-"+code+".apk";
-  const upload=await authenticatedFetch("/storage/v1/object/doramax-apk-updates/"+path,{method:"POST",headers:{"Content-Type":"application/vnd.android.package-archive","x-upsert":"true"},body:file});
+  const digestBuffer=await crypto.subtle.digest("SHA-256",await file.arrayBuffer());
+  const apkSha256=Array.from(new Uint8Array(digestBuffer),b=>b.toString(16).padStart(2,"0")).join("");
+  const path="releases/doramax-"+code+"-"+apkSha256+".apk";
+  const upload=await authenticatedFetch("/storage/v1/object/doramax-apk-updates/"+path,{method:"POST",headers:{"Content-Type":"application/vnd.android.package-archive","Cache-Control":"no-store, max-age=0","x-upsert":"true"},body:file});
   if(!upload.ok)throw Error("Falha no envio: "+await upload.text());
   const rows=await api("/rest/v1/app_settings?select=value&key=eq.remote_config&limit=1",{},session.access_token);
   if(!Array.isArray(rows)||!rows.length)throw Error("Configuração remota não encontrada.");
   const config=rows[0].value||{};
-  config.updates={enabled:true,latestVersionCode:code,latestVersionName:name,apkUrl:URL+"/storage/v1/object/public/doramax-apk-updates/"+path,releaseNotes:notes};
+  config.updates={enabled:true,latestVersionCode:code,latestVersionName:name,apkUrl:URL+"/storage/v1/object/public/doramax-apk-updates/"+path,apkSha256,apkSizeBytes:file.size,releaseNotes:notes};
   const saved=await api("/rest/v1/app_settings?key=eq.remote_config",{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify({value:config})},session.access_token);
   if(!saved||!saved.length)throw Error("APK enviado, mas a publicação não foi confirmada.");
   status("apkStatus","Versão "+name+" publicada! Os aplicativos vão identificar a atualização.");await refreshPublishedUpdateButton();
