@@ -737,7 +737,7 @@ async function loadRemoteVideos(){
  const timeout=setTimeout(()=>controller.abort(),9000);
  catalogRequest=(async()=>{
   try{
-   const response=await fetch('https://qbwsaahlkovrejwliefv.supabase.co/rest/v1/videos?select=id,title,published,source&is_active=eq.true&source=eq.lucasdramascurtos&order=position.asc,created_at.desc&limit=1000',{
+   const response=await fetch('https://qbwsaahlkovrejwliefv.supabase.co/rest/v1/videos?select=id,title,published,source&is_active=eq.true&order=position.asc,created_at.desc&limit=1000',{
     method:'GET',
     cache:'no-store',
     signal:controller.signal,
@@ -750,7 +750,7 @@ async function loadRemoteVideos(){
    if(!response.ok)throw new Error('Supabase HTTP '+response.status);
    const rows=await response.json();
    if(!Array.isArray(rows)||!rows.length)throw new Error('Catálogo vazio ou formato inválido no Supabase');
-   const data={videos:rows.filter(video=>video&&video.source==='lucasdramascurtos'&&String(video.id||'').trim())};
+   const data={videos:rows.filter(video=>video&&String(video.id||'').trim()&&String(video.source||'').trim())};
    if(!data.videos.length)throw new Error('Nenhum vídeo ativo do canal configurado');
    try{localStorage.setItem(VIDEO_CATALOG_CACHE_KEY,JSON.stringify(data));}catch(cacheError){console.warn('Não foi possível salvar o catálogo local:',cacheError);}
    applyVideoCatalog(data);
