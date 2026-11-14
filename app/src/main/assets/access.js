@@ -298,6 +298,60 @@
   }
   window.doramaxRefreshAccessGate = function () { updateGate(); };
 
+  async function loadRemoteSettings() {
+    try {
+      const rows = await api("/rest/v1/app_settings?select=key,value&key=in.(app_config,remote_config)", { method: "GET" });
+      const settings = Object.fromEntries((Array.isArray(rows) ? rows : []).map(row => [row.key, row.value || {}]));
+      const appConfig = settings.app_config || {};
+      const remoteConfig = settings.remote_config || {};
+      window.__doramaxAppConfig = appConfig;
+      window.__doramaxRemoteConfig = remoteConfig;
+
+      const accent = remoteConfig.theme && remoteConfig.theme.accentColor;
+      if (typeof accent === "string" && /^#[0-9a-f]{6}$/i.test(accent)) {
+        document.documentElement.style.setProperty("--accent", accent);
+      }
+
+      const hiddenSelectors = remoteConfig.visibility && remoteConfig.visibility.hideSelectors;
+      if (Array.isArray(hiddenSelectors)) {
+        hiddenSelectors.forEach(selector => {
+          if (typeof selector !== "string" || !selector.trim()) return;
+          try {
+            document.querySelectorAll(selector).forEach(element => { element.style.display = "none"; });
+          } catch (error) {
+            console.warn("[DORAMAX] Seletor remoto inválido:", selector, error);
+          }
+        });
+      }
+
+      const notice = remoteConfig.notice || {};
+      const noticeText = typeof notice.text === "string" ? notice.text.trim() : "";
+      if (notice.enabled === true && noticeText && !document.getElementById("dmRemoteNotice")) {
+        const banner = document.createElement("div");
+        banner.id = "dmRemoteNotice";
+        banner.setAttribute("role", "status");
+        banner.style.cssText = "position:fixed;z-index:2000;top:0;left:0;right:0;padding:12px 42px 12px 14px;background:#202020;color:#fff;text-align:center;font-size:13px;font-weight:700;box-shadow:0 3px 14px #0009;";
+        if (notice.type === "warning") banner.style.background = "#79520b";
+        if (notice.type === "error") banner.style.background = "#8b1e2d";
+        const message = document.createElement("span");
+        message.textContent = noticeText;
+        banner.appendChild(message);
+        if (notice.dismissible !== false) {
+          const close = document.createElement("button");
+          close.type = "button";
+          close.textContent = "×";
+          close.setAttribute("aria-label", "Fechar aviso");
+          close.style.cssText = "position:absolute;right:10px;top:4px;border:0;background:transparent;color:#fff;font-size:25px;padding:2px 8px;";
+          close.addEventListener("click", () => banner.remove());
+          banner.appendChild(close);
+        }
+        document.body.appendChild(banner);
+      }
+    } catch (error) {
+      console.warn("[DORAMAX] Não foi possível carregar as configurações do Supabase:", error);
+    }
+  }
+
   async function loadAccess() {
     if (!session || !session.access_token) {
       currentUser = null;
@@ -531,6 +585,7 @@
   } catch (_) { saveSession(null); }
 
   loadAccess();
+  loadRemoteSettings();
   // Refresh access when the app returns to foreground.
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden && session) loadAccess();
