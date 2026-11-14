@@ -51,8 +51,8 @@ class MainActivity : AppCompatActivity() {
         fun getVersionCode(): Int = BuildConfig.VERSION_CODE
 
         @JavascriptInterface
-        fun downloadUpdate(url: String) {
-            runOnUiThread { enqueueUpdateDownload(url) }
+        fun downloadUpdate(url: String, expectedSha256: String, expectedSize: Long, expectedVersionCode: Int) {
+            runOnUiThread { enqueueUpdateDownload(url, expectedSha256, expectedSize, expectedVersionCode) }
         }
 
         @JavascriptInterface
@@ -175,7 +175,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun enqueueUpdateDownload(url: String) {
+    private fun enqueueUpdateDownload(url: String, expectedSha256: String, expectedSize: Long, expectedVersionCode: Int) {
         val uri = runCatching { Uri.parse(url) }.getOrNull()
         if (uri == null || uri.scheme != "https" ||
             uri.host != "qbwsaahlkovrejwliefv.supabase.co" ||
@@ -213,9 +213,16 @@ class MainActivity : AppCompatActivity() {
                 val updatesDir = File(cacheDir, "updates").apply { mkdirs() }
                 val apkFile = File(updatesDir, "doramax-update.apk")
                 val tempFile = File(updatesDir, "doramax-update.apk.part")
+                apkFile.delete()
+                tempFile.delete()
+                if (expectedSha256.length != 64 || !expectedSha256.matches(Regex("[0-9a-fA-F]{64}")) || expectedSize <= 0L || expectedVersionCode <= BuildConfig.VERSION_CODE) {
+                    throw IllegalStateException("Dados de integridade da atualização inválidos")
+                }
 
                 connection = (URL(url).openConnection() as HttpURLConnection).apply {
                     requestMethod = "GET"
+                    useCaches = false
+                    setRequestProperty("Cache-Control", "no-cache, no-store")
                     connectTimeout = 20000
                     readTimeout = 60000
                     instanceFollowRedirects = true
@@ -228,6 +235,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 val totalBytes = connection.contentLengthLong
+                if (totalBytes > 0L && totalBytes != expectedSize) throw IllegalStateException("Tamanho do APK diferente do arquivo publicado")
                 var downloadedBytes = 0L
                 var lastPercent = -2
                 var lastReportAt = 0L
@@ -260,8 +268,19 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                if (!tempFile.exists() || tempFile.length() < 1024 * 1024) {
-                    throw IllegalStateException("Arquivo APK incompleto")
+                if (!tempFile.exists() || tempFile.length() < 1024 * 1024 || tempFile.length() != expectedSize) {
+                    throw IllegalStateException("Arquivo APK incompleto ou com tamanho diferente do publicado")
+                }
+                val actualSha256 = java.security.MessageDigest.getInstance("SHA-256").digest(tempFile.readBytes()).joinToString("") { "%02x".format(it) }
+                if (!actualSha256.equals(expectedSha256, ignoreCase = true)) {
+                    throw IllegalStateException("O APK recebido é diferente do arquivo enviado pelo ADM")
+                }
+                @Suppress("DEPRECATION")
+                val downloadedInfo = packageManager.getPackageArchiveInfo(tempFile.absolutePath, 0)
+                    ?: throw IllegalStateException("O arquivo recebido não é um APK instalável")
+                val downloadedVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) downloadedInfo.longVersionCode.toInt() else downloadedInfo.versionCode
+                if (downloadedInfo.packageName != packageName || downloadedVersion != expectedVersionCode || downloadedVersion <= BuildConfig.VERSION_CODE) {
+                    throw IllegalStateException("Pacote ou versão do APK não corresponde à atualização publicada")
                 }
                 val header = ByteArray(4)
                 tempFile.inputStream().use { if (it.read(header) != 4) throw IllegalStateException("Arquivo inválido") }
