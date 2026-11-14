@@ -56,5 +56,4 @@ VALUES
  ('remote_config','{}'::jsonb,true)
 ON CONFLICT (key) DO NOTHING;
 
-CREATE INDEX IF NOT EXISTS videos_active_position_idx ON public.videos(is_active,position);
 CREATE INDEX IF NOT EXISTS videos_active_source_idx ON public.videos(is_active,source);
