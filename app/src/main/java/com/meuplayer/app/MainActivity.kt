@@ -44,10 +44,6 @@ class MainActivity : AppCompatActivity() {
     private var updateReceiver: BroadcastReceiver? = null
     private var pendingFileChooser: ValueCallback<Array<Uri>>? = null
 
-    companion object {
-        private const val FILE_CHOOSER_REQUEST_CODE = 7401
-    }
-
     private inner class UpdateBridge {
         @JavascriptInterface
         fun getVersionCode(): Int = BuildConfig.VERSION_CODE
@@ -148,6 +144,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val FILE_CHOOSER_REQUEST_CODE = 7401
         private const val TAG = "DORAMAX_ADS"
         // DORAMAX GRÁTIS production AdMob App ID.
         private const val ADMOB_APP_ID = "ca-app-pub-2488297391470541~8272798060"
