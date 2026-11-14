@@ -1056,7 +1056,10 @@ function replaceCompletedVideo(frame){
 }
 
 function videoId(frame){
- const match=(frame.src||frame.dataset.src||'').match(/youtube\.com\/embed\/([^?&]+)/);
+ if(!frame)return '';
+ const current=frame.getAttribute('src')||'';
+ const source=/youtube\.com\/embed\//.test(current)?current:(frame.dataset.src||current);
+ const match=source.match(/youtube\.com\/embed\/([^?&]+)/);
  return match?match[1]:'';
 }
 
@@ -1160,7 +1163,7 @@ function renderHistory(){
 }
 function openHistory(){renderHistory();historyPanel.classList.add('open');historyPanel.setAttribute('aria-hidden','false');}
 function hideHistory(){historyPanel.classList.remove('open');historyPanel.setAttribute('aria-hidden','true');}
-continueBtn.addEventListener('click',()=>{const latest=history.slice().sort((a,b)=>(Number(b.updated)||0)-(Number(a.updated)||0))[0];if(latest)resumeVideo(latest);else openHistory();});
+continueBtn.addEventListener('click',openHistory);
 closeHistory.addEventListener('click',hideHistory);
 historyPanel.addEventListener('click',event=>{if(event.target===historyPanel)hideHistory();});
 renderHistory();
