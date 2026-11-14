@@ -112,24 +112,8 @@
   }
 
   function updateLoggedAs() {
-    let label = document.getElementById("dmLoggedAs");
-    if (!label) {
-      const actions = document.querySelector(".top-actions");
-      if (!actions) return;
-      label = document.createElement("span");
-      label.id = "dmLoggedAs";
-      label.className = "dm-logged-as";
-      actions.insertBefore(label, actions.firstChild);
-    }
-    const email = currentUser && currentUser.email;
-    label.textContent = email ? "Logado: " + email : "";
-    label.style.display = email ? "inline-block" : "none";
-    label.title = email ? "Conta conectada: " + email : "";
-    const adminButton = document.getElementById("adminAccessBtn");
-    if (adminButton) {
-      adminButton.textContent = email ? "LOGOUT" : "LOGIN";
-      adminButton.title = email ? "Sair da conta" : "Entrar na conta";
-    }
+    const email = currentUser && currentUser.email || "";
+    window.dispatchEvent(new CustomEvent("doramax:account-state", { detail: { email, loggedIn: !!email, isAdmin, unlocked } }));
   }
 
   async function refreshSessionIfNeeded() {
@@ -216,10 +200,17 @@
     authMode = mode;
     updateAuthMode();
     document.getElementById("dmError").textContent = "";
-    document.getElementById("dmAuthForm").style.display = "block";
-    document.getElementById("dmSwitch").style.display = "block";
-    document.getElementById("dmLogout").style.display = session ? "block" : "none";
-    document.getElementById("dmModalTitle").textContent = mode === "signup" ? "Criar conta" : "Entrar no DORAMAX";
+    const loggedIn = !!(session && currentUser);
+    document.getElementById("dmAuthForm").style.display = loggedIn ? "none" : "block";
+    document.getElementById("dmSwitch").style.display = loggedIn ? "none" : "block";
+    document.getElementById("dmLogout").style.display = loggedIn ? "block" : "none";
+    document.getElementById("dmModalTitle").textContent = loggedIn ? "Minha conta" : (mode === "signup" ? "Criar conta" : "Entrar no DORAMAX");
+    document.getElementById("dmModalDesc").textContent = loggedIn
+      ? "Logado com " + (currentUser.email || "sua conta") + "."
+      : (mode === "signup" ? "Cadastre seu e-mail e crie uma senha para acompanhar sua liberação." : "Entre com sua conta para consultar seu acesso.");
+    document.getElementById("dmStatus").textContent = loggedIn
+      ? (unlocked ? "Acesso liberado. Aproveite todos os vídeos!" : "Sua conta está conectada. Acesso aguardando liberação.")
+      : "";
     document.getElementById("dmModal").style.display = "flex";
   }
 
@@ -593,11 +584,8 @@
   }
 
   function installAdminEntry() {
-    const adminButton = document.getElementById("adminAccessBtn");
-    if (adminButton) adminButton.addEventListener("click", () => {
-      if (session && currentUser) logout();
-      else openModal("login");
-    });
+    window.addEventListener("doramax:open-account", () => openModal("login"));
+    window.addEventListener("doramax:request-account-state", updateLoggedAs);
   }
 
   addStyles();
