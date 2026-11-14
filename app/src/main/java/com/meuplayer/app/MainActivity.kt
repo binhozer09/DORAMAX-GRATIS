@@ -85,7 +85,7 @@ class MainActivity : AppCompatActivity() {
             .setDestinationInExternalFilesDir(
                 this,
                 Environment.DIRECTORY_DOWNLOADS,
-                "doramax-update.apk"
+                "doramax-update-${System.currentTimeMillis()}.apk"
             )
 
         if (updateReceiver == null) {
