@@ -77,7 +77,7 @@ async function api(path,opts={},token,retried=false){
 }
 function status(id,msg){$(id).textContent=msg||""}
 function save(v){session=v;if(v)localStorage.setItem(STORE,JSON.stringify(v));else localStorage.removeItem(STORE)}
-async function verify(){if(!session||!session.access_token)throw Error("Faça login novamente.");const me=await api("/auth/v1/user",{},session.access_token);const rows=await api("/rest/v1/admin_users?select=user_id&user_id=eq."+encodeURIComponent(me.id),{},session.access_token);if(!Array.isArray(rows)||!rows.length)throw Error("Esta conta não está autorizada como administradora.");admin=true;$("login").classList.add("hidden");$("dashboard").classList.remove("hidden");$("logout").classList.remove("hidden");await listUsers()}
+async function verify(){if(!session||!session.access_token)throw Error("Faça login novamente.");const me=await api("/auth/v1/user",{},session.access_token);const rows=await api("/rest/v1/admin_users?select=user_id&user_id=eq."+encodeURIComponent(me.id),{},session.access_token);if(!Array.isArray(rows)||!rows.length)throw Error("Esta conta não está autorizada como administradora.");admin=true;$("login").classList.add("hidden");$("dashboard").classList.remove("hidden");$("logout").classList.remove("hidden");await listUsers();await refreshPublishedUpdateButton()}
 async function login(e){e.preventDefault();const b=$("loginBtn");b.disabled=true;status("loginStatus","Verificando acesso...");try{const v=await api("/auth/v1/token?grant_type=password",{method:"POST",body:JSON.stringify({email:$("email").value.trim().toLowerCase(),password:$("password").value})});save(v);await verify();status("dashStatus","Administrador conectado com segurança.")}catch(err){save(null);admin=false;status("loginStatus",err.message)}finally{b.disabled=false}}
 async function renderUsers(profiles){const out=$("users");out.replaceChildren();if(!profiles.length){out.textContent="Nenhum usuário encontrado.";return}for(const p of profiles){const grants=await api("/rest/v1/access_grants?select=is_unlocked&user_id=eq."+encodeURIComponent(p.user_id),{},session.access_token);const unlocked=!!(grants[0]&&grants[0].is_unlocked);const item=document.createElement("div");item.className="user";const title=document.createElement("strong");title.textContent=p.email||p.user_id;const info=document.createElement("small");info.textContent=unlocked?"ACESSO COMPLETO LIBERADO":"ACESSO BLOQUEADO";const btn=document.createElement("button");btn.className=unlocked?"red":"green";btn.textContent=unlocked?"BLOQUEAR ACESSO":"LIBERAR ACESSO";btn.onclick=async()=>{btn.disabled=true;try{const result=await api("/rest/v1/access_grants?user_id=eq."+encodeURIComponent(p.user_id),{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify({is_unlocked:!unlocked})},session.access_token);if(!result||!result.length)throw Error("O servidor não confirmou a alteração. Verifique as políticas de acesso do Supabase.");status("dashStatus","Permissão atualizada para "+(p.email||"usuário")+".");await listUsers()}catch(err){status("dashStatus",err.message);btn.disabled=false}};item.append(title,info,btn);out.append(item)}}
 async function listUsers(){if(!admin)return;status("dashStatus","Carregando usuários...");try{const p=await api("/rest/v1/profiles?select=user_id,email&order=created_at.desc&limit=100",{},session.access_token);await renderUsers(p);status("dashStatus",p.length+" usuário(s) carregado(s).")}catch(e){status("dashStatus",e.message)}}
@@ -104,8 +104,27 @@ async function publishApk(){
   status("apkStatus","Versão "+name+" publicada! Os aplicativos vão identificar a atualização.");
  }catch(e){status("apkStatus",e.message)}finally{btn.disabled=false}
 }
+async function refreshPublishedUpdateButton(){
+ try{const r=await api("/rest/v1/app_settings?select=value&key=eq.remote_config&limit=1",{},session.access_token);const u=r?.[0]?.value?.updates;$("deleteApkBtn").disabled=!(u?.enabled===true&&u?.apkUrl);if(u?.enabled===true&&u?.apkUrl)$("deleteApkBtn").textContent="EXCLUIR ATUALIZAÇÃO ENVIADA (V"+(u.latestVersionName||u.latestVersionCode)+")"}catch(e){$("deleteApkBtn").disabled=true}
+}
+async function removePublishedApk(){
+ if(!admin||!session?.access_token)return;
+ const btn=$("deleteApkBtn");btn.disabled=true;
+ try{
+  const rows=await api("/rest/v1/app_settings?select=value&key=eq.remote_config&limit=1",{},session.access_token);
+  if(!Array.isArray(rows)||!rows.length)throw Error("Configuração remota não encontrada.");
+  const config=rows[0].value||{},updates=config.updates||{};
+  if(updates.enabled!==true||!updates.apkUrl)throw Error("Não há atualização publicada para remover.");
+  if(!confirm("Deseja retirar a atualização publicada? Os aparelhos ainda não atualizados deixarão de recebê-la.")){btn.disabled=false;return}
+  config.updates={...updates,enabled:false,apkUrl:"",releaseNotes:""};
+  const saved=await api("/rest/v1/app_settings?key=eq.remote_config",{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify({value:config})},session.access_token);
+  if(!saved||!saved.length)throw Error("O servidor não confirmou a remoção.");
+  status("apkStatus","Atualização retirada da publicação. Ela não será mais oferecida aos aparelhos.");
+  btn.disabled=true;btn.textContent="EXCLUIR ATUALIZAÇÃO ENVIADA";
+ }catch(e){status("apkStatus",e.message);btn.disabled=false}
+}
 async function logout(){try{if(session)await api("/auth/v1/logout",{method:"POST"},session.access_token)}catch{}save(null);admin=false;$("dashboard").classList.add("hidden");$("login").classList.remove("hidden");$("logout").classList.add("hidden");status("loginStatus","Sessão encerrada.")}
-$("publishApkBtn").addEventListener("click",publishApk);$("loginForm").addEventListener("submit",login);$("logout").addEventListener("click",logout);$("listBtn").addEventListener("click",listUsers);$("searchBtn").addEventListener("click",search);$("paymentsBtn").addEventListener("click",payments);$("syncBtn").addEventListener("click",syncCatalog);
+$("publishApkBtn").addEventListener("click",publishApk);$("deleteApkBtn").addEventListener("click",removePublishedApk);$("loginForm").addEventListener("submit",login);$("logout").addEventListener("click",logout);$("listBtn").addEventListener("click",listUsers);$("searchBtn").addEventListener("click",search);$("paymentsBtn").addEventListener("click",payments);$("syncBtn").addEventListener("click",syncCatalog);
 try{const saved=localStorage.getItem(STORE);if(saved){session=JSON.parse(saved);verify().catch(()=>{save(null);status("loginStatus","Entre novamente para confirmar sua autorização.")})}}catch{save(null)}
 })();
 </script></body></html>
