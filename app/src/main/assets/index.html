@@ -297,6 +297,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
 
 </main>
 <script>
+// Solicita ao Android/WebView que preserve os dados locais do app entre aberturas.
+try{if(navigator.storage&&typeof navigator.storage.persist==='function')navigator.storage.persist().catch(()=>{});}catch(_){}
 const feed=document.getElementById('feed');
 let cards=[...document.querySelectorAll('.video')];
 let frames=cards.map(card=>card.querySelector('iframe')).filter(Boolean);
@@ -752,7 +754,7 @@ async function loadRemoteVideos(){
    if(!Array.isArray(rows)||!rows.length)throw new Error('Catálogo vazio ou formato inválido no Supabase');
    const data={videos:rows.filter(video=>video&&String(video.id||'').trim()&&String(video.source||'').trim())};
    if(!data.videos.length)throw new Error('Nenhum vídeo ativo do canal configurado');
-   try{localStorage.setItem(VIDEO_CATALOG_CACHE_KEY,JSON.stringify(data));}catch(cacheError){console.warn('Não foi possível salvar o catálogo local:',cacheError);}
+   try{localStorage.setItem(VIDEO_CATALOG_CACHE_KEY,JSON.stringify({schemaVersion:1,savedAt:Date.now(),videos:data.videos}));}catch(cacheError){console.warn('Não foi possível salvar o catálogo local:',cacheError);}
    applyVideoCatalog(data);
   }catch(error){console.warn('Não foi possível atualizar o catálogo do Supabase; mantendo o cache:',error);restoreFeedPosition();}
   finally{clearTimeout(timeout);catalogRequest=null;}
