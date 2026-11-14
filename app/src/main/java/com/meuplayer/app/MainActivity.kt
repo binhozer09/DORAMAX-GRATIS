@@ -16,6 +16,7 @@ import android.webkit.JavascriptInterface
 import android.widget.Toast
 import android.util.DisplayMetrics
 import android.util.Log
+import org.json.JSONObject
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.webkit.WebChromeClient
@@ -55,6 +56,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun reportUpdateProgress(percent: Int, message: String) {
+        runOnUiThread {
+            if (::siteWeb.isInitialized) {
+                val safeMessage = JSONObject.quote(message)
+                siteWeb.evaluateJavascript(
+                    "window.doramaxUpdateProgress && window.doramaxUpdateProgress($percent, $safeMessage);",
+                    null
+                )
+            }
+        }
+    }
+
     private fun enqueueUpdateDownload(url: String) {
         val uri = runCatching { Uri.parse(url) }.getOrNull()
         if (uri == null || uri.scheme != "https" ||
@@ -85,6 +98,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        reportUpdateProgress(0, "Conectando ao servidor...")
         Toast.makeText(this, "Baixando atualização dentro do DORAMAX...", Toast.LENGTH_SHORT).show()
         Thread {
             var connection: HttpURLConnection? = null
@@ -106,9 +120,35 @@ class MainActivity : AppCompatActivity() {
                     throw IllegalStateException("HTTP ${connection.responseCode}")
                 }
 
+                val totalBytes = connection.contentLengthLong
+                var downloadedBytes = 0L
+                var lastPercent = -2
+                var lastReportAt = 0L
                 connection.inputStream.use { input ->
                     FileOutputStream(tempFile).use { output ->
-                        input.copyTo(output)
+                        val buffer = ByteArray(32 * 1024)
+                        while (true) {
+                            val count = input.read(buffer)
+                            if (count < 0) break
+                            output.write(buffer, 0, count)
+                            downloadedBytes += count
+                            val percent = if (totalBytes > 0L) {
+                                ((downloadedBytes * 100L) / totalBytes).toInt().coerceIn(0, 99)
+                            } else {
+                                -1
+                            }
+                            val now = System.currentTimeMillis()
+                            if (percent != lastPercent || now - lastReportAt >= 150L) {
+                                lastPercent = percent
+                                lastReportAt = now
+                                val detail = if (percent >= 0) {
+                                    "Baixando atualização... " + percent + "%"
+                                } else {
+                                    "Baixando atualização... " + (downloadedBytes / (1024 * 1024)) + " MB"
+                                }
+                                reportUpdateProgress(percent, detail)
+                            }
+                        }
                         output.fd.sync()
                     }
                 }
@@ -126,6 +166,7 @@ class MainActivity : AppCompatActivity() {
                     throw IllegalStateException("Não foi possível preparar o instalador")
                 }
 
+                reportUpdateProgress(100, "Download concluído. Abrindo o instalador do Android...")
                 runOnUiThread {
                     try {
                         val apkUri = FileProvider.getUriForFile(
@@ -153,6 +194,7 @@ class MainActivity : AppCompatActivity() {
             } catch (error: Exception) {
                 Log.e(TAG, "Update download failed", error)
                 runOnUiThread {
+                    reportUpdateProgress(-2, "Não foi possível baixar. Verifique a internet e tente novamente.")
                     Toast.makeText(
                         this,
                         "Não foi possível baixar a atualização. Verifique a internet e tente novamente.",
