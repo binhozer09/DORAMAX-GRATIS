@@ -271,7 +271,16 @@ class MainActivity : AppCompatActivity() {
                 if (!tempFile.exists() || tempFile.length() < 1024 * 1024 || tempFile.length() != expectedSize) {
                     throw IllegalStateException("Arquivo APK incompleto ou com tamanho diferente do publicado")
                 }
-                val actualSha256 = java.security.MessageDigest.getInstance("SHA-256").digest(tempFile.readBytes()).joinToString("") { "%02x".format(it) }
+                val digest = java.security.MessageDigest.getInstance("SHA-256")
+                tempFile.inputStream().use { input ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        digest.update(buffer, 0, count)
+                    }
+                }
+                val actualSha256 = digest.digest().joinToString("") { "%02x".format(it) }
                 if (!actualSha256.equals(expectedSha256, ignoreCase = true)) {
                     throw IllegalStateException("O APK recebido é diferente do arquivo enviado pelo ADM")
                 }
