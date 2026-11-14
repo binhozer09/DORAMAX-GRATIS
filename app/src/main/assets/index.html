@@ -1315,15 +1315,58 @@ document.addEventListener('visibilitychange',()=>{
 const VIDEO_CATALOG_CACHE_KEY='doramax_video_catalog_cache_v1';
 let catalogRequest=null;
 let catalogCacheApplied=false;
+let catalogQueue=[];
+let catalogSentinel=null;
+let catalogLoadObserver=null;
+const CATALOG_BATCH_SIZE=8;
+function appendCatalogBatch(){
+ if(!catalogQueue.length){
+  if(catalogLoadObserver)catalogLoadObserver.disconnect();
+  if(catalogSentinel){catalogSentinel.remove();catalogSentinel=null;}
+  return;
+ }
+ const batch=catalogQueue.splice(0,CATALOG_BATCH_SIZE);
+ const fragment=document.createDocumentFragment();
+ batch.forEach(video=>fragment.appendChild(buildVideoCard(video)));
+ if(catalogSentinel)feed.insertBefore(fragment,catalogSentinel);
+ else feed.appendChild(fragment);
+ refreshFeedCollections();
+ batch.forEach(video=>{
+  const card=cards.find(item=>videoId(item.querySelector('iframe'))===video.id);
+  if(card)observer.observe(card);
+ });
+ if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();
+ if(!catalogQueue.length){
+  if(catalogLoadObserver)catalogLoadObserver.disconnect();
+  if(catalogSentinel){catalogSentinel.remove();catalogSentinel=null;}
+ }
+}
+function startCatalogBatchLoading(){
+ if(!catalogSentinel){
+  catalogSentinel=document.createElement('div');
+  catalogSentinel.className='catalog-load-sentinel';
+  catalogSentinel.setAttribute('aria-hidden','true');
+  catalogSentinel.style.cssText='height:2px;width:100%;pointer-events:none;';
+  feed.appendChild(catalogSentinel);
+ }
+ if(!catalogLoadObserver){
+  catalogLoadObserver=new IntersectionObserver(entries=>{
+   if(entries.some(entry=>entry.isIntersecting))appendCatalogBatch();
+  },{root:feed,rootMargin:'1000px 0px',threshold:0});
+ }
+ catalogLoadObserver.observe(catalogSentinel);
+ appendCatalogBatch();
+}
 function applyVideoCatalog(data){
  if(!data||!Array.isArray(data.videos))return;
  remoteCatalogVideos=data.videos.map(video=>({...video,id:String(video&&video.id||'').trim()})).filter(video=>video.id);
  const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
- const fresh=[];
- for(const video of remoteCatalogVideos){if(known.has(video.id)||watchedVideoIds.has(video.id))continue;known.add(video.id);fresh.push(video);}
  const slots=Math.max(0,1000-feed.querySelectorAll('.video').length);
- fresh.slice(0,slots).reverse().forEach(video=>feed.insertBefore(buildVideoCard(video),feed.firstChild));
- if(fresh.length&&slots>0){refreshFeedCollections();cards.forEach(card=>observer.observe(card));if(window.doramaxRefreshAccessGate)window.doramaxRefreshAccessGate();}
+ catalogQueue=remoteCatalogVideos.filter(video=>{
+  if(known.has(video.id)||watchedVideoIds.has(video.id))return false;
+  known.add(video.id);return true;
+ }).slice(0,slots);
+ if(catalogQueue.length)startCatalogBatchLoading();
  restoreFeedPosition();
 }
 function loadCachedVideoCatalog(){
