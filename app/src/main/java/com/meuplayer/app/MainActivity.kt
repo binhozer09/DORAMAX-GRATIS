@@ -1,15 +1,17 @@
 package com.meuplayer.app
 
 import android.os.Bundle
-import android.app.DownloadManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.Settings
+import androidx.core.content.FileProvider
+import java.io.File
+import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.concurrent.atomic.AtomicBoolean
 import android.webkit.JavascriptInterface
 import android.widget.Toast
 import android.util.DisplayMetrics
@@ -40,8 +42,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var assetLoader: WebViewAssetLoader
     private lateinit var adContainer: FrameLayout
     private var bannerAdView: AdView? = null
-    private var updateDownloadId: Long = -1L
-    private var updateReceiver: BroadcastReceiver? = null
+    private val updateInProgress = AtomicBoolean(false)
     private var pendingFileChooser: ValueCallback<Array<Uri>>? = null
 
     private inner class UpdateBridge {
@@ -67,7 +68,7 @@ class MainActivity : AppCompatActivity() {
             !packageManager.canRequestPackageInstalls()) {
             Toast.makeText(
                 this,
-                "Permita instalar aplicativos desta fonte e toque no sino novamente.",
+                "Autorize o DORAMAX a instalar atualizações e depois toque em Atualizar novamente.",
                 Toast.LENGTH_LONG
             ).show()
             startActivity(
@@ -79,68 +80,90 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val manager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        val request = DownloadManager.Request(uri)
-            .setTitle("Atualização do DORAMAX")
-            .setDescription("Baixando a nova versão do aplicativo")
-            .setMimeType("application/vnd.android.package-archive")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setDestinationInExternalFilesDir(
-                this,
-                Environment.DIRECTORY_DOWNLOADS,
-                "doramax-update-${System.currentTimeMillis()}.apk"
-            )
+        if (!updateInProgress.compareAndSet(false, true)) {
+            Toast.makeText(this, "A atualização já está sendo baixada.", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        if (updateReceiver == null) {
-            updateReceiver = object : BroadcastReceiver() {
-                override fun onReceive(context: Context, intent: Intent) {
-                    val completedId = intent.getLongExtra(
-                        DownloadManager.EXTRA_DOWNLOAD_ID,
-                        -1L
-                    )
-                    if (completedId != updateDownloadId) return
+        Toast.makeText(this, "Baixando atualização dentro do DORAMAX...", Toast.LENGTH_SHORT).show()
+        Thread {
+            var connection: HttpURLConnection? = null
+            try {
+                val updatesDir = File(cacheDir, "updates").apply { mkdirs() }
+                val apkFile = File(updatesDir, "doramax-update.apk")
+                val tempFile = File(updatesDir, "doramax-update.apk.part")
 
-                    val apkUri = manager.getUriForDownloadedFile(completedId)
-                    if (apkUri == null) {
-                        Toast.makeText(
-                            this@MainActivity,
-                            "Falha ao baixar a atualização. Tente novamente.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        return
+                connection = (URL(url).openConnection() as HttpURLConnection).apply {
+                    requestMethod = "GET"
+                    connectTimeout = 20000
+                    readTimeout = 60000
+                    instanceFollowRedirects = true
+                    setRequestProperty("Accept", "application/vnd.android.package-archive")
+                    connect()
+                }
+
+                if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                    throw IllegalStateException("HTTP ${connection.responseCode}")
+                }
+
+                connection.inputStream.use { input ->
+                    FileOutputStream(tempFile).use { output ->
+                        input.copyTo(output)
+                        output.fd.sync()
                     }
+                }
 
-                    val installIntent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(
-                            apkUri,
-                            "application/vnd.android.package-archive"
-                        )
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
+                if (!tempFile.exists() || tempFile.length() < 1024 * 1024) {
+                    throw IllegalStateException("Arquivo APK incompleto")
+                }
+                val header = ByteArray(4)
+                tempFile.inputStream().use { if (it.read(header) != 4) throw IllegalStateException("Arquivo inválido") }
+                if (header[0] != 0x50.toByte() || header[1] != 0x4b.toByte()) {
+                    throw IllegalStateException("O arquivo recebido não parece ser um APK válido")
+                }
+                if (apkFile.exists()) apkFile.delete()
+                if (!tempFile.renameTo(apkFile)) {
+                    throw IllegalStateException("Não foi possível preparar o instalador")
+                }
+
+                runOnUiThread {
                     try {
+                        val apkUri = FileProvider.getUriForFile(
+                            this,
+                            "$packageName.fileprovider",
+                            apkFile
+                        )
+                        val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(apkUri, "application/vnd.android.package-archive")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
                         startActivity(installIntent)
                     } catch (error: Exception) {
                         Log.e(TAG, "Could not open APK installer", error)
                         Toast.makeText(
-                            this@MainActivity,
-                            "Não foi possível abrir o instalador do APK.",
+                            this,
+                            "Download concluído, mas não foi possível abrir a instalação.",
                             Toast.LENGTH_LONG
                         ).show()
+                    } finally {
+                        updateInProgress.set(false)
                     }
                 }
+            } catch (error: Exception) {
+                Log.e(TAG, "Update download failed", error)
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Não foi possível baixar a atualização. Verifique a internet e tente novamente.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    updateInProgress.set(false)
+                }
+            } finally {
+                connection?.disconnect()
             }
-            val filter = IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                registerReceiver(updateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-            } else {
-                @Suppress("DEPRECATION")
-                registerReceiver(updateReceiver, filter)
-            }
-        }
-
-        updateDownloadId = manager.enqueue(request)
-        Toast.makeText(this, "Download da atualização iniciado.", Toast.LENGTH_SHORT).show()
+        }.start()
     }
 
     companion object {
@@ -328,10 +351,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         pendingFileChooser?.onReceiveValue(null)
         pendingFileChooser = null
-        updateReceiver?.let { receiver ->
-            runCatching { unregisterReceiver(receiver) }
-        }
-        updateReceiver = null
         bannerAdView?.let { adView ->
             (adView.parent as? ViewGroup)?.removeView(adView)
             adView.destroy()
