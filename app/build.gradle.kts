@@ -3,6 +3,12 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val releaseStorePath = System.getenv("CM_KEYSTORE_PATH")
+val releaseStorePassword = System.getenv("CM_KEYSTORE_PASSWORD")
+val releaseKeyAlias = System.getenv("CM_KEY_ALIAS")
+val releaseKeyPassword = System.getenv("CM_KEY_PASSWORD")
+val hasReleaseKey = listOf(releaseStorePath, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
+
 android {
     namespace = "com.meuplayer.app"
     compileSdk = 35
@@ -19,9 +25,26 @@ android {
         versionName = "1.1.0"
     }
 
+    signingConfigs {
+        create("doramaxRelease") {
+            if (hasReleaseKey) {
+                storeFile = file(releaseStorePath!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            if (hasReleaseKey) {
+                signingConfig = signingConfigs.getByName("doramaxRelease")
+            }
+        }
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("doramaxRelease")
         }
     }
     compileOptions {
@@ -30,6 +53,16 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+    }
+}
+
+tasks.configureEach {
+    if (name == "validateSigningRelease") {
+        doFirst {
+            check(hasReleaseKey) {
+                "DORAMAX signing key missing. Configure the Codemagic Android keystore (CM_KEYSTORE_PATH, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD) before building a release."
+            }
+        }
     }
 }
 
