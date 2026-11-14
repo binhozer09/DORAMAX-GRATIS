@@ -67,6 +67,48 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun cleanupInstalledUpdateIfComplete() {
+        val apkFile = File(cacheDir, "updates/doramax-update.apk")
+        val tempFile = File(cacheDir, "updates/doramax-update.apk.part")
+        val prefs = getSharedPreferences("doramax_update_state", Context.MODE_PRIVATE)
+        val pendingVersion = prefs.getInt("pending_installed_version_code", -1)
+
+        if (pendingVersion > 0 && BuildConfig.VERSION_CODE >= pendingVersion) {
+            runCatching {
+                if (apkFile.exists()) apkFile.delete()
+                if (tempFile.exists()) tempFile.delete()
+                prefs.edit().remove("pending_installed_version_code").apply()
+                Log.i(TAG, "Downloaded update APK removed after successful installation")
+            }.onFailure {
+                Log.w(TAG, "Could not clean installed update APK", it)
+            }
+        }
+    }
+
+    private fun rememberDownloadedApkVersion(apkFile: File) {
+        try {
+            @Suppress("DEPRECATION")
+            val archiveInfo = packageManager.getPackageArchiveInfo(apkFile.absolutePath, 0)
+                ?: throw IllegalStateException("Não foi possível identificar a versão do APK")
+            val targetVersion = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                archiveInfo.longVersionCode.toInt()
+            } else {
+                @Suppress("DEPRECATION")
+                archiveInfo.versionCode
+            }
+            if (archiveInfo.packageName != packageName || targetVersion <= BuildConfig.VERSION_CODE) {
+                throw IllegalStateException("O APK não é uma atualização válida deste aplicativo")
+            }
+            getSharedPreferences("doramax_update_state", Context.MODE_PRIVATE)
+                .edit()
+                .putInt("pending_installed_version_code", targetVersion)
+                .apply()
+        } catch (error: Exception) {
+            Log.e(TAG, "Could not record downloaded APK version", error)
+            throw error
+        }
+    }
+
     private fun reportUpdateProgress(percent: Int, message: String) {
         runOnUiThread {
             if (::siteWeb.isInitialized) {
@@ -204,6 +246,8 @@ class MainActivity : AppCompatActivity() {
                     throw IllegalStateException("Não foi possível preparar o instalador")
                 }
 
+                rememberDownloadedApkVersion(apkFile)
+
                 reportUpdateProgress(100, "Download concluído. Abrindo o instalador do Android...")
                 runOnUiThread {
                     try {
@@ -257,6 +301,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        cleanupInstalledUpdateIfComplete()
         setContentView(R.layout.activity_main)
 
         assetLoader = WebViewAssetLoader.Builder()
