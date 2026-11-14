@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DORAMAX">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="./icon.svg">
 <link rel="preconnect" href="https://www.youtube.com">
 <link rel="preconnect" href="https://www.googlevideo.com">
 <link rel="preconnect" href="https://i.ytimg.com">
@@ -47,7 +53,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
 </head>
 <body>
 <div class="topbar"><div class="brand"><span class="brand-name">DORA<b>MAX</b> GRÁTIS</span><span class="brand-flame" aria-hidden="true">🔥</span></div><div class="top-actions"><button class="admin-entry" id="continueBtn" type="button">CONTINUAR ASSISTINDO</button><button class="account-avatar" id="accountMenuButton" type="button" aria-label="Abrir conta e notificações"><span id="accountAvatarText">D</span><i id="updateDot" hidden></i></button></div></div>
-<div id="accountMenu" class="account-menu" aria-hidden="true"><section class="account-menu-card" role="dialog" aria-modal="true" aria-label="Menu da conta"><header class="account-menu-header"><div class="account-avatar large" id="accountMenuAvatar">D</div><div class="account-menu-heading"><strong>DORAMAX GRÁTIS</strong><small id="accountMenuSubtitle">Sua conta e novidades</small></div><button id="accountMenuClose" class="account-menu-close" type="button" aria-label="Fechar">×</button></header><button class="account-menu-item" id="accountMenuAccount" type="button"><span class="account-menu-icon">◉</span><span><strong>Minha conta / Login</strong><small id="accountMenuEmail">Entre ou veja sua conta conectada</small></span><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuNotifications" type="button"><span class="account-menu-icon">♧</span><span><strong>Notificações</strong><small id="accountMenuNotificationText">Nenhuma novidade por enquanto</small></span><i id="accountMenuNotificationDot" hidden></i><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuUpdates" type="button"><span class="account-menu-icon">↓</span><span><strong>Atualizações do aplicativo</strong><small id="accountMenuUpdateText">Verificar nova versão</small></span><i id="accountMenuUpdateDot" hidden></i><span class="account-menu-chevron">›</span></button></section></div><div id="updatePanel" class="update-panel" aria-hidden="true"><div class="update-card" role="dialog" aria-modal="true" aria-labelledby="updateTitle"><h2 id="updateTitle">Atualização do DORAMAX</h2><p id="updateMessage">Verificando atualizações...</p><div class="update-actions"><button class="update-cancel" id="updateCancel" type="button">Fechar</button><button class="update-confirm" id="updateConfirm" type="button" hidden>Baixar atualização</button></div><div class="update-status" id="updateStatus"></div><div class="update-progress" id="updateProgressBox" hidden><div class="update-progress-track"><div class="update-progress-fill" id="updateProgressFill"></div></div><div class="update-progress-label"><span id="updateProgressLabel">Preparando download...</span><strong id="updateProgressPercent">0%</strong></div></div></div></div>
+<div id="accountMenu" class="account-menu" aria-hidden="true"><section class="account-menu-card" role="dialog" aria-modal="true" aria-label="Menu da conta"><header class="account-menu-header"><div class="account-avatar large" id="accountMenuAvatar">D</div><div class="account-menu-heading"><strong>DORAMAX GRÁTIS</strong><small id="accountMenuSubtitle">Sua conta e novidades</small></div><button id="accountMenuClose" class="account-menu-close" type="button" aria-label="Fechar">×</button></header><button class="account-menu-item" id="accountMenuAccount" type="button"><span class="account-menu-icon">◉</span><span><strong>Minha conta / Login</strong><small id="accountMenuEmail">Entre ou veja sua conta conectada</small></span><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuNotifications" type="button"><span class="account-menu-icon">♧</span><span><strong>Avisos e novidades</strong><small id="accountMenuNotificationText">Avisos e novidades do DORAMAX</small></span><i id="accountMenuNotificationDot" hidden></i><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuUpdates" type="button"><span class="account-menu-icon">↓</span><span><strong>Instalar no iPhone</strong><small id="accountMenuUpdateText">Como adicionar à tela inicial</small></span><i id="accountMenuUpdateDot" hidden></i><span class="account-menu-chevron">›</span></button></section></div><div id="updatePanel" class="update-panel" aria-hidden="true"><div class="update-card" role="dialog" aria-modal="true" aria-labelledby="updateTitle"><h2 id="updateTitle">DORAMAX no iPhone</h2><p id="updateMessage">Adicione o DORAMAX à tela inicial para abrir como um aplicativo.</p><div class="update-actions"><button class="update-cancel" id="updateCancel" type="button">Fechar</button><button class="update-confirm" id="updateConfirm" type="button" hidden>Baixar atualização</button></div><div class="update-status" id="updateStatus"></div><div class="update-progress" id="updateProgressBox" hidden><div class="update-progress-track"><div class="update-progress-fill" id="updateProgressFill"></div></div><div class="update-progress-label"><span id="updateProgressLabel">Preparando download...</span><strong id="updateProgressPercent">0%</strong></div></div></div></div>
 <div id="historyPanel" class="history-panel" aria-hidden="true">
  <div class="history-header"><h2>CONTINUAR ASSISTINDO</h2><button id="closeHistory" type="button" aria-label="Fechar">✕</button></div>
  <div id="historyList" class="history-list"></div>
@@ -55,15 +61,15 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
 <a class="donate" href="https://link.picpay.com/p/17945341236af66aeb27abc" aria-label="Apoiar o DORAMAX pelo PicPay" title="Apoiar o DORAMAX">donate</a>
 <main id="feed" class="feed" aria-label="Feed vertical de vídeos">
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/LccxdtzPvcU?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/LccxdtzPvcU?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=__DORAMAX_ORIGIN__" title="Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
  <div class="info"><h2 class="title">Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap</h2></div>
 </section>
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/wtvWDbBLqdc?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/wtvWDbBLqdc?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=__DORAMAX_ORIGIN__" title="O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
  <div class="info"><h2 class="title">O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!</h2></div>
 </section>
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/FioURf9_CyU?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/FioURf9_CyU?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=__DORAMAX_ORIGIN__" title="Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
  <div class="info"><h2 class="title">Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas</h2></div>
 </section>
 
@@ -341,7 +347,7 @@ function buildVideoCard(video){
  const section=document.createElement('section');section.className='video';
  const player=document.createElement('div');player.className='player';
  const frame=document.createElement('iframe');
- frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
+ frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=__DORAMAX_ORIGIN__');
  frame.title=video.title||'Vídeo novo';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
  frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';frame.allowFullscreen=true;
  player.appendChild(frame);section.appendChild(player);
@@ -561,14 +567,35 @@ const accountMenuNotificationText=document.getElementById('accountMenuNotificati
 const accountMenuEmail=document.getElementById('accountMenuEmail');
 const accountMenuSubtitle=document.getElementById('accountMenuSubtitle');
 const accountAvatarText=document.getElementById('accountAvatarText');
+const updateMessage=document.getElementById('updateMessage');
+const updateStatus=document.getElementById('updateStatus');
+const updateConfirm=document.getElementById('updateConfirm');
+const updateCancel=document.getElementById('updateCancel');
 function openAccountMenu(){accountMenu.classList.add('open');accountMenu.setAttribute('aria-hidden','false');}
 function closeAccountMenu(){accountMenu.classList.remove('open');accountMenu.setAttribute('aria-hidden','true');}
+function openInfoPanel(title,message,status){
+ document.getElementById('updateTitle').textContent=title;
+ updateMessage.textContent=message;
+ updateStatus.textContent=status||'';
+ updateConfirm.hidden=true;
+ document.getElementById('updateProgressBox').hidden=true;
+ updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');
+}
+function closeUpdatePanel(){updatePanel.classList.remove('open');updatePanel.setAttribute('aria-hidden','true');}
 accountMenuButton.addEventListener('click',openAccountMenu);
 accountMenuClose.addEventListener('click',closeAccountMenu);
 accountMenu.addEventListener('click',event=>{if(event.target===accountMenu)closeAccountMenu();});
 accountMenuAccount.addEventListener('click',()=>{closeAccountMenu();window.dispatchEvent(new CustomEvent('doramax:open-account'));});
-accountMenuNotifications.addEventListener('click',()=>{closeAccountMenu();accountMenuUpdateText.textContent=availableAppUpdate?'Nova versão disponível':'Nenhuma atualização pendente';updateMessage.textContent='Verificando atualizações...';updateConfirm.hidden=true;updateStatus.textContent='';updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');checkAppUpdate(true);});
-accountMenuUpdates.addEventListener('click',()=>{closeAccountMenu();updateMessage.textContent='Verificando atualizações...';updateConfirm.hidden=true;updateStatus.textContent='';updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');checkAppUpdate(true);});
+accountMenuNotifications.addEventListener('click',()=>{
+ closeAccountMenu();
+ const notice=window.__doramaxRemoteConfig?.notice||{};
+ const message=notice.enabled===true&&notice.text?notice.text:'Não há avisos novos no momento. Fique de olho nesta área para acompanhar as novidades do DORAMAX.';
+ openInfoPanel('Avisos e novidades',message,'Os avisos publicados pelo DORAMAX aparecem aqui.');
+});
+accountMenuUpdates.addEventListener('click',()=>{
+ closeAccountMenu();
+ openInfoPanel('Instalar no iPhone','Para deixar o DORAMAX na tela inicial do seu iPhone:\n\n1. Abra este site no Safari.\n2. Toque no botão Compartilhar (quadrado com seta para cima).\n3. Escolha “Adicionar à Tela de Início”.\n4. Confirme em “Adicionar”.\n\nDepois, abra pelo ícone do DORAMAX como se fosse um aplicativo.','As atualizações do DORAMAX iOS entram automaticamente pela internet. Não é necessário baixar APK nem instalar pela App Store.');
+});
 window.addEventListener('doramax:account-state',event=>{
  const email=event.detail?.email||'';
  const name=event.detail?.name||'';
@@ -580,99 +607,12 @@ window.addEventListener('doramax:account-state',event=>{
  document.getElementById('accountMenuAvatar').textContent=initial;
 });
 window.dispatchEvent(new CustomEvent('doramax:request-account-state'));
-const updateMessage=document.getElementById('updateMessage');
-const updateStatus=document.getElementById('updateStatus');
-const updateConfirm=document.getElementById('updateConfirm');
-const updateCancel=document.getElementById('updateCancel');
-let availableAppUpdate=null;
-let updateCheckBusy=false;
-function closeUpdatePanel(){updatePanel.classList.remove('open');updatePanel.setAttribute('aria-hidden','true');}
-window.doramaxUpdateProgress=function(percent,message){
- const box=document.getElementById('updateProgressBox');
- const fill=document.getElementById('updateProgressFill');
- const label=document.getElementById('updateProgressLabel');
- const value=document.getElementById('updateProgressPercent');
- if(!box||!fill||!label||!value)return;
- if(percent===-2){
-  updateStatus.textContent=message||'O download falhou.';
-  updateConfirm.disabled=false;updateCancel.disabled=false;
-  return;
- }
- box.hidden=false;
- label.textContent=message||'Baixando atualização...';
- if(percent<0){
-  fill.classList.add('indeterminate');fill.style.width='35%';value.textContent='...';
- }else{
-  fill.classList.remove('indeterminate');fill.style.width=Math.max(0,Math.min(100,percent))+'%';
-  value.textContent=Math.max(0,Math.min(100,percent))+'%';
- }
- if(percent===100){
-  updateDownloaded=true;
-  updateMessage.textContent='Download concluído! Se a tela de instalação fechar ou você voltar depois, toque em Instalar agora para abrir novamente.';
-  updateStatus.textContent='O APK está salvo neste aparelho. A instalação será confirmada na tela do Android.';
-  updateConfirm.hidden=false;updateConfirm.disabled=false;updateConfirm.textContent='Instalar agora';
-  updateCancel.disabled=false;
- }
-};
-let updateDownloaded=false;
-function openUpdatePanel(){
- updateConfirm.disabled=false;updateCancel.disabled=false;
- updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');
- if(availableAppUpdate){
-  updateMessage.textContent=updateDownloaded?'Download concluído! A atualização já está pronta para instalar.':'Nova versão '+availableAppUpdate.latestVersionName+' disponível. '+(availableAppUpdate.releaseNotes||'Atualize para receber as melhorias mais recentes.');
-  updateConfirm.hidden=false;updateConfirm.textContent=updateDownloaded?'Instalar agora':'Baixar atualização';
-  updateStatus.textContent=updateDownloaded?'O APK já está salvo neste aparelho. Você pode instalar agora ou voltar depois.':'Sua versão: '+(window.DoramaxAndroid?.getVersionCode?.()??'atual')+' • Nova versão: '+availableAppUpdate.latestVersionCode;
- }else{
-  updateMessage.textContent='Você está usando a versão mais recente do DORAMAX.';
-  updateConfirm.hidden=true;updateStatus.textContent='Verificação concluída.';
- }
-}
-async function checkAppUpdate(showResult=false){
- if(updateCheckBusy)return;
- updateCheckBusy=true;
- try{
-  const response=await fetch('https://qbwsaahlkovrejwliefv.supabase.co/rest/v1/app_settings?select=value&key=eq.remote_config&limit=1',{cache:'no-store',headers:{'apikey':'sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK','Authorization':'Bearer sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK','Accept':'application/json'}});
-  if(!response.ok)throw new Error('Não foi possível consultar o servidor.');
-  const rows=await response.json(),config=rows?.[0]?.value||{},update=config.updates||{};
-  const installed=Number(window.DoramaxAndroid?.getVersionCode?.()||1);
-  const latest=Number(update.latestVersionCode||0);
-  availableAppUpdate=update.enabled===true&&latest>installed&&/^https:\/\//i.test(update.apkUrl||'')?update:null;
-  updateDownloaded=!!(availableAppUpdate&&window.DoramaxAndroid?.hasDownloadedUpdate?.());
-  updateDot.hidden=!availableAppUpdate;accountMenuUpdateDot.hidden=!availableAppUpdate;accountMenuNotificationDot.hidden=!availableAppUpdate;accountMenuUpdateText.textContent=availableAppUpdate?'Nova versão '+(availableAppUpdate.latestVersionName||'disponível'):'Verificar nova versão';accountMenuNotificationText.textContent=availableAppUpdate?'Há uma atualização esperando por você':'Nenhuma novidade por enquanto';
-  if(showResult)openUpdatePanel();
- }catch(error){
-  updateStatus.textContent='Não foi possível verificar agora. Confira sua conexão e tente novamente.';
-  if(showResult){updateMessage.textContent='Falha ao consultar atualizações.';updateConfirm.hidden=true;updatePanel.classList.add('open');}
- }finally{updateCheckBusy=false;}
-}
-
+updateDot.hidden=true;accountMenuUpdateDot.hidden=true;accountMenuNotificationDot.hidden=true;
+accountMenuUpdateText.textContent='Como adicionar à tela inicial';
+accountMenuNotificationText.textContent='Avisos e novidades do DORAMAX';
 updateCancel.addEventListener('click',closeUpdatePanel);
+updateConfirm.addEventListener('click',closeUpdatePanel);
 updatePanel.addEventListener('click',event=>{if(event.target===updatePanel)closeUpdatePanel();});
-updateConfirm.addEventListener('click',()=>{
- if(!availableAppUpdate)return;
- if(updateDownloaded&&window.DoramaxAndroid?.installDownloadedUpdate){
-  updateStatus.textContent='Abrindo o instalador do Android...';
-  window.DoramaxAndroid.installDownloadedUpdate();
-  return;
- }
- if(window.DoramaxAndroid?.downloadUpdate){
-  updateConfirm.textContent='Baixando...';
-  updateStatus.textContent='Preparando o download...';
-  const box=document.getElementById('updateProgressBox');if(box)box.hidden=false;
-  const fill=document.getElementById('updateProgressFill');if(fill){fill.classList.add('indeterminate');fill.style.width='35%';}
-  const label=document.getElementById('updateProgressLabel');if(label)label.textContent='Conectando ao servidor...';
-  const value=document.getElementById('updateProgressPercent');if(value)value.textContent='...';
-  updateConfirm.disabled=true;updateCancel.disabled=true;
-  window.doramaxUpdateProgress(0,'Conectando ao servidor...');
-  window.DoramaxAndroid.downloadUpdate(availableAppUpdate.apkUrl);
- }else{
-  updateStatus.textContent='O download automático estará disponível na versão Android do aplicativo.';
- }
-});
-checkAppUpdate(false);
-window.setInterval(()=>checkAppUpdate(false),15*60*1000);
-window.addEventListener('online',()=>checkAppUpdate(false));
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppUpdate(false);});
 
 function pauseFrame(frame){
  if(!frame)return;
@@ -762,7 +702,7 @@ function activateFrame(frame){
  const current=frame.getAttribute('src')||'';
  if(frame.dataset.src&&(!current||current==='about:blank')){
   frame.loading='eager';
-  frame.src=frame.dataset.src;
+  frame.src=frame.dataset.src.replace('__DORAMAX_ORIGIN__',encodeURIComponent(location.origin));
   preparedFrames.add(frame);
  }else if(current&&current!=='about:blank'&&/youtube\.com\/embed\//.test(current)){
   preparedFrames.add(frame);
@@ -927,13 +867,13 @@ async function loadRemoteVideos(){
  const timeout=setTimeout(()=>controller.abort(),9000);
  catalogRequest=(async()=>{
   try{
-   const response=await fetch('https://qbwsaahlkovrejwliefv.supabase.co/rest/v1/videos?select=id,title,published,source&is_active=eq.true&order=position.asc,created_at.desc&limit=1000',{
+   const response=await fetch('https://maigqgxtlecxmkeqmjxz.supabase.co/rest/v1/videos?select=id,title,published,source&is_active=eq.true&order=position.asc,created_at.desc&limit=1000',{
     method:'GET',
     cache:'no-store',
     signal:controller.signal,
     headers:{
-     'apikey':'sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK',
-     'Authorization':'Bearer sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK',
+     'apikey':'sb_publishable_Pyw8JZ7W7mZY8-SCN5Klkg_pkzhU39n',
+     'Authorization':'Bearer sb_publishable_Pyw8JZ7W7mZY8-SCN5Klkg_pkzhU39n',
      'Accept':'application/json'
     }
    });
@@ -970,5 +910,10 @@ window.addEventListener('pagehide',()=>{
 });
 </script>
 <script src="./access.js"></script>
+<script>
+if('serviceWorker' in navigator){
+ window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(error=>console.warn('DORAMAX offline shell indisponível:',error)));
+}
+</script>
 </body>
 </html>

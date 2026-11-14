@@ -9,8 +9,8 @@
   window.__doramaxAccessSource = "local";
   window.__doramaxAccessVersion = "2026.11.13";
 
-  const SUPABASE_URL = "https://qbwsaahlkovrejwliefv.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK";
+  const SUPABASE_URL = "https://maigqgxtlecxmkeqmjxz.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_Pyw8JZ7W7mZY8-SCN5Klkg_pkzhU39n";
   const PICPay_URL = "https://link.picpay.com/p/17945341236af66aeb27abc";
   const STORAGE_KEY = "doramax_session_v1";
   const REMOTE_SETTINGS_CACHE_KEY = "doramax_remote_settings_v1";
