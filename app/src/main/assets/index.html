@@ -567,7 +567,7 @@ accountMenuButton.addEventListener('click',openAccountMenu);
 accountMenuClose.addEventListener('click',closeAccountMenu);
 accountMenu.addEventListener('click',event=>{if(event.target===accountMenu)closeAccountMenu();});
 accountMenuAccount.addEventListener('click',()=>{closeAccountMenu();window.dispatchEvent(new CustomEvent('doramax:open-account'));});
-accountMenuNotifications.addEventListener('click',()=>{accountMenuUpdateText.textContent=availableAppUpdate?'Nova versão disponível':'Nenhuma atualização pendente';openUpdatePanel();});
+accountMenuNotifications.addEventListener('click',()=>{closeAccountMenu();accountMenuUpdateText.textContent=availableAppUpdate?'Nova versão disponível':'Nenhuma atualização pendente';updateMessage.textContent='Verificando atualizações...';updateConfirm.hidden=true;updateStatus.textContent='';updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');checkAppUpdate(true);});
 accountMenuUpdates.addEventListener('click',()=>{closeAccountMenu();updateMessage.textContent='Verificando atualizações...';updateConfirm.hidden=true;updateStatus.textContent='';updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');checkAppUpdate(true);});
 window.addEventListener('doramax:account-state',event=>{
  const email=event.detail?.email||'';
