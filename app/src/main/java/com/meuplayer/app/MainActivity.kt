@@ -72,16 +72,43 @@ class MainActivity : AppCompatActivity() {
         val tempFile = File(cacheDir, "updates/doramax-update.apk.part")
         val prefs = getSharedPreferences("doramax_update_state", Context.MODE_PRIVATE)
         val pendingVersion = prefs.getInt("pending_installed_version_code", -1)
+        val installedVersion = BuildConfig.VERSION_CODE
 
-        if (pendingVersion > 0 && BuildConfig.VERSION_CODE >= pendingVersion) {
+        // Use both the saved target version and the APK's own manifest. This also
+        // cleans older downloads left behind by app versions that did not save the preference.
+        val downloadedVersion = runCatching {
+            if (!apkFile.exists() || apkFile.length() < 1024) return@runCatching -1
+            @Suppress("DEPRECATION")
+            val archiveInfo = packageManager.getPackageArchiveInfo(apkFile.absolutePath, 0)
+                ?: return@runCatching -1
+            if (archiveInfo.packageName != packageName) return@runCatching -1
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                archiveInfo.longVersionCode.toInt()
+            } else {
+                @Suppress("DEPRECATION")
+                archiveInfo.versionCode
+            }
+        }.getOrDefault(-1)
+
+        val targetAlreadyInstalled =
+            (pendingVersion > 0 && installedVersion >= pendingVersion) ||
+            (apkFile.exists() && downloadedVersion > 0 && downloadedVersion <= installedVersion)
+        val invalidOrObsoleteApk = apkFile.exists() && downloadedVersion <= 0
+
+        if (targetAlreadyInstalled || invalidOrObsoleteApk) {
             runCatching {
-                if (apkFile.exists()) apkFile.delete()
+                if (apkFile.exists() && !apkFile.delete()) {
+                    throw IllegalStateException("Não foi possível excluir o APK antigo")
+                }
                 if (tempFile.exists()) tempFile.delete()
                 prefs.edit().remove("pending_installed_version_code").apply()
-                Log.i(TAG, "Downloaded update APK removed after successful installation")
+                Log.i(TAG, "Old or already installed update APK removed")
             }.onFailure {
                 Log.w(TAG, "Could not clean installed update APK", it)
             }
+        } else if (tempFile.exists()) {
+            // A .part file is never a completed installer; remove abandoned partial downloads.
+            runCatching { tempFile.delete() }
         }
     }
 
@@ -470,6 +497,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        cleanupInstalledUpdateIfComplete()
         siteWeb.onResume()
     }
 
