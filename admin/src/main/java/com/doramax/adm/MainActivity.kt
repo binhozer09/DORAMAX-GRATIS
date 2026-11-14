@@ -37,9 +37,17 @@ class MainActivity : Activity() {
                 fileChooserCallback = filePathCallback
 
                 return try {
-                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                    val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
                         addCategory(Intent.CATEGORY_OPENABLE)
                         type = "*/*"
+                        putExtra(
+                            Intent.EXTRA_MIME_TYPES,
+                            arrayOf(
+                                "application/vnd.android.package-archive",
+                                "application/octet-stream",
+                                "application/zip"
+                            )
+                        )
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                     startActivityForResult(
@@ -69,11 +77,7 @@ class MainActivity : Activity() {
         if (requestCode == FILE_CHOOSER_REQUEST) {
             val callback = fileChooserCallback ?: return
             fileChooserCallback = null
-            val result = if (resultCode == Activity.RESULT_OK && data?.data != null) {
-                arrayOf(data.data!!)
-            } else {
-                null
-            }
+            val result = WebChromeClient.FileChooserParams.parseResult(resultCode, data)
             callback.onReceiveValue(result)
         }
     }
