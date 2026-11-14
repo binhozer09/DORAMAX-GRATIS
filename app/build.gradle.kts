@@ -7,6 +7,10 @@ android {
     namespace = "com.meuplayer.app"
     compileSdk = 35
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.meuplayer.app"
         minSdk = 26
