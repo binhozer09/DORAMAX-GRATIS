@@ -1339,6 +1339,10 @@ function appendCatalogBatch(){
  if(!catalogQueue.length){
   if(catalogLoadObserver)catalogLoadObserver.disconnect();
   if(catalogSentinel){catalogSentinel.remove();catalogSentinel=null;}
+ }else if(catalogSentinel){
+  const rootRect=feed.getBoundingClientRect();
+  const sentinelRect=catalogSentinel.getBoundingClientRect();
+  if(sentinelRect.top<=rootRect.bottom+1000)requestAnimationFrame(appendCatalogBatch);
  }
 }
 function startCatalogBatchLoading(){
