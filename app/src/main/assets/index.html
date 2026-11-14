@@ -571,10 +571,13 @@ accountMenuNotifications.addEventListener('click',()=>{closeAccountMenu();accoun
 accountMenuUpdates.addEventListener('click',()=>{closeAccountMenu();updateMessage.textContent='Verificando atualizações...';updateConfirm.hidden=true;updateStatus.textContent='';updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');checkAppUpdate(true);});
 window.addEventListener('doramax:account-state',event=>{
  const email=event.detail?.email||'';
+ const name=event.detail?.name||'';
+ const displayName=name.trim()||email.split('@')[0]||'';
+ const initial=displayName?displayName.charAt(0).toLocaleUpperCase('pt-BR'):'?';
  accountMenuEmail.textContent=email||'Entre ou crie sua conta';
- accountMenuSubtitle.textContent=email?'Conta conectada':'Sua conta e novidades';
- accountAvatarText.textContent=email?email.trim().charAt(0).toUpperCase():'D';
- document.getElementById('accountMenuAvatar').textContent=email?email.trim().charAt(0).toUpperCase():'D';
+ accountMenuSubtitle.textContent=email?(displayName||'Conta conectada'):'Sua conta e novidades';
+ accountAvatarText.textContent=initial;
+ document.getElementById('accountMenuAvatar').textContent=initial;
 });
 window.dispatchEvent(new CustomEvent('doramax:request-account-state'));
 const updateMessage=document.getElementById('updateMessage');
