@@ -600,6 +600,7 @@ updateConfirm.addEventListener('click',()=>{
  }
 });
 checkAppUpdate(false);
+window.setInterval(()=>checkAppUpdate(false),15*60*1000);
 window.addEventListener('online',()=>checkAppUpdate(false));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppUpdate(false);});
 
