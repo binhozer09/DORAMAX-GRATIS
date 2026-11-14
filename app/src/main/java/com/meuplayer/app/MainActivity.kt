@@ -8,6 +8,7 @@ import android.widget.FrameLayout
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
+import android.webkit.WebSettings
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import androidx.webkit.WebViewAssetLoader
@@ -49,6 +50,8 @@ class MainActivity : AppCompatActivity() {
         siteWeb.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
+            // Mantém o cache HTTP em disco do WebView para recursos já carregados (ex.: miniaturas).
+            cacheMode = WebSettings.LOAD_DEFAULT
             mediaPlaybackRequiresUserGesture = false
             loadsImagesAutomatically = true
             javaScriptCanOpenWindowsAutomatically = false
