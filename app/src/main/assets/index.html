@@ -19,7 +19,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
 .video{position:relative;width:100%;height:100dvh;min-height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;background:#000;overflow:hidden}
 .player{position:absolute;inset:0;width:100%;height:100%;background:#000;display:flex;align-items:center;justify-content:center}
 .player iframe{display:block;width:100%;height:calc(100% + 150px);border:0;background:#000;transform:translateY(0)}
-.seekbar{position:absolute;z-index:9;left:16px;right:16px;bottom:calc(9px + var(--safe-bottom));height:28px;display:flex;align-items:center;pointer-events:auto;touch-action:pan-x}.seekbar input{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:0;border-radius:8px;outline:none;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--seek-progress,0%),#ffffff66 var(--seek-progress,0%),#ffffff66 100%);touch-action:pan-x}.seekbar input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);border:0;box-shadow:0 1px 5px #0009}.seekbar input::-moz-range-thumb{width:18px;height:18px;border:0;border-radius:50%;background:var(--accent);box-shadow:0 1px 5px #0009}
+.seekbar{position:absolute;z-index:12;left:16px;right:16px;bottom:calc(9px + var(--safe-bottom));height:28px;display:flex;align-items:center;pointer-events:auto;touch-action:pan-x;opacity:0;visibility:hidden;transition:opacity .18s ease,visibility .18s ease}.video.controls-visible .seekbar{opacity:1;visibility:visible}.player-tap-layer{position:absolute;z-index:8;inset:0;background:transparent;cursor:pointer}.center-control{position:absolute;z-index:11;left:50%;top:50%;transform:translate(-50%,-50%);width:54px;height:54px;border:1px solid #ffffff88;border-radius:50%;background:#0009;color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .18s ease,visibility .18s ease}.video.controls-visible .center-control{opacity:1;visibility:visible}.notification-bell{position:relative;flex:0 0 34px;width:34px;height:34px;padding:0;border:1px solid #ffffff55;border-radius:50%;background:#0009;color:#fff;font-size:19px;display:flex;align-items:center;justify-content:center;pointer-events:auto}.notification-bell i{position:absolute;right:1px;top:1px;width:8px;height:8px;border-radius:50%;background:#ff3048;border:1px solid #000}.notification-bell i[hidden]{display:none}.update-panel{display:none;position:fixed;z-index:80;inset:0;background:#000b;align-items:center;justify-content:center;padding:22px}.update-panel.open{display:flex}.update-card{width:min(100%,360px);background:#171717;border:1px solid #ffffff24;border-radius:18px;padding:20px;box-shadow:0 18px 60px #000b}.update-card h2{font-size:18px;margin:0 0 10px}.update-card p{font-size:13px;line-height:1.5;color:#ddd;margin:0 0 16px;white-space:pre-line}.update-actions{display:flex;gap:9px;justify-content:flex-end}.update-actions button{border:0;border-radius:10px;padding:10px 14px;font-weight:800}.update-cancel{background:#333;color:#fff}.update-confirm{background:var(--accent);color:#fff}.update-status{font-size:11px;color:#aaa;margin-top:12px}.seekbar input{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:0;border-radius:8px;outline:none;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--seek-progress,0%),#ffffff66 var(--seek-progress,0%),#ffffff66 100%);touch-action:pan-x}.seekbar input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);border:0;box-shadow:0 1px 5px #0009}.seekbar input::-moz-range-thumb{width:18px;height:18px;border:0;border-radius:50%;background:var(--accent);box-shadow:0 1px 5px #0009}
 .topbar{position:fixed;z-index:20;top:calc(10px + var(--safe-top));left:14px;right:14px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;text-shadow:0 2px 8px #000}
  .brand{font-size:19px;font-weight:900;letter-spacing:.4px;white-space:nowrap}
     .brand-name{display:inline-block;color:inherit}
@@ -46,7 +46,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
 </style>
 </head>
 <body>
-<div class="topbar"><div class="brand"><span class="brand-name">DORA<b>MAX</b> GRÁTIS</span><span class="brand-flame" aria-hidden="true">🔥</span></div><div class="top-actions"><button class="admin-entry" id="continueBtn" type="button">CONTINUAR ASSISTINDO</button><button class="admin-entry" id="adminAccessBtn" type="button">LOGIN</button></div></div>
+<div class="topbar"><div class="brand"><span class="brand-name">DORA<b>MAX</b> GRÁTIS</span><span class="brand-flame" aria-hidden="true">🔥</span></div><button class="notification-bell" id="updateBell" type="button" aria-label="Verificar atualizações" title="Atualizações"><span aria-hidden="true">♧</span><i id="updateDot" hidden></i></button><div class="top-actions"><button class="admin-entry" id="continueBtn" type="button">CONTINUAR ASSISTINDO</button><button class="admin-entry" id="adminAccessBtn" type="button">LOGIN</button></div></div>
+<div id="updatePanel" class="update-panel" aria-hidden="true"><div class="update-card" role="dialog" aria-modal="true" aria-labelledby="updateTitle"><h2 id="updateTitle">Atualização do DORAMAX</h2><p id="updateMessage">Verificando atualizações...</p><div class="update-actions"><button class="update-cancel" id="updateCancel" type="button">Fechar</button><button class="update-confirm" id="updateConfirm" type="button" hidden>Baixar atualização</button></div><div class="update-status" id="updateStatus"></div></div></div>
 <div id="historyPanel" class="history-panel" aria-hidden="true">
  <div class="history-header"><h2>CONTINUAR ASSISTINDO</h2><button id="closeHistory" type="button" aria-label="Fechar">✕</button></div>
  <div id="historyList" class="history-list"></div>
@@ -446,12 +447,31 @@ function cardData(card){
  const frame=card.querySelector('iframe');
  return {id:videoId(frame),title:card.querySelector('.title')?.textContent?.trim()||frame?.title||'Vídeo',card,frame};
 }
+const playerControlTimers=new WeakMap();
+function showPlayerControls(card){
+ if(!card)return;
+ const old=playerControlTimers.get(card);if(old)clearTimeout(old);
+ card.classList.add('controls-visible');
+ const timer=setTimeout(()=>{card.classList.remove('controls-visible');playerControlTimers.delete(card);},3200);
+ playerControlTimers.set(card,timer);
+}
 function ensureSeekBar(card){
  if(!card||card.querySelector('.seekbar'))return;
+ const tapLayer=document.createElement('div');tapLayer.className='player-tap-layer';tapLayer.setAttribute('aria-label','Mostrar controles do vídeo');
+ tapLayer.addEventListener('click',()=>showPlayerControls(card));
+ const center=document.createElement('button');center.type='button';center.className='center-control';center.setAttribute('aria-label','Reproduzir ou pausar');center.textContent='Ⅱ';
+ center.addEventListener('click',event=>{
+  event.stopPropagation();const frame=card.querySelector('iframe'),player=players.get(frame);
+  if(player&&typeof player.getPlayerState==='function'){
+   try{if(player.getPlayerState()===1){player.pauseVideo();center.textContent='▶';}else{player.playVideo();center.textContent='Ⅱ';}}catch(_){}
+  }
+  showPlayerControls(card);
+ });
+ card.append(tapLayer,center);
  const bar=document.createElement('div');bar.className='seekbar';
  const input=document.createElement('input');input.type='range';input.min='0';input.max='1000';input.step='1';input.value='0';input.setAttribute('aria-label','Adiantar ou voltar o vídeo');
  bar.appendChild(input);card.appendChild(bar);
- const stop=event=>event.stopPropagation();
+ const stop=event=>{event.stopPropagation();showPlayerControls(card);};
  ['pointerdown','touchstart','touchmove','touchend','click'].forEach(type=>input.addEventListener(type,stop,{passive:type.startsWith('touch')}));
  input.addEventListener('input',()=>{
   const player=players.get(card.querySelector('iframe'));
@@ -467,6 +487,7 @@ function ensureSeekBar(card){
    try{player.seekTo(seconds,true);}catch(error){console.warn('[DORAMAX] Não foi possível buscar esta posição:',error);}
   }
  });
+ input.addEventListener('pointerup',()=>showPlayerControls(card));
 }
 function updateSeekBar(frame,seconds,duration){
  const card=frame&&frame.closest('.video');if(!card)return;
@@ -524,6 +545,63 @@ continueBtn.addEventListener('click',openHistory);
 closeHistory.addEventListener('click',hideHistory);
 historyPanel.addEventListener('click',event=>{if(event.target===historyPanel)hideHistory();});
 renderHistory();
+
+const updatePanel=document.getElementById('updatePanel');
+const updateBell=document.getElementById('updateBell');
+const updateDot=document.getElementById('updateDot');
+const updateMessage=document.getElementById('updateMessage');
+const updateStatus=document.getElementById('updateStatus');
+const updateConfirm=document.getElementById('updateConfirm');
+const updateCancel=document.getElementById('updateCancel');
+let availableAppUpdate=null;
+let updateCheckBusy=false;
+function closeUpdatePanel(){updatePanel.classList.remove('open');updatePanel.setAttribute('aria-hidden','true');}
+function openUpdatePanel(){
+ updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');
+ if(availableAppUpdate){
+  updateMessage.textContent='Nova versão '+availableAppUpdate.latestVersionName+' disponível. '+(availableAppUpdate.releaseNotes||'Atualize para receber as melhorias mais recentes.');
+  updateConfirm.hidden=false;updateStatus.textContent='Sua versão: '+(window.DoramaxAndroid?.getVersionCode?.()??'atual')+' • Nova versão: '+availableAppUpdate.latestVersionCode;
+ }else{
+  updateMessage.textContent='Você está usando a versão mais recente do DORAMAX.';
+  updateConfirm.hidden=true;updateStatus.textContent='Verificação concluída.';
+ }
+}
+async function checkAppUpdate(showResult=false){
+ if(updateCheckBusy)return;
+ updateCheckBusy=true;
+ try{
+  const response=await fetch('https://qbwsaahlkovrejwliefv.supabase.co/rest/v1/app_settings?select=value&key=eq.remote_config&limit=1',{cache:'no-store',headers:{'apikey':'sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK','Authorization':'Bearer sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK','Accept':'application/json'}});
+  if(!response.ok)throw new Error('Não foi possível consultar o servidor.');
+  const rows=await response.json(),config=rows?.[0]?.value||{},update=config.updates||{};
+  const installed=Number(window.DoramaxAndroid?.getVersionCode?.()||1);
+  const latest=Number(update.latestVersionCode||0);
+  availableAppUpdate=update.enabled===true&&latest>installed&&/^https:\/\//i.test(update.apkUrl||'')?update:null;
+  updateDot.hidden=!availableAppUpdate;
+  if(showResult)openUpdatePanel();
+ }catch(error){
+  updateStatus.textContent='Não foi possível verificar agora. Confira sua conexão e tente novamente.';
+  if(showResult){updateMessage.textContent='Falha ao consultar atualizações.';updateConfirm.hidden=true;updatePanel.classList.add('open');}
+ }finally{updateCheckBusy=false;}
+}
+updateBell.addEventListener('click',async()=>{
+ updateMessage.textContent='Verificando atualizações...';updateConfirm.hidden=true;updateStatus.textContent='';
+ updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');
+ await checkAppUpdate(true);
+});
+updateCancel.addEventListener('click',closeUpdatePanel);
+updatePanel.addEventListener('click',event=>{if(event.target===updatePanel)closeUpdatePanel();});
+updateConfirm.addEventListener('click',()=>{
+ if(!availableAppUpdate)return;
+ if(window.DoramaxAndroid?.downloadUpdate){
+  updateStatus.textContent='Preparando o download...';
+  window.DoramaxAndroid.downloadUpdate(availableAppUpdate.apkUrl);
+ }else{
+  updateStatus.textContent='O download automático estará disponível na versão Android do aplicativo.';
+ }
+});
+checkAppUpdate(false);
+window.addEventListener('online',()=>checkAppUpdate(false));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppUpdate(false);});
 
 function pauseFrame(frame){
  if(!frame)return;
