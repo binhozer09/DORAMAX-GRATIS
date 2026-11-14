@@ -19,6 +19,7 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
 .video{position:relative;width:100%;height:100dvh;min-height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;background:#000;overflow:hidden}
 .player{position:absolute;inset:0;width:100%;height:100%;background:#000;display:flex;align-items:center;justify-content:center}
 .player iframe{display:block;width:100%;height:calc(100% + 150px);border:0;background:#000;transform:translateY(0)}
+.seekbar{position:absolute;z-index:9;left:16px;right:16px;bottom:calc(9px + var(--safe-bottom));height:28px;display:flex;align-items:center;pointer-events:auto;touch-action:pan-x}.seekbar input{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:0;border-radius:8px;outline:none;background:linear-gradient(to right,var(--accent) 0%,var(--accent) var(--seek-progress,0%),#ffffff66 var(--seek-progress,0%),#ffffff66 100%);touch-action:pan-x}.seekbar input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent);border:0;box-shadow:0 1px 5px #0009}.seekbar input::-moz-range-thumb{width:18px;height:18px;border:0;border-radius:50%;background:var(--accent);box-shadow:0 1px 5px #0009}
 .topbar{position:fixed;z-index:20;top:calc(10px + var(--safe-top));left:14px;right:14px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;text-shadow:0 2px 8px #000}
  .brand{font-size:19px;font-weight:900;letter-spacing:.4px;white-space:nowrap}
     .brand-name{display:inline-block;color:inherit}
@@ -343,6 +344,7 @@ function buildVideoCard(video){
  frame.title=video.title||'Vídeo novo';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
  frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';frame.allowFullscreen=true;
  player.appendChild(frame);section.appendChild(player);
+ const seekbar=document.createElement('div');seekbar.className='seekbar';seekbar.innerHTML='<input type="range" min="0" max="1000" step="1" value="0" aria-label="Adiantar ou voltar o vídeo">';section.appendChild(seekbar);
  const info=document.createElement('div');info.className='info';
  const heading=document.createElement('h2');heading.className='title';heading.textContent=video.title||'Vídeo novo';
  info.appendChild(heading);section.appendChild(info);
@@ -444,6 +446,38 @@ function cardData(card){
  const frame=card.querySelector('iframe');
  return {id:videoId(frame),title:card.querySelector('.title')?.textContent?.trim()||frame?.title||'Vídeo',card,frame};
 }
+function ensureSeekBar(card){
+ if(!card||card.querySelector('.seekbar'))return;
+ const bar=document.createElement('div');bar.className='seekbar';
+ const input=document.createElement('input');input.type='range';input.min='0';input.max='1000';input.step='1';input.value='0';input.setAttribute('aria-label','Adiantar ou voltar o vídeo');
+ bar.appendChild(input);card.appendChild(bar);
+ const stop=event=>event.stopPropagation();
+ ['pointerdown','touchstart','touchmove','touchend','click'].forEach(type=>input.addEventListener(type,stop,{passive:type.startsWith('touch')}));
+ input.addEventListener('input',()=>{
+  const player=players.get(card.querySelector('iframe'));
+  const duration=player&&typeof player.getDuration==='function'?player.getDuration():0;
+  const fraction=Number(input.value)/1000;
+  bar.style.setProperty('--seek-progress',(fraction*100)+'%');
+  if(duration>0)bar.dataset.seekSeconds=String(duration*fraction);
+ });
+ input.addEventListener('change',()=>{
+  const player=players.get(card.querySelector('iframe'));
+  const seconds=Number(bar.dataset.seekSeconds);
+  if(player&&Number.isFinite(seconds)&&typeof player.seekTo==='function'){
+   try{player.seekTo(seconds,true);}catch(error){console.warn('[DORAMAX] Não foi possível buscar esta posição:',error);}
+  }
+ });
+}
+function updateSeekBar(frame,seconds,duration){
+ const card=frame&&frame.closest('.video');if(!card)return;
+ ensureSeekBar(card);
+ const bar=card.querySelector('.seekbar'),input=bar&&bar.querySelector('input');
+ if(!input||!Number.isFinite(duration)||duration<=0||!Number.isFinite(seconds))return;
+ const fraction=Math.max(0,Math.min(1,seconds/duration));
+ input.value=String(Math.round(fraction*1000));
+ bar.style.setProperty('--seek-progress',(fraction*100)+'%');
+}
+cards.forEach(ensureSeekBar);
 function saveHistory(){
  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(0,50)));}catch(_){}
  renderHistory();
@@ -510,6 +544,7 @@ function ensurePlayer(frame){
     onReady:event=>{
      if(players.get(frame)!==event.target)return;
      players.set(frame,event.target);
+     try{updateSeekBar(frame,event.target.getCurrentTime(),event.target.getDuration());}catch(_){}
      const id=videoId(frame),seek=pendingSeek.get(id);
      if(Number.isFinite(seek)){event.target.seekTo(seek,true);pendingSeek.delete(id);}
      const card=frame.closest('.video');
@@ -534,12 +569,14 @@ function ensurePlayer(frame){
       progressFrame=frame;
       progressTimer=setInterval(()=>{
        try{
-        if(event.target.getPlayerState()===YT.PlayerState.PLAYING)
-         upsertProgress(frame.closest('.video'),event.target.getCurrentTime(),event.target.getDuration());
+        if(event.target.getPlayerState()===YT.PlayerState.PLAYING){
+         const current=event.target.getCurrentTime(),duration=event.target.getDuration();
+         upsertProgress(frame.closest('.video'),current,duration);updateSeekBar(frame,current,duration);
+        }
        }catch(_){}
       },2000);
      }else{
-      try{upsertProgress(frame.closest('.video'),event.target.getCurrentTime(),event.target.getDuration());}catch(_){}
+      try{const current=event.target.getCurrentTime(),duration=event.target.getDuration();upsertProgress(frame.closest('.video'),current,duration);updateSeekBar(frame,current,duration);}catch(_){}
       if(progressTimer&&progressFrame===frame){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
      }
     }
