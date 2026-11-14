@@ -53,7 +53,16 @@ workflows:
           test -f "$CM_KEYSTORE_PATH"
       - name: Compilar DORAMAX-GRATIS
         script: |
-          "$HOME/gradle-8.7/bin/gradle" :app:assembleRelease --no-daemon
+          "$HOME/gradle-8.7/bin/gradle" :app:clean :app:assembleRelease --no-daemon
+      - name: Validar APK gerado e assinatura
+        script: |
+          set -euo pipefail
+          APK="$(find app/build/outputs/apk/release -maxdepth 1 -name '*.apk' -type f | head -n 1)"
+          test -n "$APK"
+          test -s "$APK"
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/doramax-signature.txt
+          grep -qi 'Signer #1 certificate SHA-256 digest: A22F141497DE379D55B8D5EDACC006C488ED76BBB2065BD259864F79AE1B5A65' /tmp/doramax-signature.txt
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -E "^package: name='com.meuplayer.app' versionCode='10' versionName='2.3'"
     artifacts:
       - app/build/outputs/apk/release/*.apk
 
