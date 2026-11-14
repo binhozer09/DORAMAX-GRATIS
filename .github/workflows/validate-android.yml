@@ -22,11 +22,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Configurar Android SDK
+      - name: Configurar Android SDK e plataforma 35
         uses: android-actions/setup-android@v3
-
-      - name: Instalar plataforma Android 35
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
       - name: Configurar Gradle 8.7
         uses: gradle/actions/setup-gradle@v4
