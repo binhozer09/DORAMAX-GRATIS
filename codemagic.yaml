@@ -11,8 +11,10 @@ workflows:
       - name: Configurar Android SDK
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
-      - name: Instalar Gradle 8.7
+      - name: Instalar SDK Android e Gradle 8.7
         script: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
           curl -fL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d "$HOME"
       - name: Verificar assinatura fixa
@@ -61,7 +63,7 @@ workflows:
           test -n "$APK"
           test -s "$APK"
           "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee /tmp/doramax-signature.txt
-          grep -qi 'Signer #1 certificate SHA-256 digest: A22F141497DE379D55B8D5EDACC006C488ED76BBB2065BD259864F79AE1B5A65' /tmp/doramax-signature.txt
+          grep -qi 'Signer #1 certificate SHA-256 digest: A2:2F:14:97:DE:37:9D:55:B8:D5:ED:AC:C0:06:C4:88:ED:76:BB:B2:06:5B:D2:59:86:4F:79:AE:1B:5A:65' /tmp/doramax-signature.txt
           "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -E "^package: name='com.meuplayer.app' versionCode='10' versionName='2.3'"
     artifacts:
       - app/build/outputs/apk/release/*.apk
