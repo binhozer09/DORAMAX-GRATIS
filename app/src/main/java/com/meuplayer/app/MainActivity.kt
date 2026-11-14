@@ -17,6 +17,8 @@ import android.util.Log
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.webkit.WebChromeClient
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient.FileChooserParams
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebSettings
@@ -40,6 +42,11 @@ class MainActivity : AppCompatActivity() {
     private var bannerAdView: AdView? = null
     private var updateDownloadId: Long = -1L
     private var updateReceiver: BroadcastReceiver? = null
+    private var pendingFileChooser: ValueCallback<Array<Uri>>? = null
+
+    companion object {
+        private const val FILE_CHOOSER_REQUEST_CODE = 7401
+    }
 
     private inner class UpdateBridge {
         @JavascriptInterface
@@ -170,7 +177,38 @@ class MainActivity : AppCompatActivity() {
             setSupportMultipleWindows(false)
         }
 
-        siteWeb.webChromeClient = WebChromeClient()
+        siteWeb.webChromeClient = object : WebChromeClient() {
+            override fun onShowFileChooser(
+                webView: WebView?,
+                filePathCallback: ValueCallback<Array<Uri>>?,
+                fileChooserParams: FileChooserParams?
+            ): Boolean {
+                pendingFileChooser?.onReceiveValue(null)
+                pendingFileChooser = filePathCallback
+                return try {
+                    val chooserIntent = fileChooserParams?.createIntent()
+                        ?: Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "*/*"
+                        }
+                    startActivityForResult(
+                        Intent.createChooser(chooserIntent, "Escolher arquivo APK"),
+                        FILE_CHOOSER_REQUEST_CODE
+                    )
+                    true
+                } catch (error: Exception) {
+                    Log.e(TAG, "Não foi possível abrir o seletor de arquivos", error)
+                    pendingFileChooser?.onReceiveValue(null)
+                    pendingFileChooser = null
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Não foi possível abrir os arquivos do celular.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    false
+                }
+            }
+        }
         siteWeb.addJavascriptInterface(UpdateBridge(), "DoramaxAndroid")
         siteWeb.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(
@@ -260,6 +298,17 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    @Deprecated("Deprecated in Android")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == FILE_CHOOSER_REQUEST_CODE) {
+            val callback = pendingFileChooser ?: return
+            pendingFileChooser = null
+            val result = WebChromeClient.FileChooserParams.parseResult(resultCode, data)
+            callback.onReceiveValue(result)
+        }
+    }
+
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
         if (::siteWeb.isInitialized && siteWeb.canGoBack()) {
@@ -280,6 +329,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        pendingFileChooser?.onReceiveValue(null)
+        pendingFileChooser = null
         updateReceiver?.let { receiver ->
             runCatching { unregisterReceiver(receiver) }
         }
