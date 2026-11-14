@@ -39,7 +39,7 @@ class MainActivity : Activity() {
                 return try {
                     val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                         addCategory(Intent.CATEGORY_OPENABLE)
-                        type = "application/vnd.android.package-archive"
+                        type = "*/*"
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
                     startActivityForResult(
