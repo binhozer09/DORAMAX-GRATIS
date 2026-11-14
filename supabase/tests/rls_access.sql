@@ -2,6 +2,8 @@
 -- Each block rolls back; IDs are discovered from the project's own user tables.
 
 BEGIN;
+SELECT set_config('test.total_users',(SELECT count(*)::text FROM auth.users),true);
+SELECT set_config('test.active_video_count',(SELECT count(*)::text FROM public.videos WHERE is_active=true),true);
 SELECT set_config(
   'test.regular_user_id',
   (SELECT g.user_id::text
@@ -27,8 +29,8 @@ SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub',current_setting('test.admin_user_id'),true);
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM public.access_grants) <> (SELECT count(*) FROM auth.users) THEN RAISE EXCEPTION 'Admin must see all access grants'; END IF;
-  IF (SELECT count(*) FROM public.profiles) <> (SELECT count(*) FROM auth.users) THEN RAISE EXCEPTION 'Admin must see all profiles'; END IF;
+  IF (SELECT count(*) FROM public.access_grants) <> current_setting('test.total_users')::integer THEN RAISE EXCEPTION 'Admin must see all access grants'; END IF;
+  IF (SELECT count(*) FROM public.profiles) <> current_setting('test.total_users')::integer THEN RAISE EXCEPTION 'Admin must see all profiles'; END IF;
   IF (SELECT count(*) FROM public.videos WHERE is_active=false) = 0 THEN RAISE EXCEPTION 'Admin must see inactive catalog rows'; END IF;
 END;
 $$;
@@ -51,7 +53,7 @@ END;
 $$;
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM public.videos WHERE is_active=true) <> 542 THEN RAISE EXCEPTION 'Public must see active catalog'; END IF;
+  IF (SELECT count(*) FROM public.videos WHERE is_active=true) <> current_setting('test.active_video_count')::integer THEN RAISE EXCEPTION 'Public must see active catalog'; END IF;
   IF (SELECT count(*) FROM public.videos WHERE is_active=false) <> 0 THEN RAISE EXCEPTION 'Public must not see inactive catalog'; END IF;
   IF (SELECT count(*) FROM public.profiles) <> 0 THEN RAISE EXCEPTION 'Public must not see profiles'; END IF;
   IF (SELECT count(*) FROM public.access_grants) <> 0 THEN RAISE EXCEPTION 'Public must not see access grants'; END IF;
