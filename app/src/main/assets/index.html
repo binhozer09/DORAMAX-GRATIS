@@ -634,6 +634,8 @@ function ensurePlayer(frame){
     },
     onStateChange:event=>{
      if(players.get(frame)!==event.target)return;
+     const controlButton=frame.closest('.video')?.querySelector('.center-control');
+     if(controlButton)controlButton.textContent=event.data===YT.PlayerState.PLAYING?'Ⅱ':'▶';
      if(event.data===YT.PlayerState.ENDED){
       if(progressTimer&&progressFrame===frame){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
       try{upsertProgress(frame.closest('.video'),event.target.getDuration(),event.target.getDuration());}catch(_){}
