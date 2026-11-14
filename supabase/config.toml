@@ -1,0 +1,4 @@
+project_id = "qbwsaahlkovrejwliefv"
+
+[functions.sync-videos]
+verify_jwt = true
