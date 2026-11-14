@@ -344,10 +344,10 @@ function buildVideoCard(video){
  frame.title=video.title||'Vídeo novo';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
  frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';frame.allowFullscreen=true;
  player.appendChild(frame);section.appendChild(player);
- const seekbar=document.createElement('div');seekbar.className='seekbar';seekbar.innerHTML='<input type="range" min="0" max="1000" step="1" value="0" aria-label="Adiantar ou voltar o vídeo">';section.appendChild(seekbar);
  const info=document.createElement('div');info.className='info';
  const heading=document.createElement('h2');heading.className='title';heading.textContent=video.title||'Vídeo novo';
  info.appendChild(heading);section.appendChild(info);
+ ensureSeekBar(section);
  return section;
 }
 function nextUnusedCatalogVideo(){
