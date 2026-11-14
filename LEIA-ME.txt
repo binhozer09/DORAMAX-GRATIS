@@ -1,29 +1,34 @@
 DORAMAX-GRATIS - projeto Android (Kotlin)
 
 ARQUITETURA DO APLICATIVO
-- Supabase e a fonte central dos dados do aplicativo.
-- O catalogo de videos vem da tabela public.videos, somente com registros is_active = true.
-- A configuracao publica vem de public.app_settings.
-- Login, usuarios, permissoes e painel administrativo usam Supabase.
-- O app aplica primeiro o catalogo salvo localmente e sincroniza com o Supabase em segundo plano.
-- O app salva configuracoes remotas localmente para manter tema e avisos disponiveis sem rede.
-- O Android WebView usa o cache HTTP padrao em disco para reutilizar recursos ja carregados, como miniaturas.
+- Supabase e a fonte central dos dados e configuracoes remotas.
+- O catalogo oficial fica em public.videos; o app consulta somente is_active = true.
+- Configuracoes remotas ficam em public.app_settings.
+- Login, perfis, permissoes e notificacoes administrativas usam Supabase Auth e Postgres.
+- O painel ADM permite sincronizar os videos recentes diretamente do feed RSS do canal do YouTube para o Supabase pela Edge Function sync-videos.
+- A sincronizacao e restrita a administradores autenticados e preserva videos marcados como manual_override.
+- O catalogo e aplicado primeiro a partir do cache local e atualizado em segundo plano.
+- Configuracoes remotas tambem sao armazenadas localmente para manter tema e avisos disponiveis sem rede.
+- O Android WebView usa cache HTTP em disco para reutilizar recursos ja carregados, incluindo miniaturas do YouTube.
 - O app solicita armazenamento persistente quando o WebView oferece suporte; o sistema ainda pode limpar dados se o usuario apagar os dados do app.
-- O catalogo e as configuracoes ficam disponiveis offline; a reproducao dos videos continua dependendo da internet e do YouTube.
+- O catalogo e as configuracoes em cache ficam disponiveis offline; a reproducao dos videos continua dependendo da internet e do YouTube.
 - O YouTube continua hospedando e transmitindo os videos.
-- GitHub e usado apenas para guardar o codigo-fonte e compilar o APK; o app nao baixa catalogo nem scripts do GitHub em tempo de execucao.
+- Nao ha imagens estaticas externas do projeto para armazenar no Supabase Storage neste momento; as miniaturas sao servidas pelo YouTube.
+- GitHub guarda somente o codigo-fonte e a configuracao do build. O app nao baixa catalogo, configuracoes ou scripts do GitHub em tempo de execucao.
+- Os catalogos JSON antigos foram removidos do repositorio; public.videos e a fonte oficial.
 
 COMO GERAR O APK
-Opcao 1 - GitHub Actions
-1. Mantenha este projeto no repositorio e na branch main.
-2. Abra Actions > Build APK > Run workflow.
-3. Quando terminar, baixe o artefato do APK.
+Opcao 1 - Codemagic
+1. Conecte o repositorio binhozer09/DORAMAX-GRATIS ao Codemagic.
+2. Execute o workflow android-debug definido em codemagic.yaml.
+3. Baixe o APK nos artefatos do build.
 
 Opcao 2 - Android Studio
 Abra a pasta no Android Studio, aguarde o sync e use Build > Build APK(s).
 
 CATALOGO DE VIDEOS
-Nao edite app/src/main/assets/videos.json para atualizar o catalogo remoto.
-Gerencie os videos e o campo is_active na tabela public.videos do Supabase. O aplicativo busca os registros ativos e guarda uma copia em cache no aparelho.
+Gerencie os registros e o campo is_active em public.videos no Supabase.
+Para buscar os videos mais recentes do canal, entre no painel DORAMAX ADM e use SINCRONIZAR CANAL DO YOUTUBE.
+O aplicativo guarda uma copia local do catalogo para abertura rapida e consulta offline.
 
-Versoes: Gradle 8.7, Android Gradle Plugin 8.5.2, Kotlin 1.9.24, JDK 17, minSdk 26 (Android 8+).
+VERSOES: Gradle 8.7, Android Gradle Plugin 8.5.2, Kotlin 1.9.24, JDK 17, minSdk 26 (Android 8+).
