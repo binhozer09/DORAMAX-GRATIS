@@ -5,7 +5,11 @@ ARQUITETURA DO APLICATIVO
 - O catalogo de videos vem da tabela public.videos, somente com registros is_active = true.
 - A configuracao publica vem de public.app_settings.
 - Login, usuarios, permissoes e painel administrativo usam Supabase.
-- O app mantem cache local do catalogo para abrir mais rapido e tolerar quedas temporarias de conexao.
+- O app aplica primeiro o catalogo salvo localmente e sincroniza com o Supabase em segundo plano.
+- O app salva configuracoes remotas localmente para manter tema e avisos disponiveis sem rede.
+- O Android WebView usa o cache HTTP padrao em disco para reutilizar recursos ja carregados, como miniaturas.
+- O app solicita armazenamento persistente quando o WebView oferece suporte; o sistema ainda pode limpar dados se o usuario apagar os dados do app.
+- O catalogo e as configuracoes ficam disponiveis offline; a reproducao dos videos continua dependendo da internet e do YouTube.
 - O YouTube continua hospedando e transmitindo os videos.
 - GitHub e usado apenas para guardar o codigo-fonte e compilar o APK; o app nao baixa catalogo nem scripts do GitHub em tempo de execucao.
 
