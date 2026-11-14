@@ -13,6 +13,7 @@
   const SUPABASE_KEY = "sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK";
   const PICPay_URL = "https://link.picpay.com/p/17945341236af66aeb27abc";
   const STORAGE_KEY = "doramax_session_v1";
+  const REMOTE_SETTINGS_CACHE_KEY = "doramax_remote_settings_v1";
 
   // Remove o aviso temporário de teste do topo do aplicativo.
   const TEST_BANNER_TEXT = "DORAMAX: atualização remota funcionando!";
@@ -298,57 +299,82 @@
   }
   window.doramaxRefreshAccessGate = function () { updateGate(); };
 
+  function applyRemoteSettings(settings) {
+    const appConfig = settings.app_config || {};
+    const remoteConfig = settings.remote_config || {};
+    window.__doramaxAppConfig = appConfig;
+    window.__doramaxRemoteConfig = remoteConfig;
+
+    const accent = remoteConfig.theme && remoteConfig.theme.accentColor;
+    if (typeof accent === "string" && /^#[0-9a-f]{6}$/i.test(accent)) {
+      document.documentElement.style.setProperty("--accent", accent);
+    }
+
+    const hiddenSelectors = remoteConfig.visibility && remoteConfig.visibility.hideSelectors;
+    if (Array.isArray(hiddenSelectors)) {
+      hiddenSelectors.forEach(selector => {
+        if (typeof selector !== "string" || !selector.trim()) return;
+        try {
+          document.querySelectorAll(selector).forEach(element => { element.style.display = "none"; });
+        } catch (error) {
+          console.warn("[DORAMAX] Seletor remoto inválido:", selector, error);
+        }
+      });
+    }
+
+    const notice = remoteConfig.notice || {};
+    const noticeText = typeof notice.text === "string" ? notice.text.trim() : "";
+    if (notice.enabled === true && noticeText && !document.getElementById("dmRemoteNotice")) {
+      const banner = document.createElement("div");
+      banner.id = "dmRemoteNotice";
+      banner.setAttribute("role", "status");
+      banner.style.cssText = "position:fixed;z-index:2000;top:0;left:0;right:0;padding:12px 42px 12px 14px;background:#202020;color:#fff;text-align:center;font-size:13px;font-weight:700;box-shadow:0 3px 14px #0009;";
+      if (notice.type === "warning") banner.style.background = "#79520b";
+      if (notice.type === "error") banner.style.background = "#8b1e2d";
+      const message = document.createElement("span");
+      message.textContent = noticeText;
+      banner.appendChild(message);
+      if (notice.dismissible !== false) {
+        const close = document.createElement("button");
+        close.type = "button";
+        close.textContent = "×";
+        close.setAttribute("aria-label", "Fechar aviso");
+        close.style.cssText = "position:absolute;right:10px;top:4px;border:0;background:transparent;color:#fff;font-size:25px;padding:2px 8px;";
+        close.addEventListener("click", () => banner.remove());
+        banner.appendChild(close);
+      }
+      document.body.appendChild(banner);
+    }
+  }
+
   async function loadRemoteSettings() {
+    // Aplica primeiro a última configuração salva: a tela não depende da rede para iniciar.
+    try {
+      const cached = localStorage.getItem(REMOTE_SETTINGS_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === "object") applyRemoteSettings(parsed);
+      }
+    } catch (cacheError) {
+      console.warn("[DORAMAX] Cache local de configurações indisponível:", cacheError);
+    }
+
+    // Atualiza em segundo plano quando houver conexão.
+    if (!navigator.onLine) return;
     try {
       const rows = await api("/rest/v1/app_settings?select=key,value&key=in.(app_config,remote_config)", { method: "GET" });
       const settings = Object.fromEntries((Array.isArray(rows) ? rows : []).map(row => [row.key, row.value || {}]));
-      const appConfig = settings.app_config || {};
-      const remoteConfig = settings.remote_config || {};
-      window.__doramaxAppConfig = appConfig;
-      window.__doramaxRemoteConfig = remoteConfig;
-
-      const accent = remoteConfig.theme && remoteConfig.theme.accentColor;
-      if (typeof accent === "string" && /^#[0-9a-f]{6}$/i.test(accent)) {
-        document.documentElement.style.setProperty("--accent", accent);
-      }
-
-      const hiddenSelectors = remoteConfig.visibility && remoteConfig.visibility.hideSelectors;
-      if (Array.isArray(hiddenSelectors)) {
-        hiddenSelectors.forEach(selector => {
-          if (typeof selector !== "string" || !selector.trim()) return;
-          try {
-            document.querySelectorAll(selector).forEach(element => { element.style.display = "none"; });
-          } catch (error) {
-            console.warn("[DORAMAX] Seletor remoto inválido:", selector, error);
-          }
-        });
-      }
-
-      const notice = remoteConfig.notice || {};
-      const noticeText = typeof notice.text === "string" ? notice.text.trim() : "";
-      if (notice.enabled === true && noticeText && !document.getElementById("dmRemoteNotice")) {
-        const banner = document.createElement("div");
-        banner.id = "dmRemoteNotice";
-        banner.setAttribute("role", "status");
-        banner.style.cssText = "position:fixed;z-index:2000;top:0;left:0;right:0;padding:12px 42px 12px 14px;background:#202020;color:#fff;text-align:center;font-size:13px;font-weight:700;box-shadow:0 3px 14px #0009;";
-        if (notice.type === "warning") banner.style.background = "#79520b";
-        if (notice.type === "error") banner.style.background = "#8b1e2d";
-        const message = document.createElement("span");
-        message.textContent = noticeText;
-        banner.appendChild(message);
-        if (notice.dismissible !== false) {
-          const close = document.createElement("button");
-          close.type = "button";
-          close.textContent = "×";
-          close.setAttribute("aria-label", "Fechar aviso");
-          close.style.cssText = "position:absolute;right:10px;top:4px;border:0;background:transparent;color:#fff;font-size:25px;padding:2px 8px;";
-          close.addEventListener("click", () => banner.remove());
-          banner.appendChild(close);
-        }
-        document.body.appendChild(banner);
-      }
+      const normalized = {
+        app_config: settings.app_config || {},
+        remote_config: settings.remote_config || {},
+        savedAt: Date.now(),
+        schemaVersion: 1
+      };
+      try { localStorage.setItem(REMOTE_SETTINGS_CACHE_KEY, JSON.stringify(normalized)); }
+      catch (cacheError) { console.warn("[DORAMAX] Não foi possível salvar as configurações localmente:", cacheError); }
+      applyRemoteSettings(normalized);
     } catch (error) {
-      console.warn("[DORAMAX] Não foi possível carregar as configurações do Supabase:", error);
+      console.warn("[DORAMAX] Não foi possível atualizar as configurações do Supabase; mantendo o cache:", error);
     }
   }
 
