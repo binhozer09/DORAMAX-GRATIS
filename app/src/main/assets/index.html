@@ -43,17 +43,36 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
 .history-header h2{font-size:17px;margin:0;font-weight:900}.history-header button{border:0;background:#252525;color:#fff;border-radius:50%;width:38px;height:38px;font-size:19px}
 .history-list{display:flex;flex-direction:column;gap:12px}.history-item{display:flex;gap:12px;align-items:center;background:#1b1b1b;border-radius:12px;padding:10px;border:1px solid #ffffff18;color:#fff;text-align:left;width:100%}
 .history-thumb{width:112px;aspect-ratio:16/9;object-fit:cover;border-radius:7px;background:#333;flex-shrink:0}.history-copy{min-width:0;flex:1}.history-title{font-size:13px;line-height:1.35;font-weight:700;margin-bottom:8px}.history-time{font-size:11px;color:#bbb;margin-bottom:7px}.history-progress{height:4px;background:#555;border-radius:5px;overflow:hidden}.history-progress span{display:block;height:100%;background:var(--accent)}.history-empty{color:#bbb;font-size:14px;text-align:center;padding:35px 12px}
+
+.catalog-screen{display:block;position:fixed;inset:0;z-index:10;overflow-y:auto;overflow-x:hidden;background:#080b12;padding:calc(76px + var(--safe-top)) 14px calc(24px + var(--safe-bottom));}
+.catalog-heading{margin:0 2px 18px}.catalog-heading h1{font-size:22px;line-height:1.2;margin:0 0 6px;font-weight:900;letter-spacing:-.4px}.catalog-heading p{margin:0;color:#9ca8ba;font-size:12px}
+.catalog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 13px;align-items:start}
+.catalog-card{min-width:0;padding:0;border:0;background:transparent;color:#fff;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.catalog-poster-wrap{position:relative;display:block;width:100%;aspect-ratio:2/3;overflow:hidden;border-radius:9px;background:linear-gradient(145deg,#202b3b,#111722);box-shadow:0 5px 16px #0008}
+.catalog-poster{display:block;width:100%;height:100%;object-fit:cover;transition:transform .22s ease}
+.catalog-card:active .catalog-poster{transform:scale(1.035)}
+.catalog-play{position:absolute;right:9px;bottom:9px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#ff3048;color:#fff;font-size:15px;box-shadow:0 2px 12px #0009}
+.catalog-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:8px 1px 0;font-size:13px;line-height:1.35;font-weight:700;color:#e7ebf2}
+.catalog-empty{grid-column:1/-1;padding:35px 12px;text-align:center;color:#aab4c3;font-size:13px}
+#feed{display:none}
+#feed.player-mode{display:block}
+.back-catalog{display:none;pointer-events:auto;border:1px solid #ffffff40;border-radius:18px;padding:7px 10px;background:#000a;color:#fff;font-size:10px;font-weight:800}
+body.player-open .back-catalog{display:inline-flex}
+body.player-open .catalog-screen{display:none}
+@media(min-width:700px){.catalog-screen{max-width:520px;left:50%;right:auto;transform:translateX(-50%);width:100%;border-left:1px solid #ffffff0c;border-right:1px solid #ffffff0c}.catalog-grid{gap:22px 16px}}
+
 </style>
 </head>
 <body>
-<div class="topbar"><div class="brand"><span class="brand-name">DORA<b>MAX</b> GRÁTIS</span><span class="brand-flame" aria-hidden="true">🔥</span></div><div class="top-actions"><button class="admin-entry" id="continueBtn" type="button">CONTINUAR ASSISTINDO</button><button class="account-avatar" id="accountMenuButton" type="button" aria-label="Abrir conta e notificações"><span id="accountAvatarText">D</span><i id="updateDot" hidden></i></button></div></div>
+<div class="topbar"><div style="display:flex;align-items:center;gap:9px"><button class="back-catalog" id="backCatalogBtn" type="button">‹ CATÁLOGO</button><div class="brand"><span class="brand-name">DORA<b>MAX</b> GRÁTIS</span><span class="brand-flame" aria-hidden="true">🔥</span></div></div><div class="top-actions"><button class="admin-entry" id="continueBtn" type="button">CONTINUAR ASSISTINDO</button><button class="account-avatar" id="accountMenuButton" type="button" aria-label="Abrir conta e notificações"><span id="accountAvatarText">D</span><i id="updateDot" hidden></i></button></div></div>
 <div id="accountMenu" class="account-menu" aria-hidden="true"><section class="account-menu-card" role="dialog" aria-modal="true" aria-label="Menu da conta"><header class="account-menu-header"><div class="account-avatar large" id="accountMenuAvatar">D</div><div class="account-menu-heading"><strong>DORAMAX GRÁTIS</strong><small id="accountMenuSubtitle">Sua conta e novidades</small></div><button id="accountMenuClose" class="account-menu-close" type="button" aria-label="Fechar">×</button></header><button class="account-menu-item" id="accountMenuAccount" type="button"><span class="account-menu-icon">◉</span><span><strong>Minha conta / Login</strong><small id="accountMenuEmail">Entre ou veja sua conta conectada</small></span><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuNotifications" type="button"><span class="account-menu-icon">♧</span><span><strong>Notificações</strong><small id="accountMenuNotificationText">Nenhuma novidade por enquanto</small></span><i id="accountMenuNotificationDot" hidden></i><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuUpdates" type="button"><span class="account-menu-icon">↓</span><span><strong>Atualizações do aplicativo</strong><small id="accountMenuUpdateText">Verificar nova versão</small></span><i id="accountMenuUpdateDot" hidden></i><span class="account-menu-chevron">›</span></button></section></div><div id="updatePanel" class="update-panel" aria-hidden="true"><div class="update-card" role="dialog" aria-modal="true" aria-labelledby="updateTitle"><h2 id="updateTitle">Atualização do DORAMAX</h2><p id="updateMessage">Verificando atualizações...</p><div class="update-actions"><button class="update-cancel" id="updateCancel" type="button">Fechar</button><button class="update-confirm" id="updateConfirm" type="button" hidden>Baixar atualização</button></div><div class="update-status" id="updateStatus"></div><div class="update-progress" id="updateProgressBox" hidden><div class="update-progress-track"><div class="update-progress-fill" id="updateProgressFill"></div></div><div class="update-progress-label"><span id="updateProgressLabel">Preparando download...</span><strong id="updateProgressPercent">0%</strong></div></div></div></div>
 <div id="historyPanel" class="history-panel" aria-hidden="true">
  <div class="history-header"><h2>CONTINUAR ASSISTINDO</h2><button id="closeHistory" type="button" aria-label="Fechar">✕</button></div>
  <div id="historyList" class="history-list"></div>
 </div>
 <a class="donate" href="https://link.picpay.com/p/17945341236af66aeb27abc" aria-label="Apoiar o DORAMAX pelo PicPay" title="Apoiar o DORAMAX">donate</a>
-<main id="feed" class="feed" aria-label="Feed vertical de vídeos">
+<section id="catalogScreen" class="catalog-screen" aria-label="Catálogo de filmes e séries"><header class="catalog-heading"><h1>Escolha o que assistir</h1><p>Filmes, séries e histórias para você aproveitar</p></header><div id="catalogGrid" class="catalog-grid"><div class="catalog-empty">Carregando catálogo...</div></div></section>
+<main id="feed" class="feed" aria-label="Reprodutor de vídeos">
 <section class="video" data-free-preview="true">
  <div class="player"><iframe data-src="https://www.youtube.com/embed/LccxdtzPvcU?playsinline=1&rel=0&controls=0&fs=0&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
  <div class="info"><h2 class="title">Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap</h2></div>
@@ -322,6 +341,59 @@ let history=[];
 try{history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');if(!Array.isArray(history))history=[];}catch(_){history=[];}
 
 const WATCHED_KEY='doramax_watched_videos_v1';
+
+const catalogGrid=document.getElementById('catalogGrid');
+const backCatalogBtn=document.getElementById('backCatalogBtn');
+function catalogPosterUrl(id,quality='maxresdefault'){
+ return 'https://i.ytimg.com/vi/'+encodeURIComponent(id)+'/'+quality+'.jpg';
+}
+function renderCatalog(){
+ if(!catalogGrid)return;
+ const fallback=[...feed.querySelectorAll('.video')].map(card=>({id:videoId(card.querySelector('iframe')),title:card.querySelector('.title')?.textContent?.trim()||'Vídeo'})).filter(item=>item.id);
+ const source=remoteCatalogVideos.length?remoteCatalogVideos:fallback;
+ const seen=new Set();
+ const list=source.filter(item=>item.id&&!seen.has(item.id)&&(seen.add(item.id),true));
+ catalogGrid.innerHTML='';
+ if(!list.length){catalogGrid.innerHTML='<div class="catalog-empty">Não foi possível carregar o catálogo. Verifique sua conexão e tente novamente.</div>';return;}
+ const fragment=document.createDocumentFragment();
+ list.forEach(video=>{
+  const card=document.createElement('button');card.type='button';card.className='catalog-card';card.setAttribute('aria-label','Assistir '+(video.title||'vídeo'));
+  const wrap=document.createElement('span');wrap.className='catalog-poster-wrap';
+  const img=document.createElement('img');img.className='catalog-poster';img.loading='lazy';img.alt='Capa de '+(video.title||'vídeo');img.src=catalogPosterUrl(video.id);
+  img.onerror=function(){if(!this.dataset.fallback){this.dataset.fallback='1';this.src=catalogPosterUrl(video.id,'hqdefault');}else{this.style.opacity='0';}};
+  const play=document.createElement('span');play.className='catalog-play';play.textContent='▶';wrap.append(img,play);
+  const title=document.createElement('span');title.className='catalog-title';title.textContent=video.title||'Vídeo sem título';
+  card.append(wrap,title);card.addEventListener('click',()=>playCatalogVideo(video.id));fragment.appendChild(card);
+ });
+ catalogGrid.appendChild(fragment);
+}
+function openPlayerMode(){
+ document.body.classList.add('player-open');
+ feed.classList.add('player-mode');
+}
+function returnToCatalog(){
+ const current=activeFrame;
+ if(current){try{const player=players.get(current);if(player&&player.getCurrentTime)upsertProgress(current.closest('.video'),player.getCurrentTime(),player.getDuration());}catch(_){}pauseFrame(current);}
+ activeFrame=null;
+ if(progressTimer){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
+ saveFeedPosition(true);
+ feed.classList.remove('player-mode');
+ document.body.classList.remove('player-open');
+}
+function playCatalogVideo(id){
+ let target=findVideoCard(id);
+ if(!target)target=ensureVideoCardLoaded(id);
+ if(!target){console.warn('[DORAMAX] Vídeo não encontrado no catálogo:',id);return;}
+ openPlayerMode();
+ requestAnimationFrame(()=>{
+  target.scrollIntoView({behavior:'instant',block:'start'});
+  const frame=target.querySelector('iframe');
+  activateFrame(frame);
+  ensurePlayer(frame);
+ });
+}
+if(backCatalogBtn)backCatalogBtn.addEventListener('click',returnToCatalog);
+
 let watchedVideoIds=new Set();
 let remoteCatalogVideos=[];
 try{watchedVideoIds=new Set(JSON.parse(localStorage.getItem(WATCHED_KEY)||'[]'));}catch(_){watchedVideoIds=new Set();}
@@ -741,6 +813,7 @@ const apiScript=document.createElement('script');apiScript.src='https://www.yout
 
 function resumeVideo(item){
  hideHistory();
+ openPlayerMode();
  let target=findVideoCard(item.id);
  if(!target)target=ensureVideoCardLoaded(item.id);
  if(!target){
@@ -904,6 +977,7 @@ function applyVideoCatalog(data){
  if(!data||!Array.isArray(data.videos))return;
  catalogReady=true;
  remoteCatalogVideos=data.videos.map(video=>({...video,id:String(video&&video.id||'').trim()})).filter(video=>video.id);
+ renderCatalog();
  const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
  const slots=Math.max(0,1000-feed.querySelectorAll('.video').length);
  catalogQueue=remoteCatalogVideos.filter(video=>{
