@@ -1063,39 +1063,57 @@ function videoId(frame){
 const SCROLL_POSITION_KEY='doramax_feed_scroll_v1';
 let scrollSaveTimer=null;
 let scrollRestored=false;
-function saveFeedPosition(){
- if(scrollSaveTimer)clearTimeout(scrollSaveTimer);
- scrollSaveTimer=setTimeout(()=>{
-  const feedTop=feed.getBoundingClientRect().top;
-  const visible=cards.find(card=>{
-   const rect=card.getBoundingClientRect();
-   return rect.bottom>feedTop+8&&rect.top<feedTop+feed.clientHeight;
-  });
-  const frame=visible?.querySelector('iframe');
-  const position={id:frame?videoId(frame):'',scrollTop:feed.scrollTop,offset:visible?visible.getBoundingClientRect().top-feedTop:0,savedAt:Date.now()};
-  try{localStorage.setItem(SCROLL_POSITION_KEY,JSON.stringify(position));}catch(_){}
- },180);
+function writeFeedPosition(){
+ const feedTop=feed.getBoundingClientRect().top;
+ const visible=cards.find(card=>{
+  const rect=card.getBoundingClientRect();
+  return rect.bottom>feedTop+8&&rect.top<feedTop+feed.clientHeight;
+ });
+ const frame=visible?.querySelector('iframe');
+ const position={id:frame?videoId(frame):'',index:visible?cards.indexOf(visible):-1,scrollTop:feed.scrollTop,offset:visible?visible.getBoundingClientRect().top-feedTop:0,savedAt:Date.now()};
+ try{localStorage.setItem(SCROLL_POSITION_KEY,JSON.stringify(position));}catch(_){}
+}
+function saveFeedPosition(immediate=false){
+ if(scrollSaveTimer){clearTimeout(scrollSaveTimer);scrollSaveTimer=null;}
+ if(immediate){writeFeedPosition();return;}
+ scrollSaveTimer=setTimeout(()=>{scrollSaveTimer=null;writeFeedPosition();},180);
+}
+function findVideoCard(id){
+ return id?cards.find(card=>videoId(card.querySelector('iframe'))===id)||null:null;
+}
+function ensureVideoCardLoaded(id){
+ let target=findVideoCard(id);
+ let guard=0;
+ while(!target&&catalogQueue.length&&guard++<Math.ceil(1000/CATALOG_BATCH_SIZE)+1){
+  appendCatalogBatch();
+  target=findVideoCard(id);
+ }
+ return target;
 }
 function restoreFeedPosition(){
  if(scrollRestored)return;
- scrollRestored=true;
  let saved=null;
  try{saved=JSON.parse(localStorage.getItem(SCROLL_POSITION_KEY)||'null');}catch(_){}
- if(!saved)return;
+ if(!saved){scrollRestored=true;return;}
  requestAnimationFrame(()=>{
-  const target=saved.id?cards.find(card=>videoId(card.querySelector('iframe'))===saved.id):null;
+  let target=saved.id?findVideoCard(saved.id):null;
+  if(!target&&saved.id)target=ensureVideoCardLoaded(saved.id);
   if(target){
+   scrollRestored=true;
    const top=target.getBoundingClientRect().top-feed.getBoundingClientRect().top;
    feed.scrollTop+=top-(Number(saved.offset)||0);
   }else if(Number.isFinite(saved.scrollTop)){
+   scrollRestored=true;
    feed.scrollTop=saved.scrollTop;
+  }else{
+   return;
   }
-  requestAnimationFrame(saveFeedPosition);
+  requestAnimationFrame(()=>saveFeedPosition(true));
  });
 }
 feed.addEventListener('scroll',saveFeedPosition,{passive:true});
-window.addEventListener('pagehide',saveFeedPosition);
-document.addEventListener('visibilitychange',()=>{if(document.hidden)saveFeedPosition();});
+window.addEventListener('pagehide',()=>saveFeedPosition(true));
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveFeedPosition(true);});
 function cardData(card){
  const frame=card.querySelector('iframe');
  return {id:videoId(frame),title:card.querySelector('.title')?.textContent?.trim()||frame?.title||'Vídeo',card,frame};
@@ -1209,14 +1227,20 @@ const apiScript=document.createElement('script');apiScript.src='https://www.yout
 
 function resumeVideo(item){
  hideHistory();
- const target=cards.find(card=>videoId(card.querySelector('iframe'))===item.id);
- if(!target)return;
- pendingSeek.set(item.id,item.seconds||0);
+ let target=findVideoCard(item.id);
+ if(!target)target=ensureVideoCardLoaded(item.id);
+ if(!target){
+  console.warn('[DORAMAX] Vídeo salvo não está disponível no catálogo atual:',item.id);
+  return;
+ }
+ pendingSeek.set(item.id,Math.max(0,Number(item.seconds)||0));
  target.scrollIntoView({behavior:'smooth',block:'start'});
  const frame=target.querySelector('iframe');
+ activateFrame(frame);
+ ensurePlayer(frame);
  const player=players.get(frame);
  if(player&&typeof player.seekTo==='function'){
-  try{player.seekTo(item.seconds||0,true);pendingSeek.delete(item.id);}catch(_){}
+  try{player.seekTo(Math.max(0,Number(item.seconds)||0),true);pendingSeek.delete(item.id);}catch(_){}
  }
 }
 function activateFrame(frame){
@@ -1371,7 +1395,7 @@ function applyVideoCatalog(data){
   known.add(video.id);return true;
  }).slice(0,slots);
  if(catalogQueue.length)startCatalogBatchLoading();
- restoreFeedPosition();
+ if(!scrollRestored)restoreFeedPosition();
 }
 function loadCachedVideoCatalog(){
  if(catalogCacheApplied)return;
