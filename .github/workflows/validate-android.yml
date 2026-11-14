@@ -3,6 +3,15 @@ name: Validar compilacao Android
 on:
   push:
     branches: [main]
+    paths:
+      - 'app/**'
+      - 'admin/**'
+      - 'gradle/**'
+      - 'build.gradle*'
+      - 'settings.gradle*'
+      - 'gradle.properties'
+      - 'gradlew'
+      - 'gradlew.bat'
   workflow_dispatch:
 
 permissions:
