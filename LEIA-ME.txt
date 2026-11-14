@@ -1,19 +1,25 @@
-MEU PLAYER - projeto Android (Kotlin)
+DORAMAX-GRATIS - projeto Android (Kotlin)
+
+ARQUITETURA DO APLICATIVO
+- Supabase e a fonte central dos dados do aplicativo.
+- O catalogo de videos vem da tabela public.videos, somente com registros is_active = true.
+- A configuracao publica vem de public.app_settings.
+- Login, usuarios, permissoes e painel administrativo usam Supabase.
+- O app mantem cache local do catalogo para abrir mais rapido e tolerar quedas temporarias de conexao.
+- O YouTube continua hospedando e transmitindo os videos.
+- GitHub e usado apenas para guardar o codigo-fonte e compilar o APK; o app nao baixa catalogo nem scripts do GitHub em tempo de execucao.
 
 COMO GERAR O APK
-Opcao 1 - GitHub (de graca, na nuvem)
- 1. Envie TODA esta pasta para um repositorio no GitHub (branch main),
-    mantendo as pastas (inclusive .github/workflows/build.yml).
- 2. Abra a aba "Actions" > "Build APK" > "Run workflow".
- 3. Quando terminar (uns 5 min), abra a execucao e baixe o artefato
-    "MeuPlayer-apk" (contem o app-debug.apk). Instale no celular.
+Opcao 1 - GitHub Actions
+1. Mantenha este projeto no repositorio e na branch main.
+2. Abra Actions > Build APK > Run workflow.
+3. Quando terminar, baixe o artefato do APK.
 
-Opcao 2 - Android Studio (PC)
- Abra a pasta no Android Studio, aguarde o sync e va em
- Build > Build APK(s).
+Opcao 2 - Android Studio
+Abra a pasta no Android Studio, aguarde o sync e use Build > Build APK(s).
 
-COMO ADICIONAR VIDEOS
- Edite app/src/main/assets/videos.json (id, title, channel) e gere o APK de novo.
- O "id" e o codigo depois de youtu.be/ ou de ?v= no link.
+CATALOGO DE VIDEOS
+Nao edite app/src/main/assets/videos.json para atualizar o catalogo remoto.
+Gerencie os videos e o campo is_active na tabela public.videos do Supabase. O aplicativo busca os registros ativos e guarda uma copia em cache no aparelho.
 
 Versoes: Gradle 8.7, Android Gradle Plugin 8.5.2, Kotlin 1.9.24, JDK 17, minSdk 26 (Android 8+).
