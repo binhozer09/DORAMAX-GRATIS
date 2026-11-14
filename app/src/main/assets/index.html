@@ -761,7 +761,7 @@ updateConfirm.addEventListener('click',()=>{
   const value=document.getElementById('updateProgressPercent');if(value)value.textContent='...';
   updateConfirm.disabled=true;updateCancel.disabled=true;
   window.doramaxUpdateProgress(0,'Conectando ao servidor...');
-  window.DoramaxAndroid.downloadUpdate(availableAppUpdate.apkUrl);
+  window.DoramaxAndroid.downloadUpdate(availableAppUpdate.apkUrl,availableAppUpdate.apkSha256||"",Number(availableAppUpdate.apkSizeBytes||0),Number(availableAppUpdate.latestVersionCode||0));
  }else{
   updateStatus.textContent='O download automático estará disponível na versão Android do aplicativo.';
  }
