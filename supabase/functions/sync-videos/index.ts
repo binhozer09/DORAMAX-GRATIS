@@ -30,19 +30,15 @@ Deno.serve(async(req:Request)=>{
   if(Number.isFinite(last)&&Date.now()-last<10*60*1000)return json({ok:true,synced:false,reason:"recent_sync",message:"Catálogo sincronizado há menos de 10 minutos."});
   const configured=Array.isArray(current.youtube_channels)?current.youtube_channels:["lucasdramascurtos"];
   const handle=String(configured[0]||"lucasdramascurtos").replace(/^@/,"");
-  let channelId=/^UC[A-Za-z0-9_-]{20,}$/.test(handle)?handle:"";
-  if(!channelId){
-   const page=await fetch("https://www.youtube.com/@"+encodeURIComponent(handle),{headers:{"User-Agent":"Mozilla/5.0 (compatible; DORAMAXCatalog/1.0)","Accept-Language":"pt-BR,pt;q=0.9,en;q=0.8"}});
-   if(!page.ok)throw new Error("Não foi possível localizar o canal no YouTube ("+page.status+").");
-   const html=await page.text();
-   const m=html.match(/<meta[^>]+itemprop=["']channelId["'][^>]+content=["'](UC[A-Za-z0-9_-]{20,})["']/i)||html.match(/"channelId":"(UC[A-Za-z0-9_-]{20,})"/)||html.match(/"externalId":"(UC[A-Za-z0-9_-]{20,})"/);
-   if(!m)throw new Error("O YouTube não retornou o ID do canal @"+handle+".");channelId=m[1];
-  }
+  const channelId=String(current.youtube_channel_id||"").trim();
+  if(!/^UC[A-Za-z0-9_-]{20,}$/.test(channelId))throw new Error("ID fixo do canal Lucas não configurado; sincronização cancelada por segurança.");
   const fr=await fetch("https://www.youtube.com/feeds/videos.xml?channel_id="+encodeURIComponent(channelId),{headers:{"User-Agent":"Mozilla/5.0 (compatible; DORAMAXCatalog/1.0)"}});
   if(!fr.ok)throw new Error("Feed do YouTube indisponível ("+fr.status+").");
   const xml=await fr.text();
+  const feedTitle=tag(xml,"title");
+  if(feedTitle.toLocaleLowerCase("pt-BR")!=="lucas dramas curtos")throw new Error("Feed inesperado: "+feedTitle+". Catálogo preservado.");
   const entries=[...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map(m=>m[1]);
-  const videos=entries.map((e,i)=>({id:tag(e,"yt:videoId"),title:tag(e,"title"),published:tag(e,"published"),source:handle,is_active:true,position:i,manual_override:false})).filter(v=>v.id&&v.title);
+  const videos=entries.map((e,i)=>({id:tag(e,"yt:videoId"),title:tag(e,"title"),published:tag(e,"published"),source:handle,is_active:true,position:i,manual_override:false})).filter((v,i)=>v.id&&v.title&&tag(entries[i],"yt:channelId")===channelId);
   if(!videos.length)throw new Error("Feed sem vídeos válidos; catálogo atual preservado.");
   const ids=videos.map(v=>v.id);
   const ov=await fetch(url+"/rest/v1/videos?select=id&manual_override=eq.true&id=in.("+ids.map(encodeURIComponent).join(",")+")",{headers:h});
