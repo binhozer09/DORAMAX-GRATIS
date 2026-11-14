@@ -690,6 +690,9 @@ window.doramaxUpdateProgress=function(percent,message){
  const label=document.getElementById('updateProgressLabel');
  const value=document.getElementById('updateProgressPercent');
  if(!box||!fill||!label||!value)return;
+ if(availableAppUpdate){
+  updateStatus.textContent='Atualização selecionada: versão '+(availableAppUpdate.latestVersionName||availableAppUpdate.latestVersionCode)+'.';
+ }
  if(percent===-2){
   updateStatus.textContent=message||'O download falhou.';
   updateConfirm.disabled=false;updateCancel.disabled=false;
@@ -706,7 +709,7 @@ window.doramaxUpdateProgress=function(percent,message){
  if(percent===100){
   updateDownloaded=true;
   updateMessage.textContent='Download concluído! Se a tela de instalação fechar ou você voltar depois, toque em Instalar agora para abrir novamente.';
-  updateStatus.textContent='O APK está salvo neste aparelho. A instalação será confirmada na tela do Android.';
+  updateStatus.textContent='Versão '+(availableAppUpdate?.latestVersionName||availableAppUpdate?.latestVersionCode)+' baixada e pronta para instalar. Confirme a instalação na tela do Android.';
   updateConfirm.hidden=false;updateConfirm.disabled=false;updateConfirm.textContent='Instalar agora';
   updateCancel.disabled=false;
  }
@@ -716,9 +719,9 @@ function openUpdatePanel(){
  updateConfirm.disabled=false;updateCancel.disabled=false;
  updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');
  if(availableAppUpdate){
-  updateMessage.textContent=updateDownloaded?'Download concluído! A atualização já está pronta para instalar.':'Nova versão '+availableAppUpdate.latestVersionName+' disponível. '+(availableAppUpdate.releaseNotes||'Atualize para receber as melhorias mais recentes.');
+  updateMessage.textContent=updateDownloaded?'A versão '+availableAppUpdate.latestVersionName+' já foi baixada e está pronta para instalar.':'Nova versão '+availableAppUpdate.latestVersionName+' disponível. '+(availableAppUpdate.releaseNotes||'Atualize para receber as melhorias mais recentes.');
   updateConfirm.hidden=false;updateConfirm.textContent=updateDownloaded?'Instalar agora':'Baixar atualização';
-  updateStatus.textContent=updateDownloaded?'O APK já está salvo neste aparelho. Você pode instalar agora ou voltar depois.':'Sua versão: '+(window.DoramaxAndroid?.getVersionCode?.()??'atual')+' • Nova versão: '+availableAppUpdate.latestVersionCode;
+  updateStatus.textContent=updateDownloaded?'Versão que será instalada: '+availableAppUpdate.latestVersionName+' (código '+availableAppUpdate.latestVersionCode+'). O APK já está salvo neste aparelho.':'Sua versão instalada: código '+(window.DoramaxAndroid?.getVersionCode?.()??'atual')+' • Versão que será instalada: '+availableAppUpdate.latestVersionName+' (código '+availableAppUpdate.latestVersionCode+').';
  }else{
   updateMessage.textContent='Você está usando a versão mais recente do DORAMAX.';
   updateConfirm.hidden=true;updateStatus.textContent='Verificação concluída.';
@@ -748,13 +751,13 @@ updatePanel.addEventListener('click',event=>{if(event.target===updatePanel)close
 updateConfirm.addEventListener('click',()=>{
  if(!availableAppUpdate)return;
  if(updateDownloaded&&window.DoramaxAndroid?.installDownloadedUpdate){
-  updateStatus.textContent='Abrindo o instalador do Android...';
+  updateStatus.textContent='Abrindo o instalador do Android para a versão '+availableAppUpdate.latestVersionName+' (código '+availableAppUpdate.latestVersionCode+').';
   window.DoramaxAndroid.installDownloadedUpdate();
   return;
  }
  if(window.DoramaxAndroid?.downloadUpdate){
   updateConfirm.textContent='Baixando...';
-  updateStatus.textContent='Preparando o download...';
+  updateStatus.textContent='Preparando o download da versão '+availableAppUpdate.latestVersionName+' (código '+availableAppUpdate.latestVersionCode+').';
   const box=document.getElementById('updateProgressBox');if(box)box.hidden=false;
   const fill=document.getElementById('updateProgressFill');if(fill){fill.classList.add('indeterminate');fill.style.width='35%';}
   const label=document.getElementById('updateProgressLabel');if(label)label.textContent='Conectando ao servidor...';
