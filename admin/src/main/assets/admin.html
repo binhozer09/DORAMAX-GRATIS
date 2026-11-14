@@ -101,7 +101,7 @@ async function publishApk(){
   config.updates={enabled:true,latestVersionCode:code,latestVersionName:name,apkUrl:URL+"/storage/v1/object/public/doramax-apk-updates/"+path,releaseNotes:notes};
   const saved=await api("/rest/v1/app_settings?key=eq.remote_config",{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify({value:config})},session.access_token);
   if(!saved||!saved.length)throw Error("APK enviado, mas a publicação não foi confirmada.");
-  status("apkStatus","Versão "+name+" publicada! Os aplicativos vão identificar a atualização.");
+  status("apkStatus","Versão "+name+" publicada! Os aplicativos vão identificar a atualização.");await refreshPublishedUpdateButton();
  }catch(e){status("apkStatus",e.message)}finally{btn.disabled=false}
 }
 async function refreshPublishedUpdateButton(){
