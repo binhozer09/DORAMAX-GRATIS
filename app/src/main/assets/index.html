@@ -1101,6 +1101,12 @@ function restoreFeedPosition(){
  requestAnimationFrame(()=>{
   let target=saved.id?findVideoCard(saved.id):null;
   if(!target&&saved.id)target=ensureVideoCardLoaded(saved.id);
+  // Se o vídeo salvo pertence ao catálogo remoto, aguarda o catálogo ficar disponível.
+  // Assim uma falha temporária de rede não encerra a tentativa de restauração.
+  if(!target&&saved.id&&!catalogReady)return;
+  if(!target&&Number.isInteger(saved.index)&&saved.index>=0&&saved.index<cards.length){
+   target=cards[saved.index];
+  }
   if(target){
    scrollRestored=true;
    const top=target.getBoundingClientRect().top-feed.getBoundingClientRect().top;
@@ -1342,6 +1348,7 @@ document.addEventListener('visibilitychange',()=>{
 const VIDEO_CATALOG_CACHE_KEY='doramax_video_catalog_cache_v1';
 let catalogRequest=null;
 let catalogCacheApplied=false;
+let catalogReady=false;
 let catalogQueue=[];
 let catalogSentinel=null;
 let catalogLoadObserver=null;
@@ -1390,6 +1397,7 @@ function startCatalogBatchLoading(){
 }
 function applyVideoCatalog(data){
  if(!data||!Array.isArray(data.videos))return;
+ catalogReady=true;
  remoteCatalogVideos=data.videos.map(video=>({...video,id:String(video&&video.id||'').trim()})).filter(video=>video.id);
  const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
  const slots=Math.max(0,1000-feed.querySelectorAll('.video').length);
