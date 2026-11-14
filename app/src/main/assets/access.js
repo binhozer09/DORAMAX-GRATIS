@@ -113,7 +113,9 @@
 
   function updateLoggedAs() {
     const email = currentUser && currentUser.email || "";
-    window.dispatchEvent(new CustomEvent("doramax:account-state", { detail: { email, loggedIn: !!email, isAdmin, unlocked } }));
+    const metadata = currentUser && currentUser.user_metadata || {};
+    const name = metadata.full_name || metadata.name || metadata.display_name || metadata.nome || "";
+    window.dispatchEvent(new CustomEvent("doramax:account-state", { detail: { email, name, loggedIn: !!email, isAdmin, unlocked } }));
   }
 
   async function refreshSessionIfNeeded() {
