@@ -5,6 +5,8 @@ workflows:
     max_build_duration: 30
     environment:
       java: 17
+      android_signing:
+        - doramax-release-key
     scripts:
       - name: Configurar Android SDK
         script: |
@@ -13,11 +15,47 @@ workflows:
         script: |
           curl -fL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle.zip
           unzip -q /tmp/gradle.zip -d "$HOME"
+      - name: Verificar assinatura fixa
+        script: |
+          test -n "$CM_KEYSTORE_PATH"
+          test -n "$CM_KEYSTORE_PASSWORD"
+          test -n "$CM_KEY_ALIAS"
+          test -n "$CM_KEY_PASSWORD"
+          test -f "$CM_KEYSTORE_PATH"
       - name: Compilar DORAMAX-GRATIS
         script: |
           "$HOME/gradle-8.7/bin/gradle" :app:assembleDebug --no-daemon
     artifacts:
       - app/build/outputs/apk/debug/*.apk
+
+  android-release:
+    name: DORAMAX-GRATIS RELEASE ASSINADO
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      java: 17
+      android_signing:
+        - doramax-release-key
+    scripts:
+      - name: Configurar Android SDK
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/local.properties"
+      - name: Instalar Gradle 8.7
+        script: |
+          curl -fL https://services.gradle.org/distributions/gradle-8.7-bin.zip -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d "$HOME"
+      - name: Verificar assinatura fixa
+        script: |
+          test -n "$CM_KEYSTORE_PATH"
+          test -n "$CM_KEYSTORE_PASSWORD"
+          test -n "$CM_KEY_ALIAS"
+          test -n "$CM_KEY_PASSWORD"
+          test -f "$CM_KEYSTORE_PATH"
+      - name: Compilar DORAMAX-GRATIS
+        script: |
+          "$HOME/gradle-8.7/bin/gradle" :app:assembleRelease --no-daemon
+    artifacts:
+      - app/build/outputs/apk/release/*.apk
 
   doramax-adm:
     name: DORAMAX ADM APK
