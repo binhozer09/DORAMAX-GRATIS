@@ -25,7 +25,7 @@ button:disabled{opacity:.5}.secondary{background:#292929;border:1px solid #555}.
 <section id="dashboard" class="hidden">
 <div class="card"><div class="row"><div><h1>Controle de acessos</h1><p class="muted">Autorize ou bloqueie usuários do DORAMAX-GRATIS.</p></div><span class="pill">ADM</span></div>
 <button id="syncBtn" class="full secondary">SINCRONIZAR CANAL DO YOUTUBE</button><input id="search" type="search" placeholder="Buscar por e-mail"><button id="searchBtn" class="full">BUSCAR USUÁRIO</button><button id="listBtn" class="full secondary">ATUALIZAR LISTA</button><div id="users"></div><div id="dashStatus" class="status"></div></div>
-<div class="card"><h2>Notificações de pagamento</h2><button id="paymentsBtn" class="full secondary">ATUALIZAR NOTIFICAÇÕES</button><div id="payments" class="muted">Toque para carregar.</div></div>
+<div class="card"><h2>Enviar arquivo APK</h2><p class="muted">Selecione o APK, informe a versão e publique. O aplicativo dos usuários identificará a atualização automaticamente.</p><input id="apkFile" type="file" accept=".apk,application/vnd.android.package-archive"><input id="apkVersionCode" type="number" min="1" step="1" placeholder="Código da versão (ex.: 3)"><input id="apkVersionName" type="text" placeholder="Nome da versão (ex.: 1.2.0)"><input id="apkNotes" type="text" placeholder="Novidades (opcional)"><button id="publishApkBtn" class="full">ENVIAR APK E PUBLICAR</button><div id="apkStatus" class="status"></div><p class="muted">O APK precisa manter o mesmo pacote e assinatura da versão instalada. O Android pedirá confirmação para instalar.</p></div><div class="card"><h2>Notificações de pagamento</h2><button id="paymentsBtn" class="full secondary">ATUALIZAR NOTIFICAÇÕES</button><div id="payments" class="muted">Toque para carregar.</div></div>
 </section>
 </main>
 <script>
@@ -46,8 +46,28 @@ async function listUsers(){if(!admin)return;status("dashStatus","Carregando usu�
 async function search(){if(!admin)return;const email=$("search").value.trim().toLowerCase();if(!email){status("dashStatus","Digite o e-mail para buscar.");return}try{const p=await api("/rest/v1/profiles?select=user_id,email&email=ilike."+encodeURIComponent(email),{},session.access_token);await renderUsers(p);status("dashStatus",p.length+" resultado(s).")}catch(e){status("dashStatus",e.message)}}
 async function payments(){if(!admin)return;const box=$("payments");box.textContent="Carregando...";try{const p=await api("/rest/v1/payment_click_notifications?select=email,amount,clicked_at&order=clicked_at.desc&limit=30",{},session.access_token);box.replaceChildren();if(!p.length){box.textContent="Nenhuma notificação.";return}p.forEach(x=>{const d=document.createElement("p");d.textContent=(x.email||"E-mail não informado")+" — R$ "+Number(x.amount||5).toFixed(2)+" — "+new Date(x.clicked_at).toLocaleString("pt-BR");box.append(d)})}catch(e){box.textContent=e.message}}
 async function syncCatalog(){if(!admin)return;const b=$("syncBtn");b.disabled=true;status("dashStatus","Sincronizando vídeos diretamente do YouTube para o Supabase...");try{const result=await api("/functions/v1/sync-videos",{method:"POST",body:"{}"},session.access_token);status("dashStatus",result.synced?"Catálogo atualizado: "+result.saved+" vídeo(s) sincronizado(s). Total ativo: "+result.activeVideos+".":(result.message||"O catálogo já está atualizado."));}catch(e){status("dashStatus","Falha na sincronização: "+e.message);}finally{b.disabled=false}}
+async function publishApk(){
+ if(!admin||!session?.access_token)return;
+ const file=$("apkFile").files[0],code=Number($("apkVersionCode").value),name=$("apkVersionName").value.trim(),notes=$("apkNotes").value.trim();
+ if(!file||!file.name.toLowerCase().endsWith(".apk")){status("apkStatus","Selecione um arquivo APK válido.");return}
+ if(!Number.isInteger(code)||code<1||!name){status("apkStatus","Informe o código e o nome da versão.");return}
+ if(file.size>200*1024*1024){status("apkStatus","O APK ultrapassa o limite de 200 MB.");return}
+ const btn=$("publishApkBtn");btn.disabled=true;status("apkStatus","Enviando APK para o Supabase...");
+ try{
+  const path="releases/doramax-"+code+".apk";
+  const upload=await fetch(URL+"/storage/v1/object/doramax-apk-updates/"+path,{method:"POST",headers:{"apikey":KEY,"Authorization":"Bearer "+session.access_token,"Content-Type":"application/vnd.android.package-archive","x-upsert":"true"},body:file});
+  if(!upload.ok)throw Error("Falha no envio: "+await upload.text());
+  const rows=await api("/rest/v1/app_settings?select=value&key=eq.remote_config&limit=1",{},session.access_token);
+  if(!Array.isArray(rows)||!rows.length)throw Error("Configuração remota não encontrada.");
+  const config=rows[0].value||{};
+  config.updates={enabled:true,latestVersionCode:code,latestVersionName:name,apkUrl:URL+"/storage/v1/object/public/doramax-apk-updates/"+path,releaseNotes:notes};
+  const saved=await api("/rest/v1/app_settings?key=eq.remote_config",{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify({value:config})},session.access_token);
+  if(!saved||!saved.length)throw Error("APK enviado, mas a publicação não foi confirmada.");
+  status("apkStatus","Versão "+name+" publicada! Os aplicativos vão identificar a atualização.");
+ }catch(e){status("apkStatus",e.message)}finally{btn.disabled=false}
+}
 async function logout(){try{if(session)await api("/auth/v1/logout",{method:"POST"},session.access_token)}catch{}save(null);admin=false;$("dashboard").classList.add("hidden");$("login").classList.remove("hidden");$("logout").classList.add("hidden");status("loginStatus","Sessão encerrada.")}
-$("loginForm").addEventListener("submit",login);$("logout").addEventListener("click",logout);$("listBtn").addEventListener("click",listUsers);$("searchBtn").addEventListener("click",search);$("paymentsBtn").addEventListener("click",payments);$("syncBtn").addEventListener("click",syncCatalog);
+$("publishApkBtn").addEventListener("click",publishApk);$("loginForm").addEventListener("submit",login);$("logout").addEventListener("click",logout);$("listBtn").addEventListener("click",listUsers);$("searchBtn").addEventListener("click",search);$("paymentsBtn").addEventListener("click",payments);$("syncBtn").addEventListener("click",syncCatalog);
 try{const saved=localStorage.getItem(STORE);if(saved){session=JSON.parse(saved);verify().catch(()=>{save(null);status("loginStatus","Entre novamente para confirmar sua autorização.")})}}catch{save(null)}
 })();
 </script></body></html>
