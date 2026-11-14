@@ -397,6 +397,7 @@ if(backCatalogBtn)backCatalogBtn.addEventListener('click',returnToCatalog);
 let watchedVideoIds=new Set();
 let remoteCatalogVideos=[];
 try{watchedVideoIds=new Set(JSON.parse(localStorage.getItem(WATCHED_KEY)||'[]'));}catch(_){watchedVideoIds=new Set();}
+renderCatalog();
 function saveWatchedVideos(){
  try{localStorage.setItem(WATCHED_KEY,JSON.stringify([...watchedVideoIds].slice(-5000)));}catch(_){}
 }
