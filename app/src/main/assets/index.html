@@ -612,6 +612,7 @@ window.doramaxUpdateProgress=function(percent,message){
  }
 };
 function openUpdatePanel(){
+ updateConfirm.disabled=false;updateCancel.disabled=false;
  updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');
  if(availableAppUpdate){
   updateMessage.textContent='Nova versão '+availableAppUpdate.latestVersionName+' disponível. '+(availableAppUpdate.releaseNotes||'Atualize para receber as melhorias mais recentes.');
