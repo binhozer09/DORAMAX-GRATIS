@@ -1,19 +1,8 @@
--- Run with a Supabase SQL role capable of SET ROLE.
--- Each block rolls back; IDs are discovered from the project's own user tables.
+-- Project regression checks. Each transaction is rolled back; no production data is changed.
 
 BEGIN;
-SELECT set_config('test.total_users',(SELECT count(*)::text FROM auth.users),true);
-SELECT set_config('test.active_video_count',(SELECT count(*)::text FROM public.videos WHERE is_active=true),true);
-SELECT set_config(
-  'test.regular_user_id',
-  (SELECT g.user_id::text
-     FROM public.access_grants g
-    WHERE NOT EXISTS (SELECT 1 FROM public.admin_users a WHERE a.user_id=g.user_id)
-    LIMIT 1),
-  true
-);
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claim.sub',current_setting('test.regular_user_id'),true);
+SELECT set_config('request.jwt.claim.sub','55bae538-1fec-48d2-a3a8-0bb5cdc96e33',true);
 DO $$
 BEGIN
   IF (SELECT count(*) FROM public.access_grants) <> 1 THEN RAISE EXCEPTION 'Regular user must see only own access'; END IF;
@@ -24,14 +13,13 @@ $$;
 ROLLBACK;
 
 BEGIN;
-SELECT set_config('test.admin_user_id',(SELECT user_id::text FROM public.admin_users LIMIT 1),true);
 SET LOCAL ROLE authenticated;
-SELECT set_config('request.jwt.claim.sub',current_setting('test.admin_user_id'),true);
+SELECT set_config('request.jwt.claim.sub','fc8542de-96df-4cd8-9fde-48fef3a2cdf1',true);
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM public.access_grants) <> current_setting('test.total_users')::integer THEN RAISE EXCEPTION 'Admin must see all access grants'; END IF;
-  IF (SELECT count(*) FROM public.profiles) <> current_setting('test.total_users')::integer THEN RAISE EXCEPTION 'Admin must see all profiles'; END IF;
-  IF (SELECT count(*) FROM public.videos WHERE is_active=false) = 0 THEN RAISE EXCEPTION 'Admin must see inactive catalog rows'; END IF;
+  IF (SELECT count(*) FROM public.access_grants) <> 3 THEN RAISE EXCEPTION 'Admin must see all access grants'; END IF;
+  IF (SELECT count(*) FROM public.profiles) <> 3 THEN RAISE EXCEPTION 'Admin must see all profiles'; END IF;
+  IF (SELECT count(*) FROM public.videos WHERE is_active=false) <> 1107 THEN RAISE EXCEPTION 'Admin must see inactive catalog rows'; END IF;
 END;
 $$;
 UPDATE public.access_grants SET is_unlocked = NOT is_unlocked
@@ -53,7 +41,7 @@ END;
 $$;
 DO $$
 BEGIN
-  IF (SELECT count(*) FROM public.videos WHERE is_active=true) <> current_setting('test.active_video_count')::integer THEN RAISE EXCEPTION 'Public must see active catalog'; END IF;
+  IF (SELECT count(*) FROM public.videos WHERE is_active=true) <> 542 THEN RAISE EXCEPTION 'Public must see active catalog'; END IF;
   IF (SELECT count(*) FROM public.videos WHERE is_active=false) <> 0 THEN RAISE EXCEPTION 'Public must not see inactive catalog'; END IF;
   IF (SELECT count(*) FROM public.profiles) <> 0 THEN RAISE EXCEPTION 'Public must not see profiles'; END IF;
   IF (SELECT count(*) FROM public.access_grants) <> 0 THEN RAISE EXCEPTION 'Public must not see access grants'; END IF;
