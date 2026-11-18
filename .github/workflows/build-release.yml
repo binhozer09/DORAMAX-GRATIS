@@ -78,7 +78,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='16' versionName='2.9'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='17' versionName='3.0'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -92,22 +92,22 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 16,
-              "versionName": "2.9",
+              "versionCode": 17,
+              "versionName": "3.0",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Correção da tela cheia: amplia o vídeo para preencher a tela e evita pausas automáticas causadas pelo observador do feed."
+              "releaseNotes": "Atualiza o título do catálogo para “Escolha seu dorama favorito” e remove o subtítulo antigo."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
           PY
-          echo "tag=d oramax-v2.9" >> "$GITHUB_OUTPUT"
+          echo "tag=doramax-v3.0" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: doramax-v2.9
-          name: DORAMAX-GRATIS 2.9
+          tag_name: doramax-v3.0
+          name: DORAMAX-GRATIS 3.0
           target_commitish: main
           generate_release_notes: true
           files: |
