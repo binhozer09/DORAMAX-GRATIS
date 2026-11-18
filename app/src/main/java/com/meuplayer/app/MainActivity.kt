@@ -54,6 +54,11 @@ class MainActivity : AppCompatActivity() {
         fun getVersionCode(): Int = BuildConfig.VERSION_CODE
 
         @JavascriptInterface
+        fun checkForUpdates() {
+            checkLatestGitHubRelease()
+        }
+
+        @JavascriptInterface
         fun downloadUpdate(url: String, expectedSha256: String, expectedSize: Long, expectedVersionCode: Int) {
             runOnUiThread { enqueueUpdateDownload(url, expectedSha256, expectedSize, expectedVersionCode) }
         }
@@ -67,6 +72,108 @@ class MainActivity : AppCompatActivity() {
         @JavascriptInterface
         fun installDownloadedUpdate() {
             runOnUiThread { openDownloadedUpdateInstaller() }
+        }
+    }
+
+    private fun checkLatestGitHubRelease() {
+        Thread {
+            val result = JSONObject()
+            try {
+                val release = fetchUpdateJson(RELEASE_API)
+                if (release.optBoolean("draft", false) || release.optBoolean("prerelease", false)) {
+                    result.put("available", false)
+                } else {
+                    val assets = release.optJSONArray("assets")
+                        ?: throw IllegalStateException("A publicação não contém arquivos.")
+                    var manifestUrl: String? = null
+                    var apkUrl: String? = null
+                    var apkAssetSize = -1L
+                    var apkAssetDigest = ""
+                    for (index in 0 until assets.length()) {
+                        val asset = assets.getJSONObject(index)
+                        when (asset.optString("name")) {
+                            MANIFEST_ASSET_NAME -> manifestUrl = asset.optString("browser_download_url")
+                            APK_ASSET_NAME -> {
+                                apkUrl = asset.optString("browser_download_url")
+                                apkAssetSize = asset.optLong("size", -1L)
+                                apkAssetDigest = asset.optString("digest")
+                            }
+                        }
+                    }
+                    if (manifestUrl.isNullOrBlank() || apkUrl.isNullOrBlank()) {
+                        throw IllegalStateException("A publicação ainda não contém o APK e o manifesto.")
+                    }
+                    val manifest = fetchUpdateJson(manifestUrl)
+                    val versionCode = manifest.optInt("versionCode", -1)
+                    val versionName = manifest.optString("versionName")
+                    val expectedSize = manifest.optLong("apkSizeBytes", -1L)
+                    val expectedSha = manifest.optString("apkSha256").lowercase()
+                    if (!manifest.optBoolean("enabled", true) || versionCode <= BuildConfig.VERSION_CODE) {
+                        result.put("available", false)
+                    } else {
+                        if (versionName.isBlank() ||
+                            manifest.optString("apkFile", APK_ASSET_NAME) != APK_ASSET_NAME ||
+                            expectedSize <= 0L || expectedSize != apkAssetSize ||
+                            !expectedSha.matches(Regex("[0-9a-f]{64}"))) {
+                            throw IllegalStateException("Manifesto de atualização inválido.")
+                        }
+                        if (apkAssetDigest.startsWith("sha256:", ignoreCase = true) &&
+                            apkAssetDigest.substringAfter(":").lowercase() != expectedSha) {
+                            throw IllegalStateException("A assinatura SHA-256 do APK não confere.")
+                        }
+                        val apkUri = Uri.parse(apkUrl)
+                        if (apkUri.scheme != "https" || apkUri.host != "github.com" ||
+                            !apkUri.path.orEmpty().contains("/releases/download/")) {
+                            throw IllegalStateException("O endereço do APK não é confiável.")
+                        }
+                        result.put("available", true)
+                        result.put("latestVersionCode", versionCode)
+                        result.put("latestVersionName", versionName)
+                        result.put("apkUrl", apkUrl)
+                        result.put("apkSha256", expectedSha)
+                        result.put("apkSizeBytes", expectedSize)
+                        result.put("releaseNotes", manifest.optString("releaseNotes", "Atualização do DORAMAX-GRATIS."))
+                    }
+                }
+            } catch (error: Exception) {
+                Log.w(TAG, "Falha ao consultar a última publicação do GitHub", error)
+                result.put("error", error.message ?: error.javaClass.simpleName)
+            }
+            runOnUiThread {
+                if (::siteWeb.isInitialized && !isFinishing && !isDestroyed) {
+                    siteWeb.evaluateJavascript(
+                        "window.doramaxReceiveUpdate && window.doramaxReceiveUpdate(${JSONObject.quote(result.toString())});",
+                        null
+                    )
+                }
+            }
+        }.start()
+    }
+
+    private fun fetchUpdateJson(address: String): JSONObject {
+        val uri = Uri.parse(address)
+        val host = uri.host.orEmpty().lowercase()
+        val allowedHosts = setOf("api.github.com", "github.com", "release-assets.githubusercontent.com")
+        if (uri.scheme != "https" || host !in allowedHosts) {
+            throw IllegalStateException("Endereço de atualização não autorizado.")
+        }
+        val connection = (URL(address).openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 15000
+            readTimeout = 25000
+            instanceFollowRedirects = true
+            setRequestProperty("Accept", "application/vnd.github+json")
+            setRequestProperty("User-Agent", "DORAMAX-GRATIS-Android")
+            connect()
+        }
+        try {
+            if (connection.responseCode !in 200..299) {
+                throw IllegalStateException("Servidor respondeu HTTP ${connection.responseCode}")
+            }
+            val body = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            return JSONObject(body)
+        } finally {
+            connection.disconnect()
         }
     }
 
@@ -181,8 +288,8 @@ class MainActivity : AppCompatActivity() {
     private fun enqueueUpdateDownload(url: String, expectedSha256: String, expectedSize: Long, expectedVersionCode: Int) {
         val uri = runCatching { Uri.parse(url) }.getOrNull()
         if (uri == null || uri.scheme != "https" ||
-            uri.host != "qbwsaahlkovrejwliefv.supabase.co" ||
-            !uri.path.orEmpty().contains("/storage/v1/object/public/")) {
+            uri.host != "github.com" ||
+            !uri.path.orEmpty().contains("/releases/download/")) {
             Toast.makeText(this, "Link de atualização inválido.", Toast.LENGTH_LONG).show()
             return
         }
@@ -355,6 +462,9 @@ class MainActivity : AppCompatActivity() {
         private const val ADMOB_APP_ID = "ca-app-pub-2488297391470541~8272798060"
         // DORAMAX GRÁTIS production banner ad unit.
         private const val BANNER_AD_UNIT_ID = "ca-app-pub-2488297391470541/7183077672"
+        private const val RELEASE_API = "https://api.github.com/repos/binhozer09/DORAMAX-GRATIS/releases/latest"
+        private const val APK_ASSET_NAME = "DORAMAX-GRATIS.apk"
+        private const val MANIFEST_ASSET_NAME = "update.json"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
