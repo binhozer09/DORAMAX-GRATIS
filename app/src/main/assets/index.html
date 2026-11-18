@@ -75,15 +75,15 @@ body.player-open .catalog-screen{display:none}
 <section id="catalogScreen" class="catalog-screen" aria-label="Catálogo de filmes e séries"><header class="catalog-heading"><h1>Escolha seu dorama favorito</h1></header><div id="catalogGrid" class="catalog-grid"><div class="catalog-empty">Carregando catálogo...</div></div></section>
 <main id="feed" class="feed" aria-label="Reprodutor de vídeos">
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/LccxdtzPvcU?playsinline=1&rel=0&controls=0&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/LccxdtzPvcU?playsinline=1&rel=0&controls=0&fs=1&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope" allowfullscreen></iframe></div>
  <div class="info"><h2 class="title">Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap</h2></div>
 </section>
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/wtvWDbBLqdc?playsinline=1&rel=0&controls=0&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/wtvWDbBLqdc?playsinline=1&rel=0&controls=0&fs=1&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
  <div class="info"><h2 class="title">O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!</h2></div>
 </section>
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/FioURf9_CyU?playsinline=1&rel=0&controls=0&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/FioURf9_CyU?playsinline=1&rel=0&controls=0&fs=1&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
  <div class="info"><h2 class="title">Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas</h2></div>
 </section>
 
@@ -415,9 +415,9 @@ function buildVideoCard(video){
  const section=document.createElement('section');section.className='video';
  const player=document.createElement('div');player.className='player';
  const frame=document.createElement('iframe');
- frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=0&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
+ frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=0&fs=1&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
  frame.title=video.title||'Vídeo novo';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
- frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope';frame.allowFullscreen=false;
+ frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope';frame.allowFullscreen=true;frame.setAttribute('allowfullscreen','');
  player.appendChild(frame);section.appendChild(player);
  const info=document.createElement('div');info.className='info';
  const heading=document.createElement('h2');heading.className='title';heading.textContent=video.title||'Vídeo novo';
@@ -567,8 +567,16 @@ function ensureSeekBar(card){
    window.doramaxExitFullscreen();
    return;
   }
-  activeFrame=card.querySelector('iframe');
-  window.doramaxEnterFullscreen(card);
+  const frame=card.querySelector('iframe');
+  activeFrame=frame;
+  if(frame&&typeof frame.requestFullscreen==='function'){
+   try{
+    const request=frame.requestFullscreen();
+    if(request&&typeof request.catch==='function')request.catch(()=>window.doramaxEnterFullscreen(card));
+   }catch(_){window.doramaxEnterFullscreen(card);}
+  }else{
+   window.doramaxEnterFullscreen(card);
+  }
  });
  bar.append(fullscreen);card.appendChild(bar);
 }
