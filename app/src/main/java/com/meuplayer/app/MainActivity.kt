@@ -334,10 +334,10 @@ class MainActivity : AppCompatActivity() {
             } catch (error: Exception) {
                 Log.e(TAG, "Update download failed", error)
                 runOnUiThread {
-                    reportUpdateProgress(-2, "Não foi possível baixar. Verifique a internet e tente novamente.")
+                    reportUpdateProgress(-2, "Falha no download: " + (error.message ?: error.javaClass.simpleName))
                     Toast.makeText(
                         this,
-                        "Não foi possível baixar a atualização. Verifique a internet e tente novamente.",
+                        "Falha ao baixar: " + (error.message ?: error.javaClass.simpleName),
                         Toast.LENGTH_LONG
                     ).show()
                     updateInProgress.set(false)
