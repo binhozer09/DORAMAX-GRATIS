@@ -1,0 +1,115 @@
+name: Build and publish DORAMAX-GRATIS APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - 'build.gradle*'
+      - 'settings.gradle*'
+      - 'gradle.properties'
+      - 'gradlew'
+      - '.github/workflows/build-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      DORAMAX_SIGNING_BUNDLE: ${{ secrets.DORAMAX_SIGNING_BUNDLE }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Decode DORAMAX signing bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DORAMAX_SIGNING_BUNDLE" || { echo "Missing DORAMAX_SIGNING_BUNDLE repository secret"; exit 1; }
+          python3 - <<'PY'
+          import base64, json, os, pathlib
+          bundle = json.loads(base64.b64decode(os.environ["DORAMAX_SIGNING_BUNDLE"]))
+          required = ["keystoreBase64", "keystorePassword", "keyAlias", "keyPassword"]
+          if not all(bundle.get(k) for k in required):
+              raise SystemExit("DORAMAX signing bundle is incomplete")
+          path = pathlib.Path(os.environ["RUNNER_TEMP"]) / "doramax-release.jks"
+          path.write_bytes(base64.b64decode(bundle["keystoreBase64"]))
+          path.chmod(0o600)
+          for value in (bundle["keystoreBase64"], bundle["keystorePassword"], bundle["keyPassword"]):
+              print(f"::add-mask::{value}")
+          with open(os.environ["GITHUB_ENV"], "a") as env:
+              env.write(f"CM_KEYSTORE_PATH={path}\n")
+              env.write(f"CM_KEYSTORE_PASSWORD={bundle['keystorePassword']}\n")
+              env.write(f"CM_KEY_ALIAS={bundle['keyAlias']}\n")
+              env.write(f"CM_KEY_PASSWORD={bundle['keyPassword']}\n")
+          PY
+
+      - name: Build signed APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon :app:clean :app:assembleRelease
+          APK="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | head -n 1)"
+          test -n "$APK"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          "$APKSIGNER" verify --verbose "$APK"
+          AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='14' versionName='2.7'"
+          mkdir -p release
+          cp "$APK" release/DORAMAX-GRATIS.apk
+
+      - name: Create update manifest
+        id: manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, pathlib
+          apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
+          data = {
+              "enabled": True,
+              "versionCode": 14,
+              "versionName": "2.7",
+              "apkFile": "DORAMAX-GRATIS.apk",
+              "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
+              "apkSizeBytes": apk.stat().st_size,
+              "releaseNotes": "Melhorias no player: tela cheia nativa e gestos de 10 segundos."
+          }
+          pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+          PY
+          echo "tag=d oramax-v2.7" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: doramax-v2.7
+          name: DORAMAX-GRATIS 2.7
+          target_commitish: main
+          generate_release_notes: true
+          files: |
+            release/DORAMAX-GRATIS.apk
+            release/update.json
