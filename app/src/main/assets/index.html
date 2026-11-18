@@ -62,6 +62,13 @@ body.player-open .back-catalog{display:inline-flex}
 body.player-open .catalog-screen{display:none}
 @media(min-width:700px){.catalog-screen{max-width:520px;left:50%;right:auto;transform:translateX(-50%);width:100%;border-left:1px solid #ffffff0c;border-right:1px solid #ffffff0c}.catalog-grid{gap:22px 16px}}
 
+/* Fullscreen Android WebView: keep the feed as the only fixed layer.
+   The video card stays in normal flow inside that layer; fixed descendants
+   inside a fixed scrolling feed can render as a white surface on some WebViews. */
+#feed.fullscreen-active{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;overflow:hidden!important;z-index:2147482000!important;transform:none!important}
+#feed.fullscreen-active .video.fullscreen-fallback{position:absolute!important;inset:0!important;left:0!important;top:0!important;width:100%!important;height:100%!important;height:100dvh!important;min-height:100%!important;z-index:1!important;overflow:hidden!important;transform:none!important}
+#feed.fullscreen-active .video.fullscreen-fallback .player{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important;transform:none!important}
+#feed.fullscreen-active .video.fullscreen-fallback .player iframe{position:absolute!important;inset:0!important;width:100%!important;height:calc(100% + 150px)!important;max-width:none!important;max-height:none!important;transform:none!important;border:0!important}
 </style>
 </head>
 <body>
