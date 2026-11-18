@@ -469,11 +469,20 @@ class MainActivity : AppCompatActivity() {
                 view: WebView,
                 request: WebResourceRequest
             ): Boolean {
+                val host = request.url.host.orEmpty().lowercase()
+                val path = request.url.path.orEmpty()
+                val isYouTubeHost = host == "youtube.com" || host.endsWith(".youtube.com") ||
+                    host == "youtu.be" || host.endsWith(".youtu.be") ||
+                    host == "youtube-nocookie.com" || host.endsWith(".youtube-nocookie.com")
+
+                // Keep the embedded player available, but block YouTube pages and
+                // links that try to navigate the user away from the DORAMAX player.
+                if (isYouTubeHost) return !path.startsWith("/embed/")
+
                 if (!request.isForMainFrame) return false
 
-                val host = request.url.host.orEmpty().lowercase()
-                // Keep the payment page inside this WebView. Block attempts to open
-                // YouTube or any other external site/app outside DORAMAX.
+                // Keep the payment page inside this WebView. Block any other
+                // external site/app outside DORAMAX.
                 if (host == "appassets.androidplatform.net" ||
                     host == "picpay.com" || host.endsWith(".picpay.com")) {
                     return false
