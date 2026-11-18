@@ -78,7 +78,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='18' versionName='3.1'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='19' versionName='3.2'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -92,22 +92,22 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 18,
-              "versionName": "3.1",
+              "versionCode": 19,
+              "versionName": "3.2",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Usa os controles nativos do YouTube para reproduzir e avançar o vídeo; remove os botões personalizados duplicados do player."
+              "releaseNotes": "Restaura o corte do player, mantém o botão de tela cheia na parte inferior e usa o play e a busca nativos do YouTube."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
           PY
-          echo "tag=doramax-v3.1" >> "$GITHUB_OUTPUT"
+          echo "tag=doramax-v3.2" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: doramax-v3.1
-          name: DORAMAX-GRATIS 3.1
+          tag_name: doramax-v3.2
+          name: DORAMAX-GRATIS 3.2
           target_commitish: main
           generate_release_notes: true
           files: |
