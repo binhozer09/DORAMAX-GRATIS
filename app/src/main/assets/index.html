@@ -559,11 +559,18 @@ function ensureSeekBar(card){
    showPlayerControls(card);
    return;
   }
-  try{
-   if(card.requestFullscreen){await card.requestFullscreen();}
-   else{card.classList.add('fullscreen-fallback');}
-  }catch(error){
+  // Android WebView: use the in-page fullscreen layout instead of the browser
+  // Fullscreen API. WebView may report requestFullscreen as available while its
+  // host does not provide the custom-view lifecycle, which can leave a white screen.
+  if(window.DoramaxAndroid){
    card.classList.add('fullscreen-fallback');
+  }else{
+   try{
+    if(card.requestFullscreen){await card.requestFullscreen();}
+    else{card.classList.add('fullscreen-fallback');}
+   }catch(error){
+    card.classList.add('fullscreen-fallback');
+   }
   }
   showPlayerControls(card);
  });
