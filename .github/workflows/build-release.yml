@@ -78,7 +78,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='24' versionName='3.7'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='25' versionName='3.8'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -92,22 +92,22 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 24,
-              "versionName": "3.7",
+              "versionCode": 25,
+              "versionName": "3.8",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Corrige a tela cheia do YouTube com suporte nativo do WebView e restauração correta da janela."
+              "releaseNotes": "Melhora o diagnóstico do download de atualização e informa o motivo exato da falha."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
           PY
-          echo "tag=doramax-v3.7" >> "$GITHUB_OUTPUT"
+          echo "tag=doramax-v3.8" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: doramax-v3.6
-          name: DORAMAX-GRATIS 3.7
+          tag_name: doramax-v3.8
+          name: DORAMAX-GRATIS 3.8
           target_commitish: main
           generate_release_notes: true
           files: |
