@@ -66,6 +66,7 @@ body.player-open .catalog-screen{display:none}
    The video card stays in normal flow inside that layer; fixed descendants
    inside a fixed scrolling feed can render as a white surface on some WebViews. */
 #feed.fullscreen-active{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;overflow:hidden!important;z-index:2147482000!important;transform:none!important}
+#feed.fullscreen-restoring{scroll-snap-type:none!important;scroll-behavior:auto!important;overflow-y:auto!important}
 #feed.fullscreen-active .video.fullscreen-fallback{position:absolute!important;inset:0!important;left:0!important;top:0!important;width:100%!important;height:100%!important;height:100dvh!important;min-height:100%!important;z-index:1!important;overflow:hidden!important;transform:none!important}
 #feed.fullscreen-active .video.fullscreen-fallback .player{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important;transform:none!important}
 #feed.fullscreen-active .video.fullscreen-fallback .player iframe{position:absolute!important;inset:0!important;width:100%!important;height:calc(100% + 150px)!important;max-width:none!important;max-height:none!important;transform:none!important;border:0!important}
@@ -536,6 +537,9 @@ function showPlayerControls(card){
  const timer=setTimeout(()=>{card.classList.remove('controls-visible');playerControlTimers.delete(card);},3200);
  playerControlTimers.set(card,timer);
 }
+// Guarda o vídeo e a posição do feed antes de expandir o player.
+let fullscreenReturnState=null;
+let fullscreenRestoreUntil=0;
 document.addEventListener('fullscreenchange',()=>{
  document.querySelectorAll('.video.fullscreen-fallback').forEach(card=>{
   if(document.fullscreenElement!==card)card.classList.remove('fullscreen-fallback');
@@ -544,6 +548,8 @@ document.addEventListener('fullscreenchange',()=>{
 });
 window.doramaxEnterFullscreen=function(card){
  if(!card||card.classList.contains('fullscreen-fallback'))return;
+ const frame=card.querySelector('iframe');
+ fullscreenReturnState={card,frame,scrollTop:feed.scrollTop};
  // Não reanexar o card: mover um iframe do YouTube entre pais pode reiniciar
  // o contexto de reprodução no WebView e deixar o vídeo branco.
  feed.classList.add('fullscreen-active');
@@ -554,9 +560,25 @@ window.doramaxEnterFullscreen=function(card){
 window.doramaxExitFullscreen=function(){
  const card=document.querySelector('.video.fullscreen-fallback');
  if(!card)return false;
+ const state=fullscreenReturnState&&fullscreenReturnState.card===card?fullscreenReturnState:null;
+ const frame=state?.frame||card.querySelector('iframe');
  card.classList.remove('fullscreen-fallback');
  feed.classList.remove('fullscreen-active');
  document.body.classList.remove('player-fullscreen');
+ // Impede o scroll-snap/IntersectionObserver de selecionar o próximo vídeo
+ // enquanto o layout volta da camada fullscreen para o feed.
+ feed.classList.add('fullscreen-restoring');
+ fullscreenRestoreUntil=Date.now()+700;
+ if(frame)activeFrame=frame;
+ requestAnimationFrame(()=>{
+  feed.scrollTop=state?state.scrollTop:card.offsetTop;
+  requestAnimationFrame(()=>{
+   feed.scrollTop=state?state.scrollTop:card.offsetTop;
+   feed.classList.remove('fullscreen-restoring');
+   if(frame)activeFrame=frame;
+   fullscreenReturnState=null;
+  });
+ });
  return true;
 };
 document.addEventListener('keydown',event=>{
@@ -569,6 +591,7 @@ function ensureSeekBar(card){
  const bar=document.createElement('div');bar.className='seekbar';
  const fullscreen=document.createElement('button');fullscreen.type='button';fullscreen.className='fullscreen-control';fullscreen.setAttribute('aria-label','Assistir em tela cheia');fullscreen.title='Assistir em tela cheia';fullscreen.textContent='⛶';
  fullscreen.addEventListener('click',event=>{
+  event.preventDefault();
   event.stopPropagation();
   if(card.classList.contains('fullscreen-fallback')){
    window.doramaxExitFullscreen();
@@ -900,6 +923,7 @@ feed.addEventListener('scroll',()=>{
 
 const observer=new IntersectionObserver(entries=>{
  entries.forEach(entry=>{
+  if(Date.now()<fullscreenRestoreUntil){if(fullscreenReturnState?.frame)activeFrame=fullscreenReturnState.frame;return;}
   const card=entry.target,frame=card.querySelector('iframe'),info=card.querySelector('.info');
   if(!frame)return;
   // O card fica fixed no modo tela cheia e sai da área observada do feed.
