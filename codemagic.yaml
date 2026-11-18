@@ -75,7 +75,7 @@ workflows:
           ACTUAL_CERT="$(sed -n 's/.*Signer #1 certificate SHA-256 digest: //p' /tmp/doramax-signature.txt | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
           EXPECTED_CERT="a22f1497de379d55b8d5edacc006c488ed76bbb2065bd259864f79ae1b5a65fd"
           test "$ACTUAL_CERT" = "$EXPECTED_CERT"
-          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -E "^package: name='com.meuplayer.app' versionCode='13' versionName='2.6'"
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -E "^package: name='com.meuplayer.app' versionCode='14' versionName='2.7'"
     artifacts:
       - app/build/outputs/apk/release/*.apk
 
