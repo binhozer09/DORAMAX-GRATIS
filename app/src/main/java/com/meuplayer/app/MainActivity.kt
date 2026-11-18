@@ -45,6 +45,9 @@ class MainActivity : AppCompatActivity() {
     private var bannerAdView: AdView? = null
     private val updateInProgress = AtomicBoolean(false)
     private var pendingFileChooser: ValueCallback<Array<Uri>>? = null
+    private var fullscreenCustomView: android.view.View? = null
+    private var fullscreenCustomViewCallback: WebChromeClient.CustomViewCallback? = null
+    private var previousSystemUiVisibility: Int = 0
 
     private inner class UpdateBridge {
         @JavascriptInterface
@@ -378,6 +381,52 @@ class MainActivity : AppCompatActivity() {
         }
 
         siteWeb.webChromeClient = object : WebChromeClient() {
+            override fun onShowCustomView(view: android.view.View?, callback: CustomViewCallback?) {
+                if (view == null) {
+                    callback?.onCustomViewHidden()
+                    return
+                }
+                if (fullscreenCustomView != null) {
+                    callback?.onCustomViewHidden()
+                    return
+                }
+                val decor = window.decorView as? FrameLayout
+                if (decor == null) {
+                    callback?.onCustomViewHidden()
+                    return
+                }
+                fullscreenCustomView = view
+                fullscreenCustomViewCallback = callback
+                previousSystemUiVisibility = decor.systemUiVisibility
+                siteWeb.visibility = android.view.View.GONE
+                view.setBackgroundColor(android.graphics.Color.BLACK)
+                decor.addView(
+                    view,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                )
+                decor.systemUiVisibility = (
+                    android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                )
+            }
+
+            override fun onHideCustomView() {
+                val decor = window.decorView as? FrameLayout
+                fullscreenCustomView?.let { decor?.removeView(it) }
+                fullscreenCustomView = null
+                siteWeb.visibility = android.view.View.VISIBLE
+                decor?.systemUiVisibility = previousSystemUiVisibility
+                fullscreenCustomViewCallback?.onCustomViewHidden()
+                fullscreenCustomViewCallback = null
+            }
+
             override fun onShowFileChooser(
                 webView: WebView?,
                 filePathCallback: ValueCallback<Array<Uri>>?,
