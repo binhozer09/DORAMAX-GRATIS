@@ -14,6 +14,7 @@
 <style>
 :root{color-scheme:dark;--accent:#ff3048;--safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box}
+body.player-fullscreen{overflow:hidden!important;touch-action:none}.video.fullscreen-fallback{position:fixed!important;inset:0!important;z-index:2147483000!important;width:100vw!important;height:100vh!important;height:100dvh!important;min-height:100vh!important;min-height:100dvh!important;overflow:hidden!important;scroll-snap-align:none!important}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif}
 .feed{height:100dvh;width:100%;overflow-y:auto;overflow-x:hidden;scroll-snap-type:y mandatory;overscroll-behavior-y:contain;background:#000}
 .video{position:relative;width:100%;height:100dvh;min-height:100dvh;scroll-snap-align:start;scroll-snap-stop:always;background:#000;overflow:hidden}
@@ -534,16 +535,47 @@ document.addEventListener('fullscreenchange',()=>{
  });
  if(document.fullscreenElement&&document.fullscreenElement.classList?.contains('video'))showPlayerControls(document.fullscreenElement);
 });
+const fullscreenOrigins=new WeakMap();
+window.doramaxEnterFullscreen=function(card){
+ if(!card||card.classList.contains('fullscreen-fallback'))return;
+ const parent=card.parentNode;
+ if(!parent)return;
+ fullscreenOrigins.set(card,{parent,next:card.nextSibling});
+ document.body.appendChild(card);
+ document.body.classList.add('player-fullscreen');
+ card.classList.add('fullscreen-fallback');
+ showPlayerControls(card);
+};
+window.doramaxExitFullscreen=function(){
+ const card=document.querySelector('.video.fullscreen-fallback');
+ if(!card)return false;
+ card.classList.remove('fullscreen-fallback');
+ const origin=fullscreenOrigins.get(card);
+ if(origin?.parent){
+  if(origin.next&&origin.next.parentNode===origin.parent)origin.parent.insertBefore(card,origin.next);
+  else origin.parent.appendChild(card);
+  fullscreenOrigins.delete(card);
+ }
+ document.body.classList.remove('player-fullscreen');
+ return true;
+};
+document.addEventListener('keydown',event=>{
+ if(event.key==='Escape'||event.key==='Backspace'){
+  if(window.doramaxExitFullscreen())event.preventDefault();
+ }
+});
 function ensureSeekBar(card){
  if(!card||card.querySelector('.seekbar'))return;
  const bar=document.createElement('div');bar.className='seekbar';
  const fullscreen=document.createElement('button');fullscreen.type='button';fullscreen.className='fullscreen-control';fullscreen.setAttribute('aria-label','Assistir em tela cheia');fullscreen.title='Assistir em tela cheia';fullscreen.textContent='⛶';
  fullscreen.addEventListener('click',event=>{
   event.stopPropagation();
-  const active=card.classList.contains('fullscreen-fallback')||document.fullscreenElement===card;
-  if(active){card.classList.remove('fullscreen-fallback');return;}
+  if(card.classList.contains('fullscreen-fallback')){
+   window.doramaxExitFullscreen();
+   return;
+  }
   activeFrame=card.querySelector('iframe');
-  card.classList.add('fullscreen-fallback');
+  window.doramaxEnterFullscreen(card);
  });
  bar.append(fullscreen);card.appendChild(bar);
 }
