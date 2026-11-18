@@ -381,15 +381,48 @@ class MainActivity : AppCompatActivity() {
         }
 
         siteWeb.webChromeClient = object : WebChromeClient() {
-            // O DORAMAX usa seu próprio modo de tela cheia em HTML/CSS.
-            // Nunca esconda o WebView nem transfira o vídeo para a janela nativa:
-            // isso causava a tela branca ao abrir o fullscreen do iframe.
+            @Suppress("DEPRECATION")
             override fun onShowCustomView(view: android.view.View?, callback: CustomViewCallback?) {
-                callback?.onCustomViewHidden()
+                if (view == null || fullscreenCustomView != null) {
+                    callback?.onCustomViewHidden()
+                    return
+                }
+                val decor = window.decorView as? FrameLayout
+                if (decor == null) {
+                    callback?.onCustomViewHidden()
+                    return
+                }
+                fullscreenCustomView = view
+                fullscreenCustomViewCallback = callback
+                previousSystemUiVisibility = decor.systemUiVisibility
+                siteWeb.visibility = android.view.View.INVISIBLE
+                decor.addView(
+                    view,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+                )
+                decor.systemUiVisibility = (
+                    android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                    or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                    or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                )
             }
 
+            @Suppress("DEPRECATION")
             override fun onHideCustomView() {
-                // Sem janela nativa de fullscreen para restaurar.
+                val view = fullscreenCustomView ?: return
+                (view.parent as? ViewGroup)?.removeView(view)
+                fullscreenCustomView = null
+                siteWeb.visibility = android.view.View.VISIBLE
+                window.decorView.systemUiVisibility = previousSystemUiVisibility
+                val callback = fullscreenCustomViewCallback
+                fullscreenCustomViewCallback = null
+                callback?.onCustomViewHidden()
             }
 
             override fun onShowFileChooser(
@@ -534,6 +567,10 @@ class MainActivity : AppCompatActivity() {
 
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
+        if (fullscreenCustomView != null) {
+            (siteWeb.webChromeClient as? WebChromeClient)?.onHideCustomView()
+            return
+        }
         if (::siteWeb.isInitialized && siteWeb.canGoBack()) {
             siteWeb.goBack()
         } else {
