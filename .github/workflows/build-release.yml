@@ -106,7 +106,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: doramax-v4.0
+          tag_name: ${{ steps.manifest.outputs.tag }}
           name: DORAMAX-GRATIS 4.1
           target_commitish: main
           generate_release_notes: true
