@@ -71,7 +71,7 @@ body.player-open .catalog-screen{display:none}
 #feed.fullscreen-active .video.fullscreen-fallback .player{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important;transform:none!important}
 #feed.fullscreen-active .video.fullscreen-fallback .player iframe{position:absolute!important;inset:0!important;width:100vw!important;height:calc(100dvh + 150px)!important;max-width:none!important;max-height:none!important;transform:none!important;transform-origin:center center;border:0!important}
 
-#doramaxLogsButton{position:fixed!important;top:calc(10px + var(--safe-top));right:10px;z-index:2147483646;border:1px solid #ffffff70;border-radius:10px;background:#151922f2;color:#fff;padding:9px 12px;font-size:12px;font-weight:900;box-shadow:0 3px 14px #000b;pointer-events:auto}
+#doramaxLogsButton{position:fixed!important;top:calc(54px + var(--safe-top));right:10px;z-index:2147483646;border:1px solid #ffffff70;border-radius:10px;background:#151922f2;color:#fff;padding:9px 12px;font-size:12px;font-weight:900;box-shadow:0 3px 14px #000b;pointer-events:auto}
 #doramaxLogsPanel{display:none;position:fixed;inset:0;z-index:2147483647;background:#080b12f5;padding:calc(18px + var(--safe-top)) 14px calc(18px + var(--safe-bottom));flex-direction:column;gap:10px}
 #doramaxLogsPanel.open{display:flex}#doramaxLogsPanel h2{font-size:17px;margin:0}#doramaxLogsPanel p{font-size:12px;color:#c7cfdd;line-height:1.45;margin:0}
 #doramaxLogsText{flex:1;min-height:120px;width:100%;resize:none;background:#05070a;color:#d9e3f5;border:1px solid #ffffff35;border-radius:10px;padding:10px;font:11px/1.45 monospace}
@@ -350,6 +350,11 @@ document.getElementById('doramaxCloseLogs')?.addEventListener('click',()=>{doram
 document.getElementById('doramaxCopyLogs')?.addEventListener('click',async()=>{doramaxLog('copy_logs_requested',doramaxCurrentState());doramaxRefreshLogsText();const output=document.getElementById('doramaxLogsText'),button=document.getElementById('doramaxCopyLogs');try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(output.value);button.textContent='COPIADO!';}else{output.focus();output.select();button.textContent=document.execCommand('copy')?'COPIADO!':'SELECIONE E COPIE';}}catch(_){try{output.focus();output.select();}catch(__){}button.textContent='SELECIONE E COPIE';}});
 window.addEventListener('error',event=>doramaxLog('javascript_error',{message:String(event.message||'erro'),file:String(event.filename||'').split('/').pop(),line:event.lineno||0}));
 window.addEventListener('unhandledrejection',event=>doramaxLog('unhandled_rejection',{message:String(event.reason?.message||event.reason||'rejeição').slice(0,240)}));
+document.addEventListener('fullscreenchange',()=>doramaxLog('native_fullscreenchange',{nativeFullscreen:!!document.fullscreenElement,...doramaxCurrentState()}));
+document.addEventListener('keydown',event=>{if(event.key==='Escape'||event.key==='Backspace')doramaxLog('back_key_pressed',{key:event.key,...doramaxCurrentState()});},true);
+const doramaxFrameMutationObserver=new MutationObserver(records=>records.forEach(record=>{if(record.type==='attributes'&&record.attributeName==='src'){const frame=record.target;doramaxLog('iframe_src_changed',{videoId:videoId(frame)||null,srcState:frame.getAttribute('src')==='about:blank'?'about:blank':(frame.getAttribute('src')?'youtube-embed':'empty'),connected:frame.isConnected,...doramaxCurrentState()});}}));
+doramaxFrameMutationObserver.observe(feed,{subtree:true,attributes:true,attributeFilter:['src']});
+
 doramaxLog('diagnostics_ready',{version:'fullscreen-diagnostics-1'});
 let doramaxLastLoggedScroll=-1,doramaxLastScrollLogAt=0;
 feed.addEventListener('scroll',()=>{if(!feed.classList.contains('fullscreen-active')&&!feed.classList.contains('fullscreen-restoring'))return;const now=Date.now(),top=Math.round(feed.scrollTop);if(Math.abs(top-doramaxLastLoggedScroll)>=3&&now-doramaxLastScrollLogAt>=100){doramaxLastLoggedScroll=top;doramaxLastScrollLogAt=now;doramaxLog('fullscreen_feed_scroll',{scrollTop:top,...doramaxCurrentState()});}},{passive:true});
@@ -964,6 +969,7 @@ const observer=new IntersectionObserver(entries=>{
   // Não deixe eventos de interseção disparados pela mudança de layout
   // selecionar outro card durante a tela cheia ou a restauração do feed.
   if(feed.classList.contains('fullscreen-active')||feed.classList.contains('fullscreen-restoring')||Date.now()<fullscreenRestoreUntil){
+   doramaxLog('observer_blocked_during_fullscreen',{observedVideoId:videoId(entry.target.querySelector('iframe'))||null,intersectionRatio:Number(entry.intersectionRatio.toFixed(3)),isIntersecting:entry.isIntersecting,...doramaxCurrentState()});
    if(fullscreenReturnState?.frame)activeFrame=fullscreenReturnState.frame;
    return;
   }
