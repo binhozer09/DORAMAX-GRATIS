@@ -966,7 +966,7 @@ function unloadFrame(card){
  const frame=card?.querySelector('iframe');
  if(!frame)return;
  const current=frame.getAttribute('src')||'';
- if(current&&current!=='about:blank'&&/youtube\.com\/embed\//.test(current)){
+ if(current&&current!=='about:blank'&&/youtube\\.com\\/embed\\//.test(current)){
   const player=players.get(frame);
   if(player&&typeof player.getCurrentTime==='function'){
    try{
@@ -978,9 +978,18 @@ function unloadFrame(card){
   pauseFrame(frame);
   if(activeFrame===frame)activeFrame=null;
   if(progressTimer&&progressFrame===frame){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
-  frame.dataset.src=current;
+  // Destrói a instância anterior e cria um iframe limpo para a próxima ativação.
+  // Isso evita reutilizar um elemento do YouTube que já foi navegado para about:blank.
+  const freshFrame=frame.cloneNode(false);
+  freshFrame.removeAttribute('src');
+  freshFrame.dataset.src=current;
+  freshFrame.loading='lazy';
+  try{player?.destroy?.();}catch(_){}
+  if(frame.isConnected)frame.replaceWith(freshFrame);
+  else card.querySelector('.player')?.appendChild(freshFrame);
   players.delete(frame);
-  frame.src='about:blank';
+  const frameIndex=frames.indexOf(frame);
+  if(frameIndex>=0)frames[frameIndex]=freshFrame;
  }
  preparedFrames.delete(frame);
 }
