@@ -23,6 +23,7 @@ import android.webkit.WebChromeClient
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient.FileChooserParams
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebSettings
 import android.webkit.WebViewClient
@@ -40,6 +41,7 @@ import com.google.android.libraries.ads.mobile.sdk.initialization.Initialization
 class MainActivity : AppCompatActivity() {
 
     private lateinit var siteWeb: WebView
+    private lateinit var thumbnailCache: ThumbnailDiskCache
     private lateinit var assetLoader: WebViewAssetLoader
     private lateinit var adContainer: FrameLayout
     private var bannerAdView: AdView? = null
@@ -506,6 +508,7 @@ class MainActivity : AppCompatActivity() {
             .build()
 
         siteWeb = findViewById(R.id.siteWeb)
+        thumbnailCache = ThumbnailDiskCache(this)
         adContainer = findViewById(R.id.adViewContainer)
 
         siteWeb.settings.apply {
@@ -600,7 +603,11 @@ class MainActivity : AppCompatActivity() {
             override fun shouldInterceptRequest(
                 view: WebView,
                 request: WebResourceRequest
-            ) = assetLoader.shouldInterceptRequest(request.url)
+            ): WebResourceResponse? {
+                val localAsset = assetLoader.shouldInterceptRequest(request.url)
+                if (localAsset != null) return localAsset
+                return thumbnailCache.intercept(request.url)
+            }
 
             override fun shouldOverrideUrlLoading(
                 view: WebView,
