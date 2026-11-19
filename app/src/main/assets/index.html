@@ -34,11 +34,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:
     .donate:active{transform:scale(.94)}
     @media(prefers-reduced-motion:reduce){.donate{animation:none}}
 .info{position:absolute;z-index:5;left:14px;right:76px;bottom:calc(22px + var(--safe-bottom));padding:42px 0 8px;background:linear-gradient(transparent,#0009 28%,#000c);pointer-events:none}
-.info{opacity:1;transition:opacity .45s ease}.info.is-fading{opacity:1}
-.player-tap-layer{position:absolute;inset:0;z-index:8;width:100%;height:100%;padding:0;border:0;background:transparent;touch-action:manipulation}
-.player-toggle{position:absolute;z-index:9;left:50%;top:50%;transform:translate(-50%,-50%);width:64px;height:64px;border:1px solid #ffffff88;border-radius:50%;background:#080b12b8;color:#fff;font-size:27px;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s ease}
-.video.controls-visible .player-toggle{opacity:1;pointer-events:auto}
-body.player-playing .topbar,body.player-playing .donate,body.player-playing .video .info,body.player-playing .hint,body.player-playing .account-menu,body.player-playing .update-panel,body.player-playing .history-panel{opacity:1;visibility:visible;transition:opacity .45s ease,visibility .45s ease}
+.info{opacity:1;transition:opacity .18s ease}
+
+
+.video.controls-visible 
+body.player-playing .topbar,body.player-playing .donate,body.player-playing .video .info,body.player-playing .hint,body.player-playing .account-menu,body.player-playing .update-panel,body.player-playing .history-panel{opacity:1;visibility:visible;transition:opacity .18s ease,visibility .18s ease}
 body.player-playing:not(.player-controls-visible) .topbar,body.player-playing:not(.player-controls-visible) .donate,body.player-playing:not(.player-controls-visible) .video .info,body.player-playing:not(.player-controls-visible) .hint,body.player-playing:not(.player-controls-visible) .account-menu,body.player-playing:not(.player-controls-visible) .update-panel,body.player-playing:not(.player-controls-visible) .history-panel{opacity:0;visibility:hidden;pointer-events:none}
 
 .channel{font-size:14px;font-weight:800;margin-bottom:8px;text-shadow:0 1px 5px #000}
@@ -84,15 +84,15 @@ body.player-open .catalog-screen{display:none}
 <section id="catalogScreen" class="catalog-screen" aria-label="Catálogo de filmes e séries"><header class="catalog-heading"><h1>Escolha seu dorama favorito</h1></header><div id="catalogGrid" class="catalog-grid"><div class="catalog-empty">Carregando catálogo...</div></div></section>
 <main id="feed" class="feed" aria-label="Reprodutor de vídeos">
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/LccxdtzPvcU?playsinline=1&rel=0&controls=0&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/LccxdtzPvcU?playsinline=1&rel=0&controls=1&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
  <div class="info"><h2 class="title">Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap</h2></div>
 </section>
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/wtvWDbBLqdc?playsinline=1&rel=0&controls=0&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/wtvWDbBLqdc?playsinline=1&rel=0&controls=1&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
  <div class="info"><h2 class="title">O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!</h2></div>
 </section>
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/FioURf9_CyU?playsinline=1&rel=0&controls=0&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/FioURf9_CyU?playsinline=1&rel=0&controls=1&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
  <div class="info"><h2 class="title">Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas</h2></div>
 </section>
 
@@ -330,6 +330,15 @@ body.player-open .catalog-screen{display:none}
 // Solicita ao Android/WebView que preserve os dados locais do app entre aberturas.
 try{if(navigator.storage&&typeof navigator.storage.persist==='function')navigator.storage.persist().catch(()=>{});}catch(_){}
 const feed=document.getElementById('feed');
+window.doramaxSetPlayerZoom=function(scale){
+ const card=activeFrame&&activeFrame.closest('.video');
+ const frame=card&&card.querySelector('iframe');
+ if(!document.body.classList.contains('player-open')||!frame)return;
+ const value=Math.max(1,Math.min(2.5,Number(scale)||1));
+ frame.style.transformOrigin='center center';
+ frame.style.transform=value<=1.01?'':'scale('+value.toFixed(3)+')';
+};
+
 
 const DORAMAX_LOGS_STORAGE_KEY='doramax_fullscreen_logs_v1';
 let doramaxLogBuffer=[];
@@ -452,14 +461,14 @@ function buildVideoCard(video){
  const section=document.createElement('section');section.className='video';
  const player=document.createElement('div');player.className='player';
  const frame=document.createElement('iframe');
- frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=0&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
+ frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=1&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
  frame.title=video.title||'Vídeo novo';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
  frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope';frame.allowFullscreen=false;frame.removeAttribute('allowfullscreen');
  player.appendChild(frame);section.appendChild(player);
  const info=document.createElement('div');info.className='info';
  const heading=document.createElement('h2');heading.className='title';heading.textContent=video.title||'Vídeo novo';
  info.appendChild(heading);section.appendChild(info);
- ensureSeekBar(section);
+ 
  return section;
 }
 function nextUnusedCatalogVideo(){
@@ -562,16 +571,22 @@ const playerControlTimers=new WeakMap();
 function showPlayerControls(card){
  if(!card)return;
  const old=playerControlTimers.get(card);if(old)clearTimeout(old);
+ document.body.classList.add('player-controls-visible');
  card.classList.add('controls-visible');
- const timer=setTimeout(()=>{card.classList.remove('controls-visible');playerControlTimers.delete(card);},3200);
+ const timer=setTimeout(()=>{
+  card.classList.remove('controls-visible');
+  document.body.classList.remove('player-controls-visible');
+  playerControlTimers.delete(card);
+ },2800);
  playerControlTimers.set(card,timer);
 }
-// Guarda o vídeo e a posição do feed antes de expandir o player.
-// Controles do player sem modo tela cheia ou barra de progresso.
-function showPlayerControls(card){if(!card)return;const old=playerControlTimers.get(card);if(old)clearTimeout(old);document.body.classList.add('player-controls-visible');card.classList.add('controls-visible');const timer=setTimeout(()=>{card.classList.remove('controls-visible');document.body.classList.remove('player-controls-visible');playerControlTimers.delete(card);},3200);playerControlTimers.set(card,timer);}
-function keepPlayerControlsVisible(card){const old=playerControlTimers.get(card);if(old)clearTimeout(old);playerControlTimers.delete(card);document.body.classList.remove('player-playing');document.body.classList.add('player-controls-visible');card?.classList.add('controls-visible');}
-function ensureSeekBar(card){if(!card||card.querySelector('.player-tap-layer'))return;const layer=document.createElement('button');layer.type='button';layer.className='player-tap-layer';layer.setAttribute('aria-label','Mostrar controles do vídeo');layer.addEventListener('click',()=>showPlayerControls(card));const toggle=document.createElement('button');toggle.type='button';toggle.className='player-toggle';toggle.setAttribute('aria-label','Pausar vídeo');toggle.textContent='Ⅱ';toggle.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();const frame=card.querySelector('iframe'),player=frame&&players.get(frame);if(!player)return;showPlayerControls(card);try{if(player.getPlayerState()===YT.PlayerState.PLAYING)player.pauseVideo();else player.playVideo();}catch(_){}});card.append(layer,toggle);}
-cards.forEach(ensureSeekBar);
+function keepPlayerControlsVisible(card){
+ const old=playerControlTimers.get(card);if(old)clearTimeout(old);
+ playerControlTimers.delete(card);
+ document.body.classList.remove('player-playing');
+ document.body.classList.add('player-controls-visible');
+ card?.classList.add('controls-visible');
+}
 function saveHistory(){
  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(0,50)));}catch(_){}
  renderHistory();
@@ -811,7 +826,7 @@ function ensurePlayer(frame){
       if(activeFrame!==frame){try{event.target.pauseVideo();}catch(_){}return;}
       pauseOthers(frame);
       const playingCard=frame.closest('.video');document.body.classList.add('player-playing');showPlayerControls(playingCard);
-      const toggle=playingCard?.querySelector('.player-toggle');if(toggle){toggle.textContent='Ⅱ';toggle.setAttribute('aria-label','Pausar vídeo');}
+      
       if(progressTimer)clearInterval(progressTimer);
       progressFrame=frame;
       progressTimer=setInterval(()=>{
@@ -823,7 +838,7 @@ function ensurePlayer(frame){
        }catch(_){}
       },2000);
      }else{
-      const pausedCard=frame.closest('.video'),toggle=pausedCard?.querySelector('.player-toggle');if(event.data===YT.PlayerState.PAUSED){if(toggle){toggle.textContent='▶';toggle.setAttribute('aria-label','Reproduzir vídeo');}keepPlayerControlsVisible(pausedCard);}else if(event.data===YT.PlayerState.ENDED){document.body.classList.remove('player-playing','player-controls-visible');pausedCard?.classList.remove('controls-visible');}
+      const pausedCard=frame.closest('.video');if(event.data===YT.PlayerState.PAUSED){keepPlayerControlsVisible(pausedCard);}else if(event.data===YT.PlayerState.ENDED){document.body.classList.remove('player-playing','player-controls-visible');pausedCard?.classList.remove('controls-visible');}
       try{const current=event.target.getCurrentTime(),duration=event.target.getDuration();upsertProgress(frame.closest('.video'),current,duration);updateSeekBar(frame,current,duration);}catch(_){}
       if(progressTimer&&progressFrame===frame){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
      }
