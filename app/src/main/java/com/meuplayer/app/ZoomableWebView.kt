@@ -39,6 +39,9 @@ class ZoomableWebView @JvmOverloads constructor(
     )
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            evaluateJavascript("window.doramaxRevealPlayerControls && window.doramaxRevealPlayerControls();", null)
+        }
         scaleDetector.onTouchEvent(event)
         if (pinching || scaleDetector.isInProgress) return true
         return super.dispatchTouchEvent(event)
