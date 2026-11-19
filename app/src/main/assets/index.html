@@ -69,7 +69,7 @@ body.player-playing:not(.player-controls-visible) .topbar,body.player-playing:no
 #feed{display:none}
 #feed.player-mode{display:block}
 .back-catalog{display:none;position:fixed;top:calc(66px + var(--safe-top));left:14px;z-index:120;pointer-events:auto;border:1px solid #ffffff40;border-radius:18px;padding:8px 12px;background:#080b12ef;color:#fff;font-size:10px;font-weight:800;box-shadow:0 4px 14px #0008}
-body.player-open .back-catalog{display:inline-flex}
+body.player-open.player-controls-visible .back-catalog{display:inline-flex;opacity:1;visibility:visible;pointer-events:auto}body.player-open:not(.player-controls-visible) .back-catalog{display:none;opacity:0;visibility:hidden;pointer-events:none}
 body.player-open .catalog-screen{display:none}
 @media(min-width:700px){.catalog-screen{max-width:520px;left:50%;right:auto;transform:translateX(-50%);width:100%;border-left:1px solid #ffffff0c;border-right:1px solid #ffffff0c}.catalog-grid{gap:22px 16px}}
 
@@ -79,7 +79,8 @@ body.player-open .catalog-screen{display:none}
 
 
 
-<div class="topbar"><div style="display:flex;align-items:center;gap:9px"><div class="brand"><span class="brand-name">DORA<b>MAX</b> GRÁTIS</span><span class="brand-flame" aria-hidden="true">🔥</span></div></div><button class="back-catalog" id="backCatalogBtn" type="button">‹ VOLTAR AO CATÁLOGO</button><div class="top-actions"><button class="admin-entry" id="continueBtn" type="button">CONTINUAR ASSISTINDO</button><button class="account-avatar" id="accountMenuButton" type="button" aria-label="Abrir conta e notificações"><span id="accountAvatarText">D</span><i id="updateDot" hidden></i></button></div></div>
+<div class="topbar"><div style="display:flex;align-items:center;gap:9px"><div class="brand"><span class="brand-name">DORA<b>MAX</b> GRÁTIS</span><span class="brand-flame" aria-hidden="true">🔥</span></div></div><div class="top-actions"><button class="admin-entry" id="continueBtn" type="button">CONTINUAR ASSISTINDO</button><button class="account-avatar" id="accountMenuButton" type="button" aria-label="Abrir conta e notificações"><span id="accountAvatarText">D</span><i id="updateDot" hidden></i></button></div></div>
+<button class="back-catalog" id="backCatalogBtn" type="button">‹ VOLTAR AO CATÁLOGO</button>
 <div id="accountMenu" class="account-menu" aria-hidden="true"><section class="account-menu-card" role="dialog" aria-modal="true" aria-label="Menu da conta"><header class="account-menu-header"><div class="account-avatar large" id="accountMenuAvatar">D</div><div class="account-menu-heading"><strong>DORAMAX GRÁTIS</strong><small id="accountMenuSubtitle">Sua conta e novidades</small></div><button id="accountMenuClose" class="account-menu-close" type="button" aria-label="Fechar">×</button></header><button class="account-menu-item" id="accountMenuAccount" type="button"><span class="account-menu-icon">◉</span><span><strong>Minha conta / Login</strong><small id="accountMenuEmail">Entre ou veja sua conta conectada</small></span><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuNotifications" type="button"><span class="account-menu-icon">♧</span><span><strong>Notificações</strong><small id="accountMenuNotificationText">Nenhuma novidade por enquanto</small></span><i id="accountMenuNotificationDot" hidden></i><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuUpdates" type="button"><span class="account-menu-icon">↓</span><span><strong>Atualizações do aplicativo</strong><small id="accountMenuUpdateText">Verificar nova versão</small></span><i id="accountMenuUpdateDot" hidden></i><span class="account-menu-chevron">›</span></button></section></div><div id="updatePanel" class="update-panel" aria-hidden="true"><div class="update-card" role="dialog" aria-modal="true" aria-labelledby="updateTitle"><h2 id="updateTitle">Atualização do DORAMAX</h2><p id="updateMessage">Verificando atualizações...</p><div class="update-actions"><button class="update-cancel" id="updateCancel" type="button">Fechar</button><button class="update-confirm" id="updateConfirm" type="button" hidden>Baixar atualização</button></div><div class="update-status" id="updateStatus"></div><div class="update-progress" id="updateProgressBox" hidden><div class="update-progress-track"><div class="update-progress-fill" id="updateProgressFill"></div></div><div class="update-progress-label"><span id="updateProgressLabel">Preparando download...</span><strong id="updateProgressPercent">0%</strong></div></div></div></div>
 <div id="historyPanel" class="history-panel" aria-hidden="true">
  <div class="history-header"><h2>CONTINUAR ASSISTINDO</h2><button id="closeHistory" type="button" aria-label="Fechar">✕</button></div>
@@ -89,15 +90,15 @@ body.player-open .catalog-screen{display:none}
 <section id="catalogScreen" class="catalog-screen" aria-label="Catálogo de filmes e séries"><header class="catalog-heading"><h1>Escolha seu dorama favorito</h1></header><div id="catalogGrid" class="catalog-grid"><div class="catalog-empty">Carregando catálogo...</div></div></section>
 <main id="feed" class="feed" aria-label="Reprodutor de vídeos">
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/LccxdtzPvcU?playsinline=1&rel=0&controls=1&fs=0&disablekb=1&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/LccxdtzPvcU?playsinline=1&rel=0&controls=1&fs=0&disablekb=0&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
  <div class="info"><h2 class="title">Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap</h2></div>
 </section>
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/wtvWDbBLqdc?playsinline=1&rel=0&controls=1&fs=0&disablekb=1&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/wtvWDbBLqdc?playsinline=1&rel=0&controls=1&fs=0&disablekb=0&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
  <div class="info"><h2 class="title">O chefão do submundo mandou espancar um homem comum, mas acabou de joelhos diante do Deus da Guerra!</h2></div>
 </section>
 <section class="video" data-free-preview="true">
- <div class="player"><iframe data-src="https://www.youtube.com/embed/FioURf9_CyU?playsinline=1&rel=0&controls=1&fs=0&disablekb=1&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
+ <div class="player"><iframe data-src="https://www.youtube.com/embed/FioURf9_CyU?playsinline=1&rel=0&controls=1&fs=0&disablekb=0&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
  <div class="info"><h2 class="title">Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas</h2></div>
 </section>
 
@@ -459,7 +460,7 @@ function buildVideoCard(video){
  const section=document.createElement('section');section.className='video';
  const player=document.createElement('div');player.className='player';
  const frame=document.createElement('iframe');
- frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=1&fs=0&disablekb=1&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
+ frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=1&fs=0&disablekb=0&iv_load_policy=3&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
  frame.title=video.title||'Vídeo novo';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
  frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope';frame.allowFullscreen=false;frame.removeAttribute('allowfullscreen');
  player.appendChild(frame);section.appendChild(player);
@@ -581,6 +582,11 @@ function showPlayerControls(card){
 window.doramaxRevealPlayerControls=function(){
  const card=activeFrame&&activeFrame.closest('.video');
  if(card&&document.body.classList.contains('player-open'))showPlayerControls(card);
+};
+window.doramaxSeekBy=function(seconds){
+ const frame=activeFrame;if(!frame||!document.body.classList.contains("player-open"))return;
+ const player=players.get(frame);if(!player||typeof player.getCurrentTime!=="function"||typeof player.seekTo!=="function")return;
+ try{const duration=player.getDuration();const target=Math.max(0,Math.min(duration||Infinity,player.getCurrentTime()+(Number(seconds)||0)));player.seekTo(target,true);showPlayerControls(frame.closest(".video"));}catch(error){console.warn("[DORAMAX] Falha ao buscar trecho:",error);}
 };
 function keepPlayerControlsVisible(card){
  const old=playerControlTimers.get(card);if(old)clearTimeout(old);
