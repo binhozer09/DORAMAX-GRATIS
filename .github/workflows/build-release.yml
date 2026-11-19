@@ -82,7 +82,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='56' versionName='5.19'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='57' versionName='5.20'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -96,22 +96,22 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 56,
-              "versionName": "5.19",
+              "versionCode": 57,
+              "versionName": "5.20",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Adiciona cache local de miniaturas do YouTube com limite de 200 MB e preserva histórico, progresso e configurações."
+              "releaseNotes": "Corrige a reabertura de vídeos já assistidos no catálogo e informa o motivo de falhas de reprodução reportadas pelo YouTube. Preserva histórico, progresso e configurações."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + chr(10))
           PY
-          echo "tag=doramax-v5.19" >> "$GITHUB_OUTPUT"
+          echo "tag=doramax-v5.20" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.manifest.outputs.tag }}
-          name: DORAMAX-GRATIS 5.19
+          name: DORAMAX-GRATIS 5.20
           target_commitish: main
           generate_release_notes: true
           files: |

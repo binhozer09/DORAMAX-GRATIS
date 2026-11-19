@@ -80,6 +80,7 @@ body.player-open .catalog-screen{display:none}
 #customSeekBar .seek-fill{position:absolute;left:0;top:0;height:100%;width:0;border-radius:8px;background:#ff3048}
 #customSeekBar .seek-thumb{position:absolute;top:50%;left:0;width:13px;height:13px;border-radius:50%;background:#ff3048;border:2px solid #fff;box-shadow:0 1px 6px #000;transform:translate(-50%,-50%)}
 body.player-open.player-controls-visible #customSeekBar{display:block;pointer-events:auto}
+.video-play-error{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;background:#080808f2;color:#fff;text-align:center}.video-play-error p{max-width:360px;margin:0;font-size:14px;line-height:1.5}.video-play-error button{border:0;border-radius:10px;padding:12px 16px;background:#ff3048;color:#fff;font-size:12px;font-weight:900}
 </style>
 </head>
 <body>
@@ -879,7 +880,17 @@ function ensurePlayer(frame){
      }
     },
     onError:event=>{
-     doramaxLog('youtube_player_error',{videoId:videoId(frame)||null,errorCode:event.data,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
+     const code=Number(event.data);
+     doramaxLog('youtube_player_error',{videoId:videoId(frame)||null,errorCode:code,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
+     const playerBox=frame.closest('.video')?.querySelector('.player');
+     if(playerBox&&!playerBox.querySelector('.video-play-error')){
+      const panel=document.createElement('div');panel.className='video-play-error';
+      const message=document.createElement('p');
+      const messages={2:'O identificador deste vídeo é inválido.',5:'O player HTML5 do YouTube falhou ao iniciar. Verifique a conexão.',100:'Este vídeo foi removido, ficou privado ou não está disponível no YouTube.',101:'O responsável pelo vídeo não permite reprodução dentro de outros aplicativos.',150:'O responsável pelo vídeo não permite reprodução dentro de outros aplicativos.',153:'O YouTube não conseguiu validar a origem da reprodução.'};
+      message.textContent=(messages[code]||'O YouTube não conseguiu reproduzir este vídeo.')+' (código '+code+')';
+      const back=document.createElement('button');back.type='button';back.textContent='VOLTAR AO CATÁLOGO';back.addEventListener('click',returnToCatalog);
+      panel.append(message,back);playerBox.appendChild(panel);
+     }
     },
     onStateChange:event=>{
      if(players.get(frame)!==event.target)return;
@@ -1105,7 +1116,7 @@ function applyVideoCatalog(data){
  const known=new Set([...feed.querySelectorAll('iframe')].map(frame=>videoId(frame)).filter(Boolean));
  const slots=Math.max(0,1000-feed.querySelectorAll('.video').length);
  catalogQueue=remoteCatalogVideos.filter(video=>{
-  if(known.has(video.id)||watchedVideoIds.has(video.id))return false;
+  if(known.has(video.id))return false;
   known.add(video.id);return true;
  }).slice(0,slots);
  if(catalogQueue.length)startCatalogBatchLoading();
