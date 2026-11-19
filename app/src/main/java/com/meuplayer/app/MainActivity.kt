@@ -681,11 +681,20 @@ class MainActivity : AppCompatActivity() {
             (siteWeb.webChromeClient as? WebChromeClient)?.onHideCustomView()
             return
         }
-        if (::siteWeb.isInitialized && siteWeb.canGoBack()) {
-            siteWeb.goBack()
-        } else {
-            super.onBackPressed()
+        if (::siteWeb.isInitialized) {
+            // O player usa fullscreen simulado dentro do WebView. O botão Voltar
+            // do Android não gera keydown no JavaScript; consulte o estado do player
+            // antes de permitir que o app navegue para trás ou feche.
+            siteWeb.evaluateJavascript(
+                "(function(){return !!(document.querySelector('.video.fullscreen-fallback') && window.doramaxExitFullscreen && window.doramaxExitFullscreen());})()"
+            ) { result ->
+                if (result != "true") {
+                    if (siteWeb.canGoBack()) siteWeb.goBack() else super.onBackPressed()
+                }
+            }
+            return
         }
+        super.onBackPressed()
     }
 
     override fun onPause() {
