@@ -635,8 +635,25 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        siteWeb.loadUrl("https://appassets.androidplatform.net/assets/index.html")
+        // Ativa o DNS-over-HTTPS interno antes da primeira navegação do WebView.
+        startInAppDnsProtection()
         initializeAds()
+    }
+
+    private fun startInAppDnsProtection() {
+        InAppCloudflareDnsProxy.get().start(this) { ready, error ->
+            runOnUiThread {
+                if (isFinishing || isDestroyed || !::siteWeb.isInitialized) return@runOnUiThread
+                if (ready) {
+                    Log.i(TAG, "Cloudflare DoH interno ativo no WebView (sem VPN).")
+                } else {
+                    // Fallback para a rede normal para não deixar o catálogo indisponível.
+                    Log.e(TAG, "DNS DoH interno indisponível; usando DNS do Android: " + (error ?: "erro desconhecido"))
+                    Toast.makeText(this, "DNS Cloudflare indisponível. O DORAMAX continuará usando a rede normal.", Toast.LENGTH_LONG).show()
+                }
+                siteWeb.loadUrl("https://appassets.androidplatform.net/assets/index.html")
+            }
+        }
     }
 
     private fun initializeAds() {
@@ -800,6 +817,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        if (isFinishing) InAppCloudflareDnsProxy.get().stop()
         pendingFileChooser?.onReceiveValue(null)
         pendingFileChooser = null
         bannerAdView?.let { adView ->
