@@ -562,21 +562,30 @@ window.doramaxExitFullscreen=function(){
  if(!card)return false;
  const state=fullscreenReturnState&&fullscreenReturnState.card===card?fullscreenReturnState:null;
  const frame=state?.frame||card.querySelector('iframe');
+ const returnScrollTop=state?state.scrollTop:Math.max(0,card.offsetTop);
  card.classList.remove('fullscreen-fallback');
  feed.classList.remove('fullscreen-active');
  document.body.classList.remove('player-fullscreen');
- // Impede o scroll-snap/IntersectionObserver de selecionar o próximo vídeo
- // enquanto o layout volta da camada fullscreen para o feed.
+ // Mantém o snap e o IntersectionObserver bloqueados até o feed terminar
+ // de recuperar o layout. O iframe e o card nunca são removidos/recriados.
  feed.classList.add('fullscreen-restoring');
- fullscreenRestoreUntil=Date.now()+700;
+ fullscreenRestoreUntil=Date.now()+1400;
  if(frame)activeFrame=frame;
+ const restorePosition=()=>{
+  feed.scrollTop=returnScrollTop;
+  if(frame)activeFrame=frame;
+ };
  requestAnimationFrame(()=>{
-  feed.scrollTop=state?state.scrollTop:card.offsetTop;
+  restorePosition();
   requestAnimationFrame(()=>{
-   feed.scrollTop=state?state.scrollTop:card.offsetTop;
-   feed.classList.remove('fullscreen-restoring');
-   if(frame)activeFrame=frame;
-   fullscreenReturnState=null;
+   restorePosition();
+   // WebView pode aplicar a posição final alguns frames depois da troca
+   // de position:fixed para position:relative; confirma antes de liberar o feed.
+   setTimeout(()=>{
+    restorePosition();
+    feed.classList.remove('fullscreen-restoring');
+    fullscreenReturnState=null;
+   },900);
   });
  });
  return true;
@@ -923,7 +932,12 @@ feed.addEventListener('scroll',()=>{
 
 const observer=new IntersectionObserver(entries=>{
  entries.forEach(entry=>{
-  if(Date.now()<fullscreenRestoreUntil){if(fullscreenReturnState?.frame)activeFrame=fullscreenReturnState.frame;return;}
+  // Não deixe eventos de interseção disparados pela mudança de layout
+  // selecionar outro card durante a tela cheia ou a restauração do feed.
+  if(feed.classList.contains('fullscreen-active')||feed.classList.contains('fullscreen-restoring')||Date.now()<fullscreenRestoreUntil){
+   if(fullscreenReturnState?.frame)activeFrame=fullscreenReturnState.frame;
+   return;
+  }
   const card=entry.target,frame=card.querySelector('iframe'),info=card.querySelector('.info');
   if(!frame)return;
   // O card fica fixed no modo tela cheia e sai da área observada do feed.
