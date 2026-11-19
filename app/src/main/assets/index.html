@@ -580,6 +580,10 @@ function showPlayerControls(card){
  },2800);
  playerControlTimers.set(card,timer);
 }
+window.doramaxRevealPlayerControls=function(){
+ const card=activeFrame&&activeFrame.closest('.video');
+ if(card&&document.body.classList.contains('player-open'))showPlayerControls(card);
+};
 function keepPlayerControlsVisible(card){
  const old=playerControlTimers.get(card);if(old)clearTimeout(old);
  playerControlTimers.delete(card);
