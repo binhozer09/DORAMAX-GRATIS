@@ -978,18 +978,21 @@ function unloadFrame(card){
   pauseFrame(frame);
   if(activeFrame===frame)activeFrame=null;
   if(progressTimer&&progressFrame===frame){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
-  // Destrói a instância anterior e cria um iframe limpo para a próxima ativação.
-  // Isso evita reutilizar um elemento do YouTube que já foi navegado para about:blank.
-  const freshFrame=frame.cloneNode(false);
-  freshFrame.removeAttribute('src');
+  // Invalida callbacks antigos e troca o iframe antes de destruir o player.
+  // Assim o destroy() nunca remove o iframe novo nem deixa o card sem player.
+  const freshFrame=document.createElement('iframe');
   freshFrame.dataset.src=current;
+  freshFrame.title=frame.title||'Vídeo';
   freshFrame.loading='lazy';
-  try{player?.destroy?.();}catch(_){}
-  if(frame.isConnected)frame.replaceWith(freshFrame);
-  else card.querySelector('.player')?.appendChild(freshFrame);
+  freshFrame.referrerPolicy='strict-origin-when-cross-origin';
+  freshFrame.allow=frame.allow||'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope';
+  freshFrame.allowFullscreen=false;
   players.delete(frame);
   const frameIndex=frames.indexOf(frame);
+  if(frame.isConnected)frame.replaceWith(freshFrame);
   if(frameIndex>=0)frames[frameIndex]=freshFrame;
+  preparedFrames.delete(frame);
+  try{player?.destroy?.();}catch(_){}
  }
  preparedFrames.delete(frame);
 }
