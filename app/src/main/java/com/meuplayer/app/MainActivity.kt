@@ -776,7 +776,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
-        siteWeb.onPause()
+        if (::siteWeb.isInitialized) {
+            siteWeb.evaluateJavascript(
+                "window.doramaxSaveActiveProgress && window.doramaxSaveActiveProgress();",
+                null
+            )
+            siteWeb.onPause()
+        }
         super.onPause()
     }
 
