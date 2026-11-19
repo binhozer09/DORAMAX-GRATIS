@@ -82,7 +82,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='61' versionName='5.24'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='62' versionName='5.25'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -96,22 +96,22 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 61,
-              "versionName": "5.24",
+              "versionCode": 62,
+              "versionName": "5.25",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Adiciona DNS Cloudflare DoH interno sem VPN para as conexões do WebView. Preserva catálogo, histórico, progresso e configurações."
+              "releaseNotes": "Corrige a inicialização antecipada dos callbacks do player YouTube em todos os vídeos do catálogo. Mantém DNS Cloudflare DoH sem VPN, catálogo, histórico, progresso e configurações."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + chr(10))
           PY
-          echo "tag=doramax-v5.24" >> "$GITHUB_OUTPUT"
+          echo "tag=doramax-v5.25" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.manifest.outputs.tag }}
-          name: DORAMAX-GRATIS 5.24
+          name: DORAMAX-GRATIS 5.25
           target_commitish: main
           generate_release_notes: true
           files: |
