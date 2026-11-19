@@ -588,9 +588,14 @@ document.addEventListener('fullscreenchange',()=>{
  if(document.fullscreenElement&&document.fullscreenElement.classList?.contains('video'))showPlayerControls(document.fullscreenElement);
 });
 window.doramaxEnterFullscreen=function(card){
- if(!card||card.classList.contains('fullscreen-fallback'))return;
- doramaxLog('fullscreen_enter_requested',{targetVideoId:videoId(card.querySelector('iframe'))||null,...doramaxCurrentState()});
+ // Só pode existir um card em tela cheia. Não permita que controles de cards
+ // que ficaram por baixo do overlay troquem o player ativo.
+ const existingFullscreenCard=document.querySelector('.video.fullscreen-fallback');
+ if(!card||existingFullscreenCard||card.classList.contains('fullscreen-fallback'))return false;
  const frame=card.querySelector('iframe');
+ if(!frame)return false;
+ activeFrame=frame;
+ doramaxLog('fullscreen_enter_requested',{targetVideoId:videoId(frame)||null,...doramaxCurrentState()});
  fullscreenReturnState={card,frame,scrollTop:feed.scrollTop,cardOffset:card.getBoundingClientRect().top-feed.getBoundingClientRect().top};
  // Não reanexar o card: mover um iframe do YouTube entre pais pode reiniciar
  // o contexto de reprodução no WebView e deixar o vídeo branco.
@@ -654,13 +659,22 @@ function ensureSeekBar(card){
  fullscreen.addEventListener('click',event=>{
   event.preventDefault();
   event.stopPropagation();
+  const fullscreenCard=document.querySelector('.video.fullscreen-fallback');
+  if(fullscreenCard){
+   if(card===fullscreenCard){
+    doramaxLog('fullscreen_button_exit_tap',doramaxCurrentState());
+    window.doramaxExitFullscreen();
+   }else{
+    doramaxLog('fullscreen_tap_ignored_on_background_card',{tappedVideoId:videoId(card.querySelector('iframe'))||null,...doramaxCurrentState()});
+   }
+   return;
+  }
   if(card.classList.contains('fullscreen-fallback')){
    doramaxLog('fullscreen_button_exit_tap',doramaxCurrentState());
    window.doramaxExitFullscreen();
    return;
   }
   const frame=card.querySelector('iframe');
-  activeFrame=frame;
   // Usa o recorte do card, nunca a tela cheia nativa do iframe do YouTube.
   // A tela cheia nativa ignora o recorte e exibe os botões/logos do YouTube.
   doramaxLog('fullscreen_button_enter_tap',{targetVideoId:videoId(frame)||null,...doramaxCurrentState()});
