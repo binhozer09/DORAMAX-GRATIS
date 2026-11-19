@@ -633,24 +633,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeAds() {
-        Thread {
-            try {
-                MobileAds.initialize(
-                    this@MainActivity,
-                    InitializationConfig.Builder(ADMOB_APP_ID).build()
-                ) {
-                    runOnUiThread { loadBannerAd() }
-                }
-            } catch (error: Exception) {
-                Log.e(TAG, "AdMob initialization failed", error)
+        // O SDK Mobile Ads deve ser inicializado na thread principal do Android.
+        // Esta função é chamada diretamente por onCreate(), que já roda na UI thread.
+        if (isFinishing || isDestroyed) return
+        try {
+            MobileAds.initialize(
+                this@MainActivity,
+                InitializationConfig.Builder(ADMOB_APP_ID).build()
+            ) {
                 runOnUiThread {
-                    if (!isFinishing && !isDestroyed) {
-                        adContainer.removeAllViews()
-                        adContainer.visibility = android.view.View.GONE
-                    }
+                    if (!isFinishing && !isDestroyed) loadBannerAd()
                 }
             }
-        }.start()
+        } catch (error: Exception) {
+            Log.e(TAG, "AdMob initialization failed on main thread", error)
+            adContainer.removeAllViews()
+            adContainer.visibility = android.view.View.GONE
+        }
     }
 
     private fun loadBannerAd() {
