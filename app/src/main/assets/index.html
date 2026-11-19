@@ -355,7 +355,6 @@ body.player-open .catalog-screen{display:none}
 
 
 
-
 </main>
 <script>
 // Solicita ao Android/WebView que preserve os dados locais do app entre aberturas.
@@ -596,8 +595,7 @@ function showPlayerControls(card){
  card.classList.add('controls-visible');
  const timer=setTimeout(()=>{card.classList.remove('controls-visible');playerControlTimers.delete(card);},3000);
  playerControlTimers.set(card,timer);
-}
-// Guarda o vídeo e a posição do feed antes de expandir o player.
+}// Guarda o vídeo e a posição do feed antes de expandir o player.
 let fullscreenReturnState=null;
 let fullscreenLockedFrame=null;
 let fullscreenPlaybackSnapshot=null;let fullscreenRestoreUntil=0;
@@ -794,6 +792,7 @@ function ensureSeekBar(card){
  });
  bar.append(progress,timeLabel,fullscreen);card.appendChild(bar);
 }
+cards.forEach(ensureSeekBar);
 function saveHistory(){
  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(0,50)));}catch(_){}
  renderHistory();
@@ -896,8 +895,7 @@ window.doramaxUpdateProgress=function(percent,message){
  const value=document.getElementById('updateProgressPercent');
  if(!box||!fill||!label||!value)return;
  if(availableAppUpdate){
-  updateStatus.textContent='Atualização selecionada: versão '+(availableAppUpdate.latestVersionName||availableAppUpdate.latestVersionCode)+'.';
- }
+  updateStatus.textContent='Atualização selecionada: versão '+(availableAppUpdate.latestVersionName||availableAppUpdate.latestVersionCode)+'.'; }
  if(percent===-2){
   updateStatus.textContent=message||'O download falhou.';
   updateConfirm.disabled=false;updateCancel.disabled=false;
@@ -1196,8 +1194,7 @@ const CATALOG_BATCH_SIZE=8;
 function appendCatalogBatch(){
  if(!catalogQueue.length){
   if(catalogLoadObserver)catalogLoadObserver.disconnect();
-  if(catalogSentinel){catalogSentinel.remove();catalogSentinel=null;}
-  return;
+  if(catalogSentinel){catalogSentinel.remove();catalogSentinel=null;}  return;
  }
  const batch=catalogQueue.splice(0,CATALOG_BATCH_SIZE);
  const fragment=document.createDocumentFragment();
