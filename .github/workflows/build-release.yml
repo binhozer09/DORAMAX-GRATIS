@@ -82,7 +82,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='53' versionName='5.16'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='54' versionName='5.17'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -96,22 +96,22 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 53,
-              "versionName": "5.16",
+              "versionCode": 54,
+              "versionName": "5.17",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Adiciona tempo atual e duração total ao lado da barra de progresso; mantém a bolinha de busca, o botão Voltar ao catálogo e os controles existentes."
+              "releaseNotes": "Corrige a inicialização do Google Mobile Ads na thread principal do Android para permitir o carregamento correto dos banners; mantém as melhorias do player e os tempos da barra de progresso."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + chr(10))
           PY
-          echo "tag=doramax-v5.16" >> "$GITHUB_OUTPUT"
+          echo "tag=doramax-v5.17" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.manifest.outputs.tag }}
-          name: DORAMAX-GRATIS 5.16
+          name: DORAMAX-GRATIS 5.17
           target_commitish: main
           generate_release_notes: true
           files: |
