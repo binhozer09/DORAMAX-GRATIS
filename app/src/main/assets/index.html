@@ -340,8 +340,17 @@ body.player-open .catalog-screen{display:none}
 try{if(navigator.storage&&typeof navigator.storage.persist==='function')navigator.storage.persist().catch(()=>{});}catch(_){}
 const feed=document.getElementById('feed');
 
-const doramaxLogBuffer=[];
-function doramaxLog(event,details={}){try{doramaxLogBuffer.push({t:new Date().toISOString(),event,...details});if(doramaxLogBuffer.length>500)doramaxLogBuffer.splice(0,doramaxLogBuffer.length-500);doramaxRefreshLogsText();}catch(_){}}
+const DORAMAX_LOGS_STORAGE_KEY='doramax_fullscreen_logs_v1';
+let doramaxLogBuffer=[];
+try{
+ const savedLogs=JSON.parse(localStorage.getItem(DORAMAX_LOGS_STORAGE_KEY)||'[]');
+ if(Array.isArray(savedLogs))doramaxLogBuffer=savedLogs.filter(item=>item&&typeof item==='object').slice(-500);
+}catch(_){doramaxLogBuffer=[];}
+function doramaxPersistLogs(){
+ try{localStorage.setItem(DORAMAX_LOGS_STORAGE_KEY,JSON.stringify(doramaxLogBuffer.slice(-500)));}
+ catch(error){try{doramaxLogBuffer.splice(0,Math.max(1,doramaxLogBuffer.length-250));localStorage.setItem(DORAMAX_LOGS_STORAGE_KEY,JSON.stringify(doramaxLogBuffer));}catch(_){}}
+}
+function doramaxLog(event,details={}){try{doramaxLogBuffer.push({t:new Date().toISOString(),event,...details});if(doramaxLogBuffer.length>500)doramaxLogBuffer.splice(0,doramaxLogBuffer.length-500);doramaxPersistLogs();doramaxRefreshLogsText();}catch(_){}}
 function doramaxCurrentState(){const card=document.querySelector('.video.fullscreen-fallback')||activeFrame?.closest('.video')||null;const frame=card?.querySelector('iframe')||activeFrame;return{videoId:videoId(frame)||null,activeVideoId:videoId(activeFrame)||null,scrollTop:Math.round(feed.scrollTop),cardIndex:card?cards.indexOf(card):-1,fullscreen:!!document.querySelector('.video.fullscreen-fallback'),feedFullscreen:feed.classList.contains('fullscreen-active'),restoring:feed.classList.contains('fullscreen-restoring'),restoreRemainingMs:Math.max(0,fullscreenRestoreUntil-Date.now()),iframeConnected:!!frame?.isConnected,iframeSrcState:frame?.getAttribute('src')==='about:blank'?'about:blank':(frame?.getAttribute('src')?'youtube-embed':'empty')};}
 function doramaxRefreshLogsText(){const output=document.getElementById('doramaxLogsText');if(output)output.value=doramaxLogBuffer.map(item=>JSON.stringify(item)).join('\n');}
 const doramaxLogsButton=document.getElementById('doramaxLogsButton'),doramaxLogsPanel=document.getElementById('doramaxLogsPanel');
@@ -355,7 +364,10 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'||event.key==
 const doramaxFrameMutationObserver=new MutationObserver(records=>records.forEach(record=>{if(record.type==='attributes'&&record.attributeName==='src'){const frame=record.target;doramaxLog('iframe_src_changed',{videoId:videoId(frame)||null,srcState:frame.getAttribute('src')==='about:blank'?'about:blank':(frame.getAttribute('src')?'youtube-embed':'empty'),connected:frame.isConnected,...doramaxCurrentState()});}}));
 doramaxFrameMutationObserver.observe(feed,{subtree:true,attributes:true,attributeFilter:['src']});
 
-doramaxLog('diagnostics_ready',{version:'fullscreen-diagnostics-1'});
+doramaxLog('app_session_started',{version:'fullscreen-diagnostics-2',previousLogsLoaded:doramaxLogBuffer.length});
+window.addEventListener('pagehide',()=>{doramaxLog('app_pagehide',{});doramaxPersistLogs();});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){doramaxLog('app_hidden',{});doramaxPersistLogs();}});
+
 let doramaxLastLoggedScroll=-1,doramaxLastScrollLogAt=0;
 feed.addEventListener('scroll',()=>{if(!feed.classList.contains('fullscreen-active')&&!feed.classList.contains('fullscreen-restoring'))return;const now=Date.now(),top=Math.round(feed.scrollTop);if(Math.abs(top-doramaxLastLoggedScroll)>=3&&now-doramaxLastScrollLogAt>=100){doramaxLastLoggedScroll=top;doramaxLastScrollLogAt=now;doramaxLog('fullscreen_feed_scroll',{scrollTop:top,...doramaxCurrentState()});}},{passive:true});
 
