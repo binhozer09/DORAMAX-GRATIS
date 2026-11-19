@@ -67,7 +67,7 @@ body.player-open .catalog-screen{display:none}
    inside a fixed scrolling feed can render as a white surface on some WebViews. */
 #feed.fullscreen-active{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;overflow:hidden!important;z-index:2147482000!important;transform:none!important}
 #feed.fullscreen-restoring{scroll-snap-type:none!important;scroll-behavior:auto!important;overflow-y:auto!important}
-#feed.fullscreen-active .video:not(.fullscreen-fallback){visibility:hidden!important;pointer-events:none!important}#feed.fullscreen-active .video.fullscreen-fallback{position:absolute!important;inset:0!important;left:0!important;top:0!important;width:100%!important;height:100%!important;height:100dvh!important;min-height:100%!important;z-index:1!important;overflow:hidden!important;transform:none!important}
+#feed.fullscreen-active .video:not(.fullscreen-fallback){visibility:hidden!important;pointer-events:none!important}#feed.fullscreen-active .video:not(.fullscreen-fallback) *{pointer-events:none!important}#feed.fullscreen-active .video.fullscreen-fallback{position:absolute!important;inset:0!important;left:0!important;top:0!important;width:100%!important;height:100%!important;height:100dvh!important;min-height:100%!important;z-index:1!important;overflow:hidden!important;transform:none!important}
 #feed.fullscreen-active .video.fullscreen-fallback .player{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important;transform:none!important}
 #feed.fullscreen-active .video.fullscreen-fallback .player iframe{position:absolute!important;inset:0!important;width:100vw!important;height:calc(100dvh + 150px)!important;max-width:none!important;max-height:none!important;transform:none!important;transform-origin:center center;border:0!important}
 
@@ -582,6 +582,9 @@ function showPlayerControls(card){
 let fullscreenReturnState=null;
 let fullscreenLockedFrame=null;
 let fullscreenRestoreUntil=0;
+let fullscreenDisabledControls=[];
+function doramaxLockBackgroundControls(activeCard){fullscreenDisabledControls=[];document.querySelectorAll('#feed .fullscreen-control').forEach(button=>{const owner=button.closest('.video');if(owner!==activeCard){fullscreenDisabledControls.push({button,wasDisabled:button.disabled});button.disabled=true;button.setAttribute('aria-hidden','true');}});}
+function doramaxUnlockBackgroundControls(){fullscreenDisabledControls.forEach(({button,wasDisabled})=>{if(button?.isConnected){button.disabled=wasDisabled;button.removeAttribute('aria-hidden');}});fullscreenDisabledControls=[];}
 document.addEventListener('fullscreenchange',()=>{
  document.querySelectorAll('.video.fullscreen-fallback').forEach(card=>{
   if(document.fullscreenElement!==card)card.classList.remove('fullscreen-fallback');
@@ -606,6 +609,7 @@ window.doramaxEnterFullscreen=function(card){
  doramaxLog('fullscreen_enter_requested',{targetVideoId:videoId(frame)||null,...doramaxCurrentState()});
  fullscreenReturnState={card,frame,scrollTop:feed.scrollTop,cardOffset:card.getBoundingClientRect().top-feed.getBoundingClientRect().top};
  fullscreenLockedFrame=frame;
+ doramaxLockBackgroundControls(card);
  // Garante que o iframe não esteja vazio/descarregado antes de expandi-lo.
  // A mesma instância é preservada: nunca recriar nem trocar o vídeo ao entrar.
  try{activateFrame(frame);}catch(error){doramaxLog('fullscreen_activate_frame_error',{message:String(error)});}
@@ -640,6 +644,7 @@ window.doramaxExitFullscreen=function(){
  const returnScrollTop=state?state.scrollTop:Math.max(0,card.offsetTop);
  const targetCardOffset=Number.isFinite(state?.cardOffset)?state.cardOffset:0;
  doramaxSyncFullscreenButton(card,false);
+ doramaxUnlockBackgroundControls();
  card.classList.remove('fullscreen-fallback');
  feed.classList.remove('fullscreen-active');
  document.body.classList.remove('player-fullscreen');
@@ -713,6 +718,8 @@ function ensureSeekBar(card){
   window.doramaxExitFullscreen();
  },true);
  fullscreen.addEventListener('click',event=>{
+  const activeFullscreenCard=document.querySelector('.video.fullscreen-fallback');
+  if(activeFullscreenCard&&activeFullscreenCard!==card){event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();doramaxLog('fullscreen_background_button_hard_blocked',{tappedVideoId:videoId(card.querySelector('iframe'))||null,...doramaxCurrentState()});return;}
   if(Date.now()-fullscreenExitPointerHandledAt<1500){
    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
    return;
