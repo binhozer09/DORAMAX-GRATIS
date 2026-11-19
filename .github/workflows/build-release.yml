@@ -62,10 +62,10 @@ jobs:
           for value in (bundle["keystoreBase64"], bundle["keystorePassword"], bundle["keyPassword"]):
               print(f"::add-mask::{value}")
           with open(os.environ["GITHUB_ENV"], "a") as env:
-              env.write(f"CM_KEYSTORE_PATH={path}\\n")
-              env.write(f"CM_KEYSTORE_PASSWORD={bundle['keystorePassword']}\\n")
-              env.write(f"CM_KEY_ALIAS={bundle['keyAlias']}\\n")
-              env.write(f"CM_KEY_PASSWORD={bundle['keyPassword']}\\n")
+              env.write(f"CM_KEYSTORE_PATH={path}" + chr(10))
+              env.write(f"CM_KEYSTORE_PASSWORD={bundle['keystorePassword']}" + chr(10))
+              env.write(f"CM_KEY_ALIAS={bundle['keyAlias']}" + chr(10))
+              env.write(f"CM_KEY_PASSWORD={bundle['keyPassword']}" + chr(10))
           PY
 
       - name: Build signed APK
@@ -99,7 +99,7 @@ jobs:
               "apkSizeBytes": apk.stat().st_size,
               "releaseNotes": "Corrige a troca indevida de vídeos ao sair da tela cheia, preservando o mesmo vídeo e a posição do feed."
           }
-          pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\\n")
+          pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + chr(10))
           PY
           echo "tag=doramax-v4.4" >> "$GITHUB_OUTPUT"
 
