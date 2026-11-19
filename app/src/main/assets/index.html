@@ -73,6 +73,12 @@ body.player-open .back-catalog{display:inline-flex;opacity:0;visibility:hidden;p
 body.player-open .catalog-screen{display:none}
 @media(min-width:700px){.catalog-screen{max-width:520px;left:50%;right:auto;transform:translateX(-50%);width:100%;border-left:1px solid #ffffff0c;border-right:1px solid #ffffff0c}.catalog-grid{gap:22px 16px}}
 
+
+#customSeekBar{display:none;position:fixed;z-index:2147483646;left:18px;right:18px;bottom:calc(18px + var(--safe-bottom));height:30px;padding:13px 0;touch-action:none;pointer-events:none;-webkit-tap-highlight-color:transparent}
+#customSeekBar .seek-track{position:relative;width:100%;height:4px;border-radius:8px;background:#ffffff80;box-shadow:0 1px 4px #000b}
+#customSeekBar .seek-fill{position:absolute;left:0;top:0;height:100%;width:0;border-radius:8px;background:#ff3048}
+#customSeekBar .seek-thumb{position:absolute;top:50%;left:0;width:13px;height:13px;border-radius:50%;background:#ff3048;border:2px solid #fff;box-shadow:0 1px 6px #000;transform:translate(-50%,-50%)}
+body.player-open.player-controls-visible #customSeekBar{display:block;pointer-events:auto}
 </style>
 </head>
 <body>
@@ -81,6 +87,8 @@ body.player-open .catalog-screen{display:none}
 
 <div class="topbar"><div style="display:flex;align-items:center;gap:9px"><div class="brand"><span class="brand-name">DORA<b>MAX</b> GRÁTIS</span><span class="brand-flame" aria-hidden="true">🔥</span></div></div><div class="top-actions"><button class="admin-entry" id="continueBtn" type="button">CONTINUAR ASSISTINDO</button><button class="account-avatar" id="accountMenuButton" type="button" aria-label="Abrir conta e notificações"><span id="accountAvatarText">D</span><i id="updateDot" hidden></i></button></div></div>
 <button class="back-catalog" id="backCatalogBtn" type="button">‹ VOLTAR AO CATÁLOGO</button>
+<div id="customSeekBar" role="slider" aria-label="Progresso do vídeo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><div class="seek-track"><div class="seek-fill"></div><div class="seek-thumb"></div></div></div>
+
 <div id="accountMenu" class="account-menu" aria-hidden="true"><section class="account-menu-card" role="dialog" aria-modal="true" aria-label="Menu da conta"><header class="account-menu-header"><div class="account-avatar large" id="accountMenuAvatar">D</div><div class="account-menu-heading"><strong>DORAMAX GRÁTIS</strong><small id="accountMenuSubtitle">Sua conta e novidades</small></div><button id="accountMenuClose" class="account-menu-close" type="button" aria-label="Fechar">×</button></header><button class="account-menu-item" id="accountMenuAccount" type="button"><span class="account-menu-icon">◉</span><span><strong>Minha conta / Login</strong><small id="accountMenuEmail">Entre ou veja sua conta conectada</small></span><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuNotifications" type="button"><span class="account-menu-icon">♧</span><span><strong>Notificações</strong><small id="accountMenuNotificationText">Nenhuma novidade por enquanto</small></span><i id="accountMenuNotificationDot" hidden></i><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuUpdates" type="button"><span class="account-menu-icon">↓</span><span><strong>Atualizações do aplicativo</strong><small id="accountMenuUpdateText">Verificar nova versão</small></span><i id="accountMenuUpdateDot" hidden></i><span class="account-menu-chevron">›</span></button></section></div><div id="updatePanel" class="update-panel" aria-hidden="true"><div class="update-card" role="dialog" aria-modal="true" aria-labelledby="updateTitle"><h2 id="updateTitle">Atualização do DORAMAX</h2><p id="updateMessage">Verificando atualizações...</p><div class="update-actions"><button class="update-cancel" id="updateCancel" type="button">Fechar</button><button class="update-confirm" id="updateConfirm" type="button" hidden>Baixar atualização</button></div><div class="update-status" id="updateStatus"></div><div class="update-progress" id="updateProgressBox" hidden><div class="update-progress-track"><div class="update-progress-fill" id="updateProgressFill"></div></div><div class="update-progress-label"><span id="updateProgressLabel">Preparando download...</span><strong id="updateProgressPercent">0%</strong></div></div></div></div>
 <div id="historyPanel" class="history-panel" aria-hidden="true">
  <div class="history-header"><h2>CONTINUAR ASSISTINDO</h2><button id="closeHistory" type="button" aria-label="Fechar">✕</button></div>
@@ -567,6 +575,33 @@ function cardData(card){
  const frame=card.querySelector('iframe');
  return {id:videoId(frame),title:card.querySelector('.title')?.textContent?.trim()||frame?.title||'Vídeo',card,frame};
 }
+const customSeekBar=document.getElementById('customSeekBar');
+const customSeekFill=customSeekBar?.querySelector('.seek-fill');
+const customSeekThumb=customSeekBar?.querySelector('.seek-thumb');
+let seekPointerActive=false;
+function updateSeekBar(frame,current,duration){
+ if(!customSeekBar||!frame||!(duration>0))return;
+ const percent=Math.max(0,Math.min(100,(Number(current)||0)/duration*100));
+ customSeekFill.style.width=percent+'%';
+ customSeekThumb.style.left=percent+'%';
+ customSeekBar.setAttribute('aria-valuenow',String(Math.round(percent)));
+}
+function seekFromPointer(event){
+ const frame=activeFrame;if(!frame)return;
+ const player=players.get(frame);if(!player||typeof player.getDuration!=='function'||typeof player.seekTo!=='function')return;
+ const rect=customSeekBar.getBoundingClientRect();
+ const fraction=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width));
+ const duration=player.getDuration();if(!(duration>0))return;
+ updateSeekBar(frame,duration*fraction,duration);
+ if(event.type==='pointerup'||event.type==='pointerdown')player.seekTo(duration*fraction,true);
+ showPlayerControls(frame.closest('.video'));
+}
+customSeekBar?.addEventListener('pointerdown',event=>{seekPointerActive=true;try{customSeekBar.setPointerCapture(event.pointerId);}catch(_){}seekFromPointer(event);});
+customSeekBar?.addEventListener('pointermove',event=>{if(!seekPointerActive)return;const frame=activeFrame,player=frame&&players.get(frame);if(!player)return;const rect=customSeekBar.getBoundingClientRect(),fraction=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width));updateSeekBar(frame,(player.getDuration()||0)*fraction,player.getDuration());});
+customSeekBar?.addEventListener('pointerup',event=>{if(!seekPointerActive)return;seekPointerActive=false;seekFromPointer(event);});
+customSeekBar?.addEventListener('pointercancel',()=>{seekPointerActive=false;});
+customSeekBar?.addEventListener('keydown',event=>{if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;event.preventDefault();window.doramaxSeekBy(event.key==='ArrowRight'?10:-10);});
+
 const playerControlTimers=new WeakMap();
 function showPlayerControls(card){
  if(!card)return;
@@ -845,7 +880,7 @@ function ensurePlayer(frame){
          upsertProgress(frame.closest('.video'),current,duration);updateSeekBar(frame,current,duration);
         }
        }catch(_){}
-      },2000);
+      },500);
      }else{
       const pausedCard=frame.closest('.video');if(event.data===YT.PlayerState.PAUSED){keepPlayerControlsVisible(pausedCard);}else if(event.data===YT.PlayerState.ENDED){document.body.classList.remove('player-playing','player-controls-visible');pausedCard?.classList.remove('controls-visible');}
       try{const current=event.target.getCurrentTime(),duration=event.target.getDuration();upsertProgress(frame.closest('.video'),current,duration);updateSeekBar(frame,current,duration);}catch(_){}
