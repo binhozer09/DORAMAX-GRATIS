@@ -603,6 +603,20 @@ window.doramaxEnterFullscreen=function(card){
  document.body.classList.add('player-fullscreen');
  card.classList.add('fullscreen-fallback');
  showPlayerControls(card);
+ // Recalcula o tamanho do MESMO player após o WebView aplicar o layout fullscreen.
+ // Alguns WebViews mantêm apenas a miniatura do YouTube até receberem setSize.
+ const player=players.get(frame);
+ let wasPlaying=false;
+ try{wasPlaying=!!(player&&typeof player.getPlayerState==='function'&&player.getPlayerState()===YT.PlayerState.PLAYING);}catch(_){}
+ const resizeFullscreenPlayer=()=>{
+  if(!card.isConnected||!card.classList.contains('fullscreen-fallback'))return;
+  try{
+   if(player&&typeof player.setSize==='function')player.setSize(Math.max(1,window.innerWidth),Math.max(1,window.innerHeight+150));
+   if(wasPlaying&&player&&typeof player.playVideo==='function')player.playVideo();
+   doramaxLog('fullscreen_player_resized',{targetVideoId:videoId(frame)||null,wasPlaying,playerAvailable:!!player,...doramaxCurrentState()});
+  }catch(error){doramaxLog('fullscreen_player_resize_error',{message:String(error),...doramaxCurrentState()});}
+ };
+ requestAnimationFrame(()=>requestAnimationFrame(resizeFullscreenPlayer));
 };
 window.doramaxExitFullscreen=function(){
  const card=document.querySelector('.video.fullscreen-fallback');
