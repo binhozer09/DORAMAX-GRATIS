@@ -591,7 +591,7 @@ window.doramaxEnterFullscreen=function(card){
  if(!card||card.classList.contains('fullscreen-fallback'))return;
  doramaxLog('fullscreen_enter_requested',{targetVideoId:videoId(card.querySelector('iframe'))||null,...doramaxCurrentState()});
  const frame=card.querySelector('iframe');
- fullscreenReturnState={card,frame,scrollTop:feed.scrollTop};
+ fullscreenReturnState={card,frame,scrollTop:feed.scrollTop,cardOffset:card.getBoundingClientRect().top-feed.getBoundingClientRect().top};
  // Não reanexar o card: mover um iframe do YouTube entre pais pode reiniciar
  // o contexto de reprodução no WebView e deixar o vídeo branco.
  feed.classList.add('fullscreen-active');
@@ -606,32 +606,40 @@ window.doramaxExitFullscreen=function(){
  const state=fullscreenReturnState&&fullscreenReturnState.card===card?fullscreenReturnState:null;
  const frame=state?.frame||card.querySelector('iframe');
  const returnScrollTop=state?state.scrollTop:Math.max(0,card.offsetTop);
+ const targetCardOffset=Number.isFinite(state?.cardOffset)?state.cardOffset:0;
  card.classList.remove('fullscreen-fallback');
  feed.classList.remove('fullscreen-active');
  document.body.classList.remove('player-fullscreen');
- // Mantém o snap e o IntersectionObserver bloqueados até o feed terminar
- // de recuperar o layout. O iframe e o card nunca são removidos/recriados.
+ // Desativa o scroll-snap enquanto o WebView recompõe o layout. A posição
+ // é corrigida pela geometria real do card, não apenas pelo scrollTop antigo.
  feed.classList.add('fullscreen-restoring');
- fullscreenRestoreUntil=Date.now()+1400;
+ fullscreenRestoreUntil=Date.now()+1600;
  if(frame)activeFrame=frame;
+ let restoreFrames=0;
  const restorePosition=()=>{
-  feed.scrollTop=returnScrollTop;
+  const feedRect=feed.getBoundingClientRect();
+  const cardRect=card.getBoundingClientRect();
+  const currentOffset=cardRect.top-feedRect.top;
+  const correction=currentOffset-targetCardOffset;
+  if(Number.isFinite(correction)&&Math.abs(correction)>0.5)feed.scrollTop+=correction;
+  if(restoreFrames===0&&(!Number.isFinite(feed.scrollTop)||feed.scrollTop<0))feed.scrollTop=returnScrollTop;
   if(frame)activeFrame=frame;
  };
- requestAnimationFrame(()=>{
+ const settle=()=>{
   restorePosition();
-  requestAnimationFrame(()=>{
+  restoreFrames++;
+  if(restoreFrames<7){
+   requestAnimationFrame(settle);
+   return;
+  }
+  setTimeout(()=>{
    restorePosition();
-   // WebView pode aplicar a posição final alguns frames depois da troca
-   // de position:fixed para position:relative; confirma antes de liberar o feed.
-   setTimeout(()=>{
-    restorePosition();
-    feed.classList.remove('fullscreen-restoring');
-    doramaxLog('fullscreen_restore_finished',doramaxCurrentState());
-    fullscreenReturnState=null;
-   },900);
-  });
- });
+   feed.classList.remove('fullscreen-restoring');
+   doramaxLog('fullscreen_restore_finished',doramaxCurrentState());
+   fullscreenReturnState=null;
+  },250);
+ };
+ requestAnimationFrame(settle);
  return true;
 };
 document.addEventListener('keydown',event=>{
