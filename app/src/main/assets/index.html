@@ -71,7 +71,11 @@ body.player-open .catalog-screen{display:none}
 #feed.fullscreen-active .video.fullscreen-fallback .player{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important;transform:none!important}
 #feed.fullscreen-active .video.fullscreen-fallback .player iframe{position:absolute!important;inset:0!important;width:100vw!important;height:calc(100dvh + 150px)!important;max-width:none!important;max-height:none!important;transform:none!important;transform-origin:center center;border:0!important}
 
-
+#doramaxLogsButton{position:fixed!important;top:calc(54px + var(--safe-top));right:10px;z-index:2147483646;border:1px solid #ffffff70;border-radius:10px;background:#151922f2;color:#fff;padding:9px 12px;font-size:12px;font-weight:900;box-shadow:0 3px 14px #000b;pointer-events:auto}
+#doramaxLogsPanel{display:none;position:fixed;inset:0;z-index:2147483647;background:#080b12f5;padding:calc(18px + var(--safe-top)) 14px calc(18px + var(--safe-bottom));flex-direction:column;gap:10px}
+#doramaxLogsPanel.open{display:flex}#doramaxLogsPanel h2{font-size:17px;margin:0}#doramaxLogsPanel p{font-size:12px;color:#c7cfdd;line-height:1.45;margin:0}
+#doramaxLogsText{flex:1;min-height:120px;width:100%;resize:none;background:#05070a;color:#d9e3f5;border:1px solid #ffffff35;border-radius:10px;padding:10px;font:11px/1.45 monospace}
+.doramax-log-actions{display:flex;gap:8px}.doramax-log-actions button{flex:1;border:0;border-radius:9px;padding:12px 8px;background:#ff3048;color:#fff;font-weight:900}.doramax-log-actions button.secondary{background:#303744}
 
 /* Fullscreen 5.4: o card e o iframe original são movidos para uma camada
    de nível superior, fora do feed rolável, sem clonar ou recarregar o vídeo. */
@@ -89,22 +93,11 @@ body.player-open .catalog-screen{display:none}
 /* Fullscreen: recorta também a faixa superior do player do YouTube e oculta o nome/cabeçalho e o título sobrepostos. */
 .doramax-fullscreen-stage>.video.fullscreen-fallback .player iframe{height:calc(100% + 150px)!important;transform:translateY(-110px)!important}
 .doramax-fullscreen-stage>.video.fullscreen-fallback .info{display:none!important}
-
-/* DORAMAX 5.7: remove the remaining YouTube overlays by cropping both edges. */
-.doramax-fullscreen-stage>.video.fullscreen-fallback .player{overflow:hidden!important;background:#000!important}
-.doramax-fullscreen-stage>.video.fullscreen-fallback .player iframe{position:absolute!important;left:0!important;top:0!important;width:100vw!important;height:calc(100% + 360px)!important;max-width:none!important;max-height:none!important;transform:translateY(-180px) scale(1.10)!important;transform-origin:center center!important;border:0!important}
-.doramax-fullscreen-stage>.video.fullscreen-fallback .info{display:none!important}
-.doramax-fullscreen-stage .fullscreen-tap-layer{position:absolute!important;inset:0!important;z-index:8!important;background:transparent!important;touch-action:manipulation!important}
-.doramax-fullscreen-stage .seekbar{position:absolute!important;z-index:30!important;left:14px!important;right:14px!important;bottom:calc(16px + var(--safe-bottom))!important;top:auto!important;width:auto!important;height:48px!important;min-height:48px!important;display:flex!important;align-items:center!important;gap:10px!important;padding:0 8px!important;border-radius:14px!important;background:linear-gradient(90deg,#080b12dd,#080b1299)!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;transition:opacity .65s ease,visibility .65s ease!important}
-.doramax-fullscreen-stage>.video.fullscreen-fallback.controls-visible .seekbar{opacity:1!important;visibility:visible!important;pointer-events:auto!important}
-.doramax-fullscreen-stage .player-progress{display:block!important;flex:1 1 auto!important;min-width:30px!important;width:auto!important;height:4px!important;margin:0!important;accent-color:#ff3048!important;touch-action:pan-x!important}
-.doramax-fullscreen-stage .player-time{display:block!important;flex:0 0 auto!important;min-width:76px!important;color:#fff!important;font-size:11px!important;font-variant-numeric:tabular-nums!important;text-align:center!important;text-shadow:0 1px 4px #000!important}
-.doramax-fullscreen-stage .fullscreen-control{display:flex!important;flex:0 0 42px!important;width:42px!important;height:42px!important;border:1px solid #ffffff88!important;border-radius:50%!important;background:#ff3048f2!important;color:#fff!important;align-items:center!important;justify-content:center!important;font-size:23px!important;line-height:1!important;box-shadow:0 3px 14px #000a!important;pointer-events:auto!important}
-.video:not(.fullscreen-fallback) .seekbar{left:auto!important;right:16px!important;width:48px!important;height:48px!important;min-height:48px!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important;background:transparent!important;padding:0!important}
-.video:not(.fullscreen-fallback) .player-progress,.video:not(.fullscreen-fallback) .player-time{display:none!important}
 </style>
 </head>
 <body>
+
+<button id="doramaxLogsButton" type="button">LOGS</button><section id="doramaxLogsPanel" aria-hidden="true"><h2>Diagnóstico da tela cheia</h2><p>Abra o player, tente sair da tela cheia uma vez e depois volte aqui para copiar os registros. O diagnóstico não grava dados da sua conta.</p><textarea id="doramaxLogsText" readonly spellcheck="false" placeholder="Os registros aparecerão aqui..."></textarea><div class="doramax-log-actions"><button id="doramaxCopyLogs" type="button">COPIAR LOGS</button><button id="doramaxCloseLogs" class="secondary" type="button">FECHAR</button></div></section>
 
 <div class="topbar"><div style="display:flex;align-items:center;gap:9px"><div class="brand"><span class="brand-name">DORA<b>MAX</b> GRÁTIS</span><span class="brand-flame" aria-hidden="true">🔥</span></div></div><button class="back-catalog" id="backCatalogBtn" type="button">‹ VOLTAR AO CATÁLOGO</button><div class="top-actions"><button class="admin-entry" id="continueBtn" type="button">CONTINUAR ASSISTINDO</button><button class="account-avatar" id="accountMenuButton" type="button" aria-label="Abrir conta e notificações"><span id="accountAvatarText">D</span><i id="updateDot" hidden></i></button></div></div>
 <div id="accountMenu" class="account-menu" aria-hidden="true"><section class="account-menu-card" role="dialog" aria-modal="true" aria-label="Menu da conta"><header class="account-menu-header"><div class="account-avatar large" id="accountMenuAvatar">D</div><div class="account-menu-heading"><strong>DORAMAX GRÁTIS</strong><small id="accountMenuSubtitle">Sua conta e novidades</small></div><button id="accountMenuClose" class="account-menu-close" type="button" aria-label="Fechar">×</button></header><button class="account-menu-item" id="accountMenuAccount" type="button"><span class="account-menu-icon">◉</span><span><strong>Minha conta / Login</strong><small id="accountMenuEmail">Entre ou veja sua conta conectada</small></span><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuNotifications" type="button"><span class="account-menu-icon">♧</span><span><strong>Notificações</strong><small id="accountMenuNotificationText">Nenhuma novidade por enquanto</small></span><i id="accountMenuNotificationDot" hidden></i><span class="account-menu-chevron">›</span></button><button class="account-menu-item" id="accountMenuUpdates" type="button"><span class="account-menu-icon">↓</span><span><strong>Atualizações do aplicativo</strong><small id="accountMenuUpdateText">Verificar nova versão</small></span><i id="accountMenuUpdateDot" hidden></i><span class="account-menu-chevron">›</span></button></section></div><div id="updatePanel" class="update-panel" aria-hidden="true"><div class="update-card" role="dialog" aria-modal="true" aria-labelledby="updateTitle"><h2 id="updateTitle">Atualização do DORAMAX</h2><p id="updateMessage">Verificando atualizações...</p><div class="update-actions"><button class="update-cancel" id="updateCancel" type="button">Fechar</button><button class="update-confirm" id="updateConfirm" type="button" hidden>Baixar atualização</button></div><div class="update-status" id="updateStatus"></div><div class="update-progress" id="updateProgressBox" hidden><div class="update-progress-track"><div class="update-progress-fill" id="updateProgressFill"></div></div><div class="update-progress-label"><span id="updateProgressLabel">Preparando download...</span><strong id="updateProgressPercent">0%</strong></div></div></div></div>
@@ -355,6 +348,8 @@ body.player-open .catalog-screen{display:none}
 
 
 
+
+
 </main>
 <script>
 // Solicita ao Android/WebView que preserve os dados locais do app entre aberturas.
@@ -374,7 +369,10 @@ function doramaxPersistLogs(){
 function doramaxLog(event,details={}){try{doramaxLogBuffer.push({t:new Date().toISOString(),event,...details});if(doramaxLogBuffer.length>500)doramaxLogBuffer.splice(0,doramaxLogBuffer.length-500);doramaxPersistLogs();doramaxRefreshLogsText();}catch(_){}}
 function doramaxCurrentState(){const card=document.querySelector('.video.fullscreen-fallback')||activeFrame?.closest('.video')||null;const frame=card?.querySelector('iframe')||activeFrame;return{videoId:videoId(frame)||null,activeVideoId:videoId(fullscreenLockedFrame||activeFrame)||null,scrollTop:Math.round(feed.scrollTop),cardIndex:card?cards.indexOf(card):-1,fullscreen:!!document.querySelector('.video.fullscreen-fallback'),feedFullscreen:feed.classList.contains('fullscreen-active'),restoring:feed.classList.contains('fullscreen-restoring'),restoreRemainingMs:Math.max(0,fullscreenRestoreUntil-Date.now()),iframeConnected:!!frame?.isConnected,iframeSrcState:frame?.getAttribute('src')==='about:blank'?'about:blank':(frame?.getAttribute('src')?'youtube-embed':'empty')};}
 function doramaxRefreshLogsText(){const output=document.getElementById('doramaxLogsText');if(output)output.value=doramaxLogBuffer.map(item=>JSON.stringify(item)).join('\n');}
-const doramaxLogsButton=null,doramaxLogsPanel=null;
+const doramaxLogsButton=document.getElementById('doramaxLogsButton'),doramaxLogsPanel=document.getElementById('doramaxLogsPanel');
+doramaxLogsButton?.addEventListener('click',()=>{doramaxLog('logs_panel_open',doramaxCurrentState());doramaxRefreshLogsText();doramaxLogsPanel?.classList.add('open');doramaxLogsPanel?.setAttribute('aria-hidden','false');});
+document.getElementById('doramaxCloseLogs')?.addEventListener('click',()=>{doramaxLogsPanel?.classList.remove('open');doramaxLogsPanel?.setAttribute('aria-hidden','true');});
+document.getElementById('doramaxCopyLogs')?.addEventListener('click',async()=>{doramaxLog('copy_logs_requested',doramaxCurrentState());doramaxRefreshLogsText();const output=document.getElementById('doramaxLogsText'),button=document.getElementById('doramaxCopyLogs');try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(output.value);button.textContent='COPIADO!';}else{output.focus();output.select();button.textContent=document.execCommand('copy')?'COPIADO!':'SELECIONE E COPIE';}}catch(_){try{output.focus();output.select();}catch(__){}button.textContent='SELECIONE E COPIE';}});
 window.addEventListener('error',event=>doramaxLog('javascript_error',{message:String(event.message||'erro'),file:String(event.filename||'').split('/').pop(),line:event.lineno||0}));
 window.addEventListener('unhandledrejection',event=>doramaxLog('unhandled_rejection',{message:String(event.reason?.message||event.reason||'rejeição').slice(0,240)}));
 document.addEventListener('fullscreenchange',()=>doramaxLog('native_fullscreenchange',{nativeFullscreen:!!document.fullscreenElement,...doramaxCurrentState()}));
@@ -593,12 +591,13 @@ function showPlayerControls(card){
  if(!card)return;
  const old=playerControlTimers.get(card);if(old)clearTimeout(old);
  card.classList.add('controls-visible');
- const timer=setTimeout(()=>{card.classList.remove('controls-visible');playerControlTimers.delete(card);},3000);
+ const timer=setTimeout(()=>{card.classList.remove('controls-visible');playerControlTimers.delete(card);},3200);
  playerControlTimers.set(card,timer);
-}// Guarda o vídeo e a posição do feed antes de expandir o player.
+}
+// Guarda o vídeo e a posição do feed antes de expandir o player.
 let fullscreenReturnState=null;
 let fullscreenLockedFrame=null;
-let fullscreenPlaybackSnapshot=null;let fullscreenRestoreUntil=0;
+let fullscreenRestoreUntil=0;
 let fullscreenDisabledControls=[];
 function doramaxLockBackgroundControls(activeCard){fullscreenDisabledControls=[];document.querySelectorAll('#feed .fullscreen-control').forEach(button=>{const owner=button.closest('.video');if(owner!==activeCard){fullscreenDisabledControls.push({button,wasDisabled:button.disabled});button.disabled=true;button.setAttribute('aria-hidden','true');}});}
 function doramaxUnlockBackgroundControls(){fullscreenDisabledControls.forEach(({button,wasDisabled})=>{if(button?.isConnected){button.disabled=wasDisabled;button.removeAttribute('aria-hidden');}});fullscreenDisabledControls=[];}
@@ -621,12 +620,6 @@ window.doramaxEnterFullscreen=function(card){
  const frame=card.querySelector('iframe');
  const parent=card.parentNode;
  if(!frame||!parent)return false;
- const playerBefore=players.get(frame);
- let playbackSeconds=0,wasPlaying=false;
- try{if(playerBefore&&typeof playerBefore.getCurrentTime==='function')playbackSeconds=Math.max(0,Number(playerBefore.getCurrentTime())||0);if(playerBefore&&typeof playerBefore.getPlayerState==='function'){const state=playerBefore.getPlayerState();wasPlaying=state===1||state===3;}}catch(_){}
- if(playbackSeconds<=0){const saved=history.find(item=>item.id===videoId(frame));if(saved&&Number.isFinite(Number(saved.seconds)))playbackSeconds=Math.max(0,Number(saved.seconds));}
- fullscreenPlaybackSnapshot={frame,seconds:playbackSeconds,wasPlaying};
- if(playbackSeconds>0)pendingSeek.set(videoId(frame),playbackSeconds);
  activeFrame=frame;
  doramaxLog('fullscreen_enter_requested',{targetVideoId:videoId(frame)||null,...doramaxCurrentState()});
  const placeholder=document.createElement('div');
@@ -643,14 +636,7 @@ window.doramaxEnterFullscreen=function(card){
  try{activateFrame(frame);}catch(error){doramaxLog('fullscreen_activate_frame_error',{message:String(error)});}
  doramaxLog('fullscreen_frame_activated',{targetVideoId:videoId(frame)||null,src:frame.getAttribute('src')||'',connected:frame.isConnected,...doramaxCurrentState()});
  try{ensurePlayer(frame);}catch(error){doramaxLog('fullscreen_ensure_player_error',{message:String(error)});}
- try{document.body.appendChild(stage);stage.appendChild(card);
-  const playerLayer=card.querySelector('.player');
-  if(playerLayer&&!playerLayer.querySelector('.fullscreen-tap-layer')){
-   const tapLayer=document.createElement('div');tapLayer.className='fullscreen-tap-layer';tapLayer.setAttribute('aria-label','Toque para mostrar os controles');
-   tapLayer.addEventListener('pointerdown',event=>{event.preventDefault();event.stopPropagation();showPlayerControls(card);},{capture:true});
-   playerLayer.appendChild(tapLayer);
-  }
- }catch(error){
+ try{document.body.appendChild(stage);stage.appendChild(card);}catch(error){
   doramaxLog('fullscreen_stage_attach_error',{message:String(error)});
   if(placeholder.parentNode)placeholder.parentNode.insertBefore(card,placeholder);
   placeholder.remove();stage.remove();fullscreenReturnState=null;fullscreenLockedFrame=null;doramaxUnlockBackgroundControls();
@@ -667,9 +653,7 @@ window.doramaxEnterFullscreen=function(card){
   try{
    if(player&&typeof player.setSize==='function')player.setSize(Math.max(1,window.innerWidth),Math.max(1,window.innerHeight));
    let state=-1;try{state=player?.getPlayerState?.()??-1;}catch(_){}
-   const snapshot=fullscreenPlaybackSnapshot&&fullscreenPlaybackSnapshot.frame===frame?fullscreenPlaybackSnapshot:null;
-   if(player&&snapshot&&snapshot.seconds>0){let actual=0;try{actual=Number(player.getCurrentTime())||0;}catch(_){}if(Math.abs(actual-snapshot.seconds)>2)player.seekTo(snapshot.seconds,true);pendingSeek.delete(videoId(frame));}
-   if(player&&snapshot?.wasPlaying&&typeof player.playVideo==='function'&&state!==1&&state!==3)player.playVideo();
+   if(player&&typeof player.playVideo==='function'&&state!==1&&state!==3)player.playVideo();
    doramaxLog('fullscreen_player_resized',{targetVideoId:videoId(frame)||null,playerAvailable:!!player,playerState:state,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
   }catch(error){doramaxLog('fullscreen_player_resize_error',{message:String(error),playerAvailable:!!player,...doramaxCurrentState()});}
  };
@@ -686,11 +670,7 @@ window.doramaxExitFullscreen=function(){
  const returnScrollTop=state?.scrollTop??feed.scrollTop;
  doramaxSyncFullscreenButton(card,false);
  doramaxUnlockBackgroundControls();
- card.querySelector('.fullscreen-tap-layer')?.remove();
- card.classList.remove('fullscreen-fallback','controls-visible');
- const finalPlayer=players.get(frame);
- try{if(finalPlayer&&typeof finalPlayer.getCurrentTime==='function')upsertProgress(card,finalPlayer.getCurrentTime(),finalPlayer.getDuration());}catch(_){}
- fullscreenPlaybackSnapshot=null;
+ card.classList.remove('fullscreen-fallback');
  if(state?.placeholder?.parentNode){
   state.placeholder.parentNode.insertBefore(card,state.placeholder);
   state.placeholder.remove();
@@ -746,11 +726,6 @@ let fullscreenExitPointerHandledAt=0;
 function ensureSeekBar(card){
  if(!card||card.querySelector('.seekbar'))return;
  const bar=document.createElement('div');bar.className='seekbar';
- const progress=document.createElement('input');progress.type='range';progress.className='player-progress';progress.min='0';progress.max='100';progress.step='0.1';progress.value='0';progress.setAttribute('aria-label','Progresso do vídeo');
- const timeLabel=document.createElement('span');timeLabel.className='player-time';timeLabel.textContent='0:00 / 0:00';
- progress.addEventListener('pointerdown',()=>showPlayerControls(card));
- progress.addEventListener('input',()=>{const duration=Number(progress.max)||0;timeLabel.textContent=formatTime(Number(progress.value))+' / '+formatTime(duration);});
- progress.addEventListener('change',()=>{const frame=card.querySelector('iframe'),id=videoId(frame),target=Math.max(0,Number(progress.value)||0),player=players.get(frame);if(player&&typeof player.seekTo==='function'){try{player.seekTo(target,true);}catch(_){pendingSeek.set(id,target);}}else pendingSeek.set(id,target);showPlayerControls(card);});
  const fullscreen=document.createElement('button');fullscreen.type='button';fullscreen.className='fullscreen-control';fullscreen.setAttribute('aria-label','Assistir em tela cheia');fullscreen.title='Assistir em tela cheia';fullscreen.textContent='⛶';
  fullscreen.addEventListener('pointerdown',event=>{
   const activeCard=document.querySelector('.video.fullscreen-fallback');
@@ -790,9 +765,8 @@ function ensureSeekBar(card){
   doramaxLog('fullscreen_button_enter_tap',{targetVideoId:videoId(frame)||null,...doramaxCurrentState()});
   window.doramaxEnterFullscreen(card);
  });
- bar.append(progress,timeLabel,fullscreen);card.appendChild(bar);
+ bar.append(fullscreen);card.appendChild(bar);
 }
-cards.forEach(ensureSeekBar);
 function saveHistory(){
  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(0,50)));}catch(_){}
  renderHistory();
@@ -812,13 +786,6 @@ function upsertProgress(card,seconds,duration){
 function formatTime(value){
  const n=Math.max(0,Math.floor(value||0));
  return Math.floor(n/60)+':'+String(n%60).padStart(2,'0');
-}
-function updateSeekBar(frame,current,duration){
- const card=frame?.closest('.video'),bar=card?.querySelector('.seekbar');if(!bar)return;
- const progress=bar.querySelector('.player-progress'),label=bar.querySelector('.player-time');
- const total=Math.max(0,Number(duration)||0),position=Math.max(0,Math.min(total,Number(current)||0));
- if(progress){progress.max=String(total||100);progress.value=String(position);progress.style.setProperty('--seek-progress',total?((position/total)*100)+'%':'0%');}
- if(label)label.textContent=formatTime(position)+' / '+formatTime(total);
 }
 function renderHistory(){
  historyList.innerHTML='';
@@ -895,7 +862,8 @@ window.doramaxUpdateProgress=function(percent,message){
  const value=document.getElementById('updateProgressPercent');
  if(!box||!fill||!label||!value)return;
  if(availableAppUpdate){
-  updateStatus.textContent='Atualização selecionada: versão '+(availableAppUpdate.latestVersionName||availableAppUpdate.latestVersionCode)+'.'; }
+  updateStatus.textContent='Atualização selecionada: versão '+(availableAppUpdate.latestVersionName||availableAppUpdate.latestVersionCode)+'.';
+ }
  if(percent===-2){
   updateStatus.textContent=message||'O download falhou.';
   updateConfirm.disabled=false;updateCancel.disabled=false;
@@ -928,7 +896,8 @@ function openUpdatePanel(){
  }else{
   updateMessage.textContent='Você está usando a versão mais recente do DORAMAX.';
   updateConfirm.hidden=true;updateStatus.textContent='Verificação concluída.';
- }}
+ }
+}
 function checkAppUpdate(showResult=false){
  if(updateCheckBusy)return;
  updateCheckBusy=true;
@@ -1194,7 +1163,8 @@ const CATALOG_BATCH_SIZE=8;
 function appendCatalogBatch(){
  if(!catalogQueue.length){
   if(catalogLoadObserver)catalogLoadObserver.disconnect();
-  if(catalogSentinel){catalogSentinel.remove();catalogSentinel=null;}  return;
+  if(catalogSentinel){catalogSentinel.remove();catalogSentinel=null;}
+  return;
  }
  const batch=catalogQueue.splice(0,CATALOG_BATCH_SIZE);
  const fragment=document.createDocumentFragment();
@@ -1226,7 +1196,8 @@ function startCatalogBatchLoading(){
  }
  if(!catalogLoadObserver){
   catalogLoadObserver=new IntersectionObserver(entries=>{
-   if(entries.some(entry=>entry.isIntersecting))appendCatalogBatch();  },{root:feed,rootMargin:'1000px 0px',threshold:0});
+   if(entries.some(entry=>entry.isIntersecting))appendCatalogBatch();
+  },{root:feed,rootMargin:'1000px 0px',threshold:0});
  }
  catalogLoadObserver.observe(catalogSentinel);
  appendCatalogBatch();
