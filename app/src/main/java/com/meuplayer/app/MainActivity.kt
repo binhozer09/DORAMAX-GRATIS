@@ -49,7 +49,33 @@ class MainActivity : AppCompatActivity() {
     private var fullscreenCustomViewCallback: WebChromeClient.CustomViewCallback? = null
     private var previousSystemUiVisibility: Int = 0
 
+    private var playerImmersiveMode = false
+    private var playerPreviousSystemUiVisibility: Int = 0
+
     private inner class UpdateBridge {
+        @JavascriptInterface
+        fun setPlayerImmersive(enabled: Boolean) {
+            runOnUiThread {
+                val decor = window.decorView
+                @Suppress("DEPRECATION")
+                if (enabled && !playerImmersiveMode) {
+                    playerPreviousSystemUiVisibility = decor.systemUiVisibility
+                    playerImmersiveMode = true
+                    decor.systemUiVisibility = (
+                        android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        or android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                    )
+                } else if (!enabled && playerImmersiveMode) {
+                    playerImmersiveMode = false
+                    decor.systemUiVisibility = playerPreviousSystemUiVisibility
+                }
+            }
+        }
+
         @JavascriptInterface
         fun getVersionCode(): Int = BuildConfig.VERSION_CODE
 
