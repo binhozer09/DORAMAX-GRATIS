@@ -810,6 +810,8 @@ function ensurePlayer(frame){
      if(event.data===YT.PlayerState.PLAYING){
       if(activeFrame!==frame){try{event.target.pauseVideo();}catch(_){}return;}
       pauseOthers(frame);
+      const playingCard=frame.closest('.video');document.body.classList.add('player-playing');showPlayerControls(playingCard);
+      const toggle=playingCard?.querySelector('.player-toggle');if(toggle){toggle.textContent='Ⅱ';toggle.setAttribute('aria-label','Pausar vídeo');}
       if(progressTimer)clearInterval(progressTimer);
       progressFrame=frame;
       progressTimer=setInterval(()=>{
