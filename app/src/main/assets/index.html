@@ -76,6 +76,19 @@ body.player-open .catalog-screen{display:none}
 #doramaxLogsPanel.open{display:flex}#doramaxLogsPanel h2{font-size:17px;margin:0}#doramaxLogsPanel p{font-size:12px;color:#c7cfdd;line-height:1.45;margin:0}
 #doramaxLogsText{flex:1;min-height:120px;width:100%;resize:none;background:#05070a;color:#d9e3f5;border:1px solid #ffffff35;border-radius:10px;padding:10px;font:11px/1.45 monospace}
 .doramax-log-actions{display:flex;gap:8px}.doramax-log-actions button{flex:1;border:0;border-radius:9px;padding:12px 8px;background:#ff3048;color:#fff;font-weight:900}.doramax-log-actions button.secondary{background:#303744}
+
+/* Fullscreen 5.4: o card e o iframe original são movidos para uma camada
+   de nível superior, fora do feed rolável, sem clonar ou recarregar o vídeo. */
+.doramax-fullscreen-placeholder{display:block;width:100%;min-height:100dvh;height:100dvh;pointer-events:none;background:transparent}
+#feed.fullscreen-active{visibility:hidden!important;pointer-events:none!important}
+.doramax-fullscreen-stage{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;height:100dvh!important;overflow:hidden!important;z-index:2147483000!important;background:#000!important;transform:none!important;contain:layout paint style}
+.doramax-fullscreen-stage>.video.fullscreen-fallback{position:absolute!important;inset:0!important;left:0!important;top:0!important;width:100%!important;height:100%!important;height:100dvh!important;min-height:100%!important;max-width:none!important;margin:0!important;overflow:hidden!important;scroll-snap-align:none!important;z-index:1!important;transform:none!important}
+.doramax-fullscreen-stage>.video.fullscreen-fallback>.player{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;overflow:hidden!important;transform:none!important}
+.doramax-fullscreen-stage>.video.fullscreen-fallback .player iframe{position:absolute!important;display:block!important;inset:0!important;width:100%!important;height:100%!important;max-width:none!important;max-height:none!important;transform:none!important;transform-origin:center center!important;border:0!important}
+.doramax-fullscreen-stage>.video.fullscreen-fallback .seekbar{top:auto!important;right:16px!important;bottom:calc(18px + var(--safe-bottom))!important;width:48px!important;height:48px!important;min-height:48px!important}
+.seekbar{left:auto!important;right:16px!important;width:48px!important;height:48px!important;min-height:48px!important;bottom:calc(18px + var(--safe-bottom))!important;top:auto!important}
+.fullscreen-control{display:flex!important;flex:0 0 46px!important;width:46px!important;height:46px!important;border:1px solid #ffffff88!important;border-radius:50%!important;background:#ff3048f2!important;color:#fff!important;align-items:center!important;justify-content:center!important;font-size:25px!important;line-height:1!important;box-shadow:0 3px 14px #000a!important;cursor:pointer!important}
+.fullscreen-control:active{transform:scale(.94);background:#d91f36!important}
 </style>
 </head>
 <body>
@@ -599,41 +612,52 @@ function doramaxSyncFullscreenButton(card,enabled){
  button.title=enabled?'Sair da tela cheia':'Assistir em tela cheia';
 }
 window.doramaxEnterFullscreen=function(card){
- // Só pode existir um card em tela cheia. Não permita que controles de cards
- // que ficaram por baixo do overlay troquem o player ativo.
  const existingFullscreenCard=document.querySelector('.video.fullscreen-fallback');
  if(!card||existingFullscreenCard||card.classList.contains('fullscreen-fallback'))return false;
  const frame=card.querySelector('iframe');
- if(!frame)return false;
+ const parent=card.parentNode;
+ if(!frame||!parent)return false;
  activeFrame=frame;
  doramaxLog('fullscreen_enter_requested',{targetVideoId:videoId(frame)||null,...doramaxCurrentState()});
- fullscreenReturnState={card,frame,scrollTop:feed.scrollTop,cardOffset:card.getBoundingClientRect().top-feed.getBoundingClientRect().top};
+ const placeholder=document.createElement('div');
+ placeholder.className='doramax-fullscreen-placeholder';
+ placeholder.setAttribute('aria-hidden','true');
+ placeholder.style.height=Math.max(card.getBoundingClientRect().height,window.innerHeight)+'px';
+ const stage=document.createElement('div');
+ stage.className='doramax-fullscreen-stage';
+ stage.id='doramaxFullscreenStage';
+ parent.insertBefore(placeholder,card);
+ fullscreenReturnState={card,frame,parent,placeholder,stage,scrollTop:feed.scrollTop,cardOffset:card.getBoundingClientRect().top-feed.getBoundingClientRect().top};
  fullscreenLockedFrame=frame;
  doramaxLockBackgroundControls(card);
- // Garante que o iframe não esteja vazio/descarregado antes de expandi-lo.
- // A mesma instância é preservada: nunca recriar nem trocar o vídeo ao entrar.
  try{activateFrame(frame);}catch(error){doramaxLog('fullscreen_activate_frame_error',{message:String(error)});}
  doramaxLog('fullscreen_frame_activated',{targetVideoId:videoId(frame)||null,src:frame.getAttribute('src')||'',connected:frame.isConnected,...doramaxCurrentState()});
  try{ensurePlayer(frame);}catch(error){doramaxLog('fullscreen_ensure_player_error',{message:String(error)});}
- let player=players.get(frame);
- try{if(player&&typeof player.playVideo==='function')player.playVideo();}catch(_){}
+ try{document.body.appendChild(stage);stage.appendChild(card);}catch(error){
+  doramaxLog('fullscreen_stage_attach_error',{message:String(error)});
+  if(placeholder.parentNode)placeholder.parentNode.insertBefore(card,placeholder);
+  placeholder.remove();stage.remove();fullscreenReturnState=null;fullscreenLockedFrame=null;doramaxUnlockBackgroundControls();
+  return false;
+ }
  feed.classList.add('fullscreen-active');
  document.body.classList.add('player-fullscreen');
  card.classList.add('fullscreen-fallback');
  doramaxSyncFullscreenButton(card,true);
  showPlayerControls(card);
+ let player=players.get(frame);
  const resizeFullscreenPlayer=()=>{
   if(!card.isConnected||!card.classList.contains('fullscreen-fallback'))return;
   player=players.get(frame)||player;
   try{
-   if(player&&typeof player.setSize==='function')player.setSize(Math.max(1,window.innerWidth),Math.max(1,window.innerHeight+150));
-   if(player&&typeof player.playVideo==='function')player.playVideo();
+   if(player&&typeof player.setSize==='function')player.setSize(Math.max(1,window.innerWidth),Math.max(1,window.innerHeight));
    let state=-1;try{state=player?.getPlayerState?.()??-1;}catch(_){}
+   if(player&&typeof player.playVideo==='function'&&state!==1&&state!==3)player.playVideo();
    doramaxLog('fullscreen_player_resized',{targetVideoId:videoId(frame)||null,playerAvailable:!!player,playerState:state,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
   }catch(error){doramaxLog('fullscreen_player_resize_error',{message:String(error),playerAvailable:!!player,...doramaxCurrentState()});}
  };
  requestAnimationFrame(()=>requestAnimationFrame(resizeFullscreenPlayer));
  setTimeout(resizeFullscreenPlayer,450);
+ return true;
 };
 window.doramaxExitFullscreen=function(){
  const card=document.querySelector('.video.fullscreen-fallback');
@@ -641,37 +665,29 @@ window.doramaxExitFullscreen=function(){
  doramaxLog('fullscreen_exit_requested',doramaxCurrentState());
  const state=fullscreenReturnState&&fullscreenReturnState.card===card?fullscreenReturnState:null;
  const frame=state?.frame||card.querySelector('iframe');
- const returnScrollTop=state?state.scrollTop:Math.max(0,card.offsetTop);
- const targetCardOffset=Number.isFinite(state?.cardOffset)?state.cardOffset:0;
+ const returnScrollTop=state?.scrollTop??feed.scrollTop;
  doramaxSyncFullscreenButton(card,false);
  doramaxUnlockBackgroundControls();
  card.classList.remove('fullscreen-fallback');
+ if(state?.placeholder?.parentNode){
+  state.placeholder.parentNode.insertBefore(card,state.placeholder);
+  state.placeholder.remove();
+ }else{
+  feed.appendChild(card);
+ }
+ state?.stage?.remove();
  feed.classList.remove('fullscreen-active');
  document.body.classList.remove('player-fullscreen');
- // Desativa o scroll-snap enquanto o WebView recompõe o layout. A posição
- // é corrigida pela geometria real do card, não apenas pelo scrollTop antigo.
  feed.classList.add('fullscreen-restoring');
  fullscreenRestoreUntil=Date.now()+1600;
  if(frame)activeFrame=frame;
  let restoreFrames=0;
- const restorePosition=()=>{
-  const feedRect=feed.getBoundingClientRect();
-  const cardRect=card.getBoundingClientRect();
-  const currentOffset=cardRect.top-feedRect.top;
-  const correction=currentOffset-targetCardOffset;
-  if(Number.isFinite(correction)&&Math.abs(correction)>0.5)feed.scrollTop+=correction;
-  if(restoreFrames===0&&(!Number.isFinite(feed.scrollTop)||feed.scrollTop<0))feed.scrollTop=returnScrollTop;
-  if(frame)activeFrame=frame;
- };
  const settle=()=>{
-  restorePosition();
+  feed.scrollTop=returnScrollTop;
   restoreFrames++;
-  if(restoreFrames<7){
-   requestAnimationFrame(settle);
-   return;
-  }
+  if(restoreFrames<7){requestAnimationFrame(settle);return;}
   setTimeout(()=>{
-   restorePosition();
+   feed.scrollTop=returnScrollTop;
    feed.classList.remove('fullscreen-restoring');
    doramaxLog('fullscreen_restore_finished',doramaxCurrentState());
    fullscreenReturnState=null;
