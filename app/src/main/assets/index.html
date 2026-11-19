@@ -928,7 +928,7 @@ function ensurePlayer(frame){
   players.set(frame,player);
  }catch(error){console.warn('Não foi possível iniciar controle de retomada',error);}
 }
-window.onYouTubeIframeAPIReady=function(){cards.forEach(card=>{const rect=card.getBoundingClientRect();if(rect.top<innerHeight&&rect.bottom>0)ensurePlayer(card.querySelector('iframe'));});};
+window.onYouTubeIframeAPIReady=function(){cards.forEach(card=>{const rect=card.getBoundingClientRect();if(rect.top<innerHeight&&rect.bottom>0){const frame=card.querySelector('iframe');if(!frame)return;activateFrame(frame);ensurePlayer(frame);}});};
 const apiScript=document.createElement('script');apiScript.src='https://www.youtube.com/iframe_api';apiScript.async=true;document.head.appendChild(apiScript);
 
 function resumeVideo(item){
