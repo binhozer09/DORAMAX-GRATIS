@@ -51,6 +51,9 @@ class MainActivity : AppCompatActivity() {
 
     private var playerImmersiveMode = false
     private var playerPreviousSystemUiVisibility: Int = 0
+    private var lastPlayerTapAt = 0L
+    private var lastPlayerTapX = 0f
+    private var lastPlayerTapY = 0f
 
     private inner class UpdateBridge {
         @JavascriptInterface
@@ -699,6 +702,56 @@ class MainActivity : AppCompatActivity() {
             val result = WebChromeClient.FileChooserParams.parseResult(resultCode, data)
             callback.onReceiveValue(result)
         }
+    }
+
+    override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+        if (playerImmersiveMode && ::siteWeb.isInitialized) {
+            val location = IntArray(2)
+            siteWeb.getLocationOnScreen(location)
+            val x = event.rawX - location[0]
+            val y = event.rawY - location[1]
+            val insideWebView = x >= 0f && y >= 0f && x <= siteWeb.width && y <= siteWeb.height
+
+            if (insideWebView && event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                // Revela o botão Voltar ao catálogo junto com os controles nativos
+                // sempre que o usuário toca na tela.
+                siteWeb.evaluateJavascript(
+                    "window.doramaxRevealPlayerControls && window.doramaxRevealPlayerControls();",
+                    null
+                )
+            }
+
+            if (insideWebView && event.actionMasked == android.view.MotionEvent.ACTION_UP) {
+                val now = android.os.SystemClock.uptimeMillis()
+                val elapsed = now - lastPlayerTapAt
+                val dx = kotlin.math.abs(x - lastPlayerTapX)
+                val dy = kotlin.math.abs(y - lastPlayerTapY)
+                val isDoubleTap = elapsed in 1..320 && dx <= 72f * resources.displayMetrics.density &&
+                    dy <= 72f * resources.displayMetrics.density
+
+                if (isDoubleTap) {
+                    val horizontalZone = x / siteWeb.width.coerceAtLeast(1)
+                    val verticalZone = y / siteWeb.height.coerceAtLeast(1)
+                    val seekSeconds = when {
+                        verticalZone in 0.18f..0.82f && horizontalZone >= 0.68f -> 10
+                        verticalZone in 0.18f..0.82f && horizontalZone <= 0.32f -> -10
+                        else -> 0
+                    }
+                    if (seekSeconds != 0) {
+                        siteWeb.evaluateJavascript(
+                            "window.doramaxSeekBy && window.doramaxSeekBy($seekSeconds);",
+                            null
+                        )
+                    }
+                    lastPlayerTapAt = 0L
+                } else {
+                    lastPlayerTapAt = now
+                    lastPlayerTapX = x
+                    lastPlayerTapY = y
+                }
+            }
+        }
+        return super.dispatchTouchEvent(event)
     }
 
     @Suppress("DEPRECATION")
