@@ -444,8 +444,15 @@ function playCatalogVideo(id){
  requestAnimationFrame(()=>{
   target.scrollIntoView({behavior:'auto',block:'start'});
   const frame=target.querySelector('iframe');
+  const saved=history.find(item=>item.id===id);
+  if(saved&&Number(saved.seconds)>0)pendingSeek.set(id,Number(saved.seconds));
+  activeFrame=frame;
   activateFrame(frame);
   ensurePlayer(frame);
+  const player=players.get(frame);
+  if(saved&&player&&typeof player.seekTo==='function'){
+   try{player.seekTo(Number(saved.seconds),true);pendingSeek.delete(id);}catch(_){}
+  }
  });
 }
 if(backCatalogBtn)backCatalogBtn.addEventListener('click',returnToCatalog);
@@ -646,9 +653,14 @@ function saveHistory(){
  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(history.slice(0,50)));}catch(_){}
  renderHistory();
 }
+window.doramaxSaveActiveProgress=function(){
+ const frame=activeFrame;
+ if(!frame)return;
+ try{const player=players.get(frame);if(player&&typeof player.getCurrentTime==='function')upsertProgress(frame.closest('.video'),player.getCurrentTime(),player.getDuration());}catch(_){}
+};
 function upsertProgress(card,seconds,duration){
  const data=cardData(card);
- if(!data.id||!Number.isFinite(seconds)||seconds<3)return;
+ if(!data.id||!Number.isFinite(seconds)||seconds<1)return;
  const percent=duration>0?Math.min(100,Math.round(seconds/duration*100)):0;
  if(duration>0&&seconds>=duration-12||percent>=97){
    history=history.filter(item=>item.id!==data.id);
@@ -854,7 +866,9 @@ function ensurePlayer(frame){
      players.set(frame,event.target);
      try{updateSeekBar(frame,event.target.getCurrentTime(),event.target.getDuration());}catch(_){}
      const id=videoId(frame),seek=pendingSeek.get(id);
-     if(Number.isFinite(seek)){event.target.seekTo(seek,true);pendingSeek.delete(id);}
+     const saved=history.find(item=>item.id===id);
+     const resumeAt=Number.isFinite(seek)?seek:(saved?Number(saved.seconds):NaN);
+     if(Number.isFinite(resumeAt)&&resumeAt>0){event.target.seekTo(resumeAt,true);pendingSeek.delete(id);}
      const card=frame.closest('.video');
      const isActiveCard=!!card&&card===activeFrame?.closest('.video');
      doramaxLog('youtube_player_ready',{videoId:videoId(frame)||null,isActiveCard,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
@@ -918,6 +932,7 @@ function resumeVideo(item){
  pendingSeek.set(item.id,Math.max(0,Number(item.seconds)||0));
  target.scrollIntoView({behavior:'smooth',block:'start'});
  const frame=target.querySelector('iframe');
+ activeFrame=frame;
  activateFrame(frame);
  ensurePlayer(frame);
  const player=players.get(frame);
@@ -1019,8 +1034,10 @@ const observer=new IntersectionObserver(entries=>{
  });
 },{root:feed,threshold:[0,0.25,0.65,0.9]});
 cards.forEach(card=>observer.observe(card));
+window.addEventListener('pagehide',()=>{window.doramaxSaveActiveProgress?.();});
 document.addEventListener('visibilitychange',()=>{
  if(document.hidden){
+  window.doramaxSaveActiveProgress?.();
   frames.forEach(frame=>{
    pauseFrame(frame);const player=players.get(frame);
    if(player&&typeof player.getCurrentTime==='function'){
