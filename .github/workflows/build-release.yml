@@ -78,7 +78,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='39' versionName='5.2'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='40' versionName='5.3'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -92,22 +92,22 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 39,
-              "versionName": "5.2",
+              "versionCode": 40,
+              "versionName": "5.3",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Bloqueia interações nos cards de fundo durante a tela cheia e mantém o mesmo player ativo até a saída."
+              "releaseNotes": "Atualização do player em tela cheia: mantém o vídeo ativo e isola o botão de saída para evitar troca acidental de vídeos."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + chr(10))
           PY
-          echo "tag=doramax-v5.2" >> "$GITHUB_OUTPUT"
+          echo "tag=doramax-v5.3" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.manifest.outputs.tag }}
-          name: DORAMAX-GRATIS 5.2
+          name: DORAMAX-GRATIS 5.3
           target_commitish: main
           generate_release_notes: true
           files: |
