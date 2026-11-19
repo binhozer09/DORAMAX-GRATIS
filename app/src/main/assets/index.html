@@ -89,6 +89,10 @@ body.player-open .catalog-screen{display:none}
 .seekbar{left:auto!important;right:16px!important;width:48px!important;height:48px!important;min-height:48px!important;bottom:calc(18px + var(--safe-bottom))!important;top:auto!important}
 .fullscreen-control{display:flex!important;flex:0 0 46px!important;width:46px!important;height:46px!important;border:1px solid #ffffff88!important;border-radius:50%!important;background:#ff3048f2!important;color:#fff!important;align-items:center!important;justify-content:center!important;font-size:25px!important;line-height:1!important;box-shadow:0 3px 14px #000a!important;cursor:pointer!important}
 .fullscreen-control:active{transform:scale(.94);background:#d91f36!important}
+
+/* Fullscreen: recorta também a faixa superior do player do YouTube e oculta o nome/cabeçalho e o título sobrepostos. */
+.doramax-fullscreen-stage>.video.fullscreen-fallback .player iframe{height:calc(100% + 150px)!important;transform:translateY(-110px)!important}
+.doramax-fullscreen-stage>.video.fullscreen-fallback .info{display:none!important}
 </style>
 </head>
 <body>
@@ -116,7 +120,6 @@ body.player-open .catalog-screen{display:none}
  <div class="player"><iframe data-src="https://www.youtube.com/embed/FioURf9_CyU?playsinline=1&rel=0&controls=0&fs=0&disablekb=1&iv_load_policy=3&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
  <div class="info"><h2 class="title">Humilhado como mecânico por cinco anos, ele é revelado no palco como o Deus das Pistas</h2></div>
 </section>
-
 
 
 
@@ -637,8 +640,7 @@ window.doramaxEnterFullscreen=function(card){
   doramaxLog('fullscreen_stage_attach_error',{message:String(error)});
   if(placeholder.parentNode)placeholder.parentNode.insertBefore(card,placeholder);
   placeholder.remove();stage.remove();fullscreenReturnState=null;fullscreenLockedFrame=null;doramaxUnlockBackgroundControls();
-  return false;
- }
+  return false; }
  feed.classList.add('fullscreen-active');
  document.body.classList.add('player-fullscreen');
  card.classList.add('fullscreen-fallback');
@@ -957,8 +959,7 @@ window.setInterval(()=>checkAppUpdate(false),15*60*1000);
 window.addEventListener('online',()=>checkAppUpdate(false));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppUpdate(false);});
 
-function pauseFrame(frame){
- if(!frame)return;
+function pauseFrame(frame){ if(!frame)return;
  const src=frame.getAttribute('src')||'';
  if(!src||src==='about:blank'||!/youtube\.com\/embed\//.test(src))return;
  try{const player=players.get(frame);if(player&&typeof player.pauseVideo==='function')player.pauseVideo();}catch(_){}
