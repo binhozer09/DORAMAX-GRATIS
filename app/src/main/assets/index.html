@@ -351,7 +351,7 @@ function doramaxPersistLogs(){
  catch(error){try{doramaxLogBuffer.splice(0,Math.max(1,doramaxLogBuffer.length-250));localStorage.setItem(DORAMAX_LOGS_STORAGE_KEY,JSON.stringify(doramaxLogBuffer));}catch(_){}}
 }
 function doramaxLog(event,details={}){try{doramaxLogBuffer.push({t:new Date().toISOString(),event,...details});if(doramaxLogBuffer.length>500)doramaxLogBuffer.splice(0,doramaxLogBuffer.length-500);doramaxPersistLogs();doramaxRefreshLogsText();}catch(_){}}
-function doramaxCurrentState(){const card=document.querySelector('.video.fullscreen-fallback')||activeFrame?.closest('.video')||null;const frame=card?.querySelector('iframe')||activeFrame;return{videoId:videoId(frame)||null,activeVideoId:videoId(activeFrame)||null,scrollTop:Math.round(feed.scrollTop),cardIndex:card?cards.indexOf(card):-1,fullscreen:!!document.querySelector('.video.fullscreen-fallback'),feedFullscreen:feed.classList.contains('fullscreen-active'),restoring:feed.classList.contains('fullscreen-restoring'),restoreRemainingMs:Math.max(0,fullscreenRestoreUntil-Date.now()),iframeConnected:!!frame?.isConnected,iframeSrcState:frame?.getAttribute('src')==='about:blank'?'about:blank':(frame?.getAttribute('src')?'youtube-embed':'empty')};}
+function doramaxCurrentState(){const card=document.querySelector('.video.fullscreen-fallback')||activeFrame?.closest('.video')||null;const frame=card?.querySelector('iframe')||activeFrame;return{videoId:videoId(frame)||null,activeVideoId:videoId(fullscreenLockedFrame||activeFrame)||null,scrollTop:Math.round(feed.scrollTop),cardIndex:card?cards.indexOf(card):-1,fullscreen:!!document.querySelector('.video.fullscreen-fallback'),feedFullscreen:feed.classList.contains('fullscreen-active'),restoring:feed.classList.contains('fullscreen-restoring'),restoreRemainingMs:Math.max(0,fullscreenRestoreUntil-Date.now()),iframeConnected:!!frame?.isConnected,iframeSrcState:frame?.getAttribute('src')==='about:blank'?'about:blank':(frame?.getAttribute('src')?'youtube-embed':'empty')};}
 function doramaxRefreshLogsText(){const output=document.getElementById('doramaxLogsText');if(output)output.value=doramaxLogBuffer.map(item=>JSON.stringify(item)).join('\n');}
 const doramaxLogsButton=document.getElementById('doramaxLogsButton'),doramaxLogsPanel=document.getElementById('doramaxLogsPanel');
 doramaxLogsButton?.addEventListener('click',()=>{doramaxLog('logs_panel_open',doramaxCurrentState());doramaxRefreshLogsText();doramaxLogsPanel?.classList.add('open');doramaxLogsPanel?.setAttribute('aria-hidden','false');});
@@ -580,6 +580,7 @@ function showPlayerControls(card){
 }
 // Guarda o vídeo e a posição do feed antes de expandir o player.
 let fullscreenReturnState=null;
+let fullscreenLockedFrame=null;
 let fullscreenRestoreUntil=0;
 document.addEventListener('fullscreenchange',()=>{
  document.querySelectorAll('.video.fullscreen-fallback').forEach(card=>{
@@ -604,6 +605,7 @@ window.doramaxEnterFullscreen=function(card){
  activeFrame=frame;
  doramaxLog('fullscreen_enter_requested',{targetVideoId:videoId(frame)||null,...doramaxCurrentState()});
  fullscreenReturnState={card,frame,scrollTop:feed.scrollTop,cardOffset:card.getBoundingClientRect().top-feed.getBoundingClientRect().top};
+ fullscreenLockedFrame=frame;
  // Preserva o mesmo iframe e inicia o vídeo diretamente no gesto do usuário.
  try{ensurePlayer(frame);}catch(_){}
  let player=players.get(frame);
@@ -665,11 +667,30 @@ window.doramaxExitFullscreen=function(){
    feed.classList.remove('fullscreen-restoring');
    doramaxLog('fullscreen_restore_finished',doramaxCurrentState());
    fullscreenReturnState=null;
+   fullscreenLockedFrame=null;
   },250);
  };
  requestAnimationFrame(settle);
  return true;
 };
+document.addEventListener('pointerdown',event=>{
+ const lockedCard=document.querySelector('.video.fullscreen-fallback');
+ if(!lockedCard)return;
+ if(event.target instanceof Element&&(event.target.closest('#doramaxLogsPanel')||event.target.closest('#doramaxLogsButton')))return;
+ if(!lockedCard.contains(event.target)){
+  doramaxLog('fullscreen_background_pointer_blocked',{targetTag:event.target?.tagName||null,...doramaxCurrentState()});
+  event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+ }
+},true);
+document.addEventListener('click',event=>{
+ const lockedCard=document.querySelector('.video.fullscreen-fallback');
+ if(!lockedCard)return;
+ if(event.target instanceof Element&&(event.target.closest('#doramaxLogsPanel')||event.target.closest('#doramaxLogsButton')))return;
+ if(!lockedCard.contains(event.target)){
+  doramaxLog('fullscreen_background_click_blocked',{targetTag:event.target?.tagName||null,...doramaxCurrentState()});
+  event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+ }
+},true);
 document.addEventListener('keydown',event=>{
  if(event.key==='Escape'||event.key==='Backspace'){
   if(window.doramaxExitFullscreen())event.preventDefault();
@@ -1028,8 +1049,9 @@ const observer=new IntersectionObserver(entries=>{
   // Não deixe eventos de interseção disparados pela mudança de layout
   // selecionar outro card durante a tela cheia ou a restauração do feed.
   if(feed.classList.contains('fullscreen-active')||feed.classList.contains('fullscreen-restoring')||Date.now()<fullscreenRestoreUntil){
+   if(fullscreenLockedFrame)activeFrame=fullscreenLockedFrame;
+   else if(fullscreenReturnState?.frame)activeFrame=fullscreenReturnState.frame;
    doramaxLog('observer_blocked_during_fullscreen',{observedVideoId:videoId(entry.target.querySelector('iframe'))||null,intersectionRatio:Number(entry.intersectionRatio.toFixed(3)),isIntersecting:entry.isIntersecting,...doramaxCurrentState()});
-   if(fullscreenReturnState?.frame)activeFrame=fullscreenReturnState.frame;
    return;
   }
   const card=entry.target,frame=card.querySelector('iframe'),info=card.querySelector('.info');
