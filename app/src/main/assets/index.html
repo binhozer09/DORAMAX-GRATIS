@@ -863,8 +863,10 @@ function ensurePlayer(frame){
   const player=new YT.Player(frame,{
    events:{
     onReady:event=>{
+     // O callback pode chegar antes de o construtor retornar e registrar o player.
+     // Registra a instância recebida no próprio evento para não descartar o onReady.
+     if(!players.has(frame))players.set(frame,event.target);
      if(players.get(frame)!==event.target)return;
-     players.set(frame,event.target);
      try{updateSeekBar(frame,event.target.getCurrentTime(),event.target.getDuration());}catch(_){}
      const id=videoId(frame),seek=pendingSeek.get(id);
      const saved=history.find(item=>item.id===id);
@@ -893,6 +895,8 @@ function ensurePlayer(frame){
      }
     },
     onStateChange:event=>{
+     // Alguns WebViews entregam o primeiro estado imediatamente após onReady.
+     if(!players.has(frame))players.set(frame,event.target);
      if(players.get(frame)!==event.target)return;
       const stateNames={[-1]:'UNSTARTED',[0]:'ENDED',[1]:'PLAYING',[2]:'PAUSED',[3]:'BUFFERING',[5]:'CUED'};
       try{doramaxLog('youtube_player_state',{videoId:videoId(frame)||null,state:event.data,stateName:stateNames[event.data]||'UNKNOWN',currentTime:event.target.getCurrentTime(),duration:event.target.getDuration(),...doramaxCurrentState()});}catch(_){}
