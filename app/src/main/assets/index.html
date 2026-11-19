@@ -966,7 +966,7 @@ function unloadFrame(card){
  const frame=card?.querySelector('iframe');
  if(!frame)return;
  const current=frame.getAttribute('src')||'';
- if(current&&current!=='about:blank'&&/youtube\\.com\\/embed\\//.test(current)){
+ if(current&&current!=='about:blank'&&/youtube[.]com[/]embed[/]/.test(current)){
   const player=players.get(frame);
   if(player&&typeof player.getCurrentTime==='function'){
    try{
