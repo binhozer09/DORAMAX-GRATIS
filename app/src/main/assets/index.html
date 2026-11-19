@@ -606,8 +606,11 @@ window.doramaxEnterFullscreen=function(card){
  doramaxLog('fullscreen_enter_requested',{targetVideoId:videoId(frame)||null,...doramaxCurrentState()});
  fullscreenReturnState={card,frame,scrollTop:feed.scrollTop,cardOffset:card.getBoundingClientRect().top-feed.getBoundingClientRect().top};
  fullscreenLockedFrame=frame;
- // Preserva o mesmo iframe e inicia o vídeo diretamente no gesto do usuário.
- try{ensurePlayer(frame);}catch(_){}
+ // Garante que o iframe não esteja vazio/descarregado antes de expandi-lo.
+ // A mesma instância é preservada: nunca recriar nem trocar o vídeo ao entrar.
+ try{activateFrame(frame);}catch(error){doramaxLog('fullscreen_activate_frame_error',{message:String(error)});}
+ doramaxLog('fullscreen_frame_activated',{targetVideoId:videoId(frame)||null,src:frame.getAttribute('src')||'',connected:frame.isConnected,...doramaxCurrentState()});
+ try{ensurePlayer(frame);}catch(error){doramaxLog('fullscreen_ensure_player_error',{message:String(error)});}
  let player=players.get(frame);
  try{if(player&&typeof player.playVideo==='function')player.playVideo();}catch(_){}
  feed.classList.add('fullscreen-active');
@@ -954,11 +957,16 @@ function ensurePlayer(frame){
      const id=videoId(frame),seek=pendingSeek.get(id);
      if(Number.isFinite(seek)){event.target.seekTo(seek,true);pendingSeek.delete(id);}
      const card=frame.closest('.video');
-     if(card&&activeFrame===frame&&card.getBoundingClientRect().top<innerHeight*0.65&&card.getBoundingClientRect().bottom>innerHeight*0.35){
-      try{event.target.playVideo();}catch(_){}
+     const isFullscreen=!!card?.classList.contains('fullscreen-fallback')&&fullscreenLockedFrame===frame;
+     doramaxLog('youtube_player_ready',{videoId:videoId(frame)||null,isFullscreen,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
+     if(card&&activeFrame===frame&&(isFullscreen||(card.getBoundingClientRect().top<innerHeight*0.65&&card.getBoundingClientRect().bottom>innerHeight*0.35))){
+      try{event.target.playVideo();}catch(error){doramaxLog('youtube_play_on_ready_error',{message:String(error)});}
      }else{
       try{event.target.pauseVideo();}catch(_){}
      }
+    },
+    onError:event=>{
+     doramaxLog('youtube_player_error',{videoId:videoId(frame)||null,errorCode:event.data,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
     },
     onStateChange:event=>{
      if(players.get(frame)!==event.target)return;
