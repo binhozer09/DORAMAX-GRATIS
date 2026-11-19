@@ -82,7 +82,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='47' versionName='5.10'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='48' versionName='5.11'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -96,22 +96,22 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 47,
-              "versionName": "5.10",
+              "versionCode": 48,
+              "versionName": "5.11",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Controles nativos do YouTube, interface do aplicativo com desaparecimento rápido e recorte fixo em tela cheia, sem zoom por pinça."
+              "releaseNotes": "Controles nativos do YouTube com barra de progresso, botão Voltar ao catálogo sincronizado com os controles e toque duplo para avançar ou voltar 10 segundos. Recorte e tamanho da tela preservados."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + chr(10))
           PY
-          echo "tag=doramax-v5.10" >> "$GITHUB_OUTPUT"
+          echo "tag=doramax-v5.11" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.manifest.outputs.tag }}
-          name: DORAMAX-GRATIS 5.10
+          name: DORAMAX-GRATIS 5.11
           target_commitish: main
           generate_release_notes: true
           files: |
