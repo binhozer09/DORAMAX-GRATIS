@@ -30,11 +30,15 @@ Deno.serve(async (req: Request) => {
     if (event === "youtube_player_error" && errorCode === null) {
       return new Response(JSON.stringify({ error: "missing_error_code" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
+    const url = Deno.env.get("SUPABASE_URL");
+    const rawSecrets = Deno.env.get("SUPABASE_SECRET_KEYS");
+    const serviceKey = rawSecrets
+      ? JSON.parse(rawSecrets)["default"]
+      : Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!url || !serviceKey) throw new Error("Supabase service credentials unavailable");
+    const supabase = createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
     const { error } = await supabase.from("player_diagnostics").insert({
       video_id: videoId, video_title: title, event, error_code: errorCode,
     });
