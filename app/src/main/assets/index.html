@@ -485,7 +485,10 @@ function renderCatalog(){
 function openPlayerMode(){
   document.body.classList.add('player-open');
   feed.classList.add('player-mode');
-  try{if(window.DoramaxAndroid?.setPlayerImmersive)window.DoramaxAndroid.setPlayerImmersive(true);}catch(_){}
+  try{
+    if(window.DoramaxAndroid?.setCatalogAdsVisible)window.DoramaxAndroid.setCatalogAdsVisible(false);
+    if(window.DoramaxAndroid?.setPlayerImmersive)window.DoramaxAndroid.setPlayerImmersive(true);
+  }catch(_){}
 }
 function returnToCatalog(){
  const current=activeFrame;
@@ -495,6 +498,7 @@ function returnToCatalog(){
  saveFeedPosition(true);
  feed.classList.remove('player-mode');
  document.body.classList.remove('player-open');
+ try{if(window.DoramaxAndroid?.setCatalogAdsVisible)window.DoramaxAndroid.setCatalogAdsVisible(true);}catch(_){}
 }
 function playCatalogVideo(id){
  let target=findVideoCard(id);
