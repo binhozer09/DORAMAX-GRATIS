@@ -100,7 +100,7 @@ async function loadDiagnostics(){
    const stats=document.createElement("small");stats.textContent="Erros do YouTube: "+item.error_count+" · Não iniciou em 20s: "+(item.start_timeout_count||0)+" · Inícios: "+item.successful_starts;
    const last=document.createElement("small");last.textContent="Último evento: "+(item.last_seen_at?new Date(item.last_seen_at).toLocaleString("pt-BR"):"—");
    line.append(title,id,stats,last);
-   if(Number(item.error_count)>0||Number(item.start_timeout_count)>0){const warning=document.createElement("small");warning.textContent="Última falha: "+(item.last_error_at?new Date(item.last_error_at).toLocaleString("pt-BR"):"—");line.append(warning)}
+   if(Number(item.error_count)>0||Number(item.start_timeout_count)>0){const warning=document.createElement("small");warning.textContent="Última falha: "+(item.last_error_at?new Date(item.last_error_at).toLocaleString("pt-BR"):"—");line.append(warning);if(item.last_failure_details){const detail=document.createElement("small");const d=item.last_failure_details;detail.textContent="Detalhes: estado="+(d.player_state??"indisponível")+" · rede="+(d.network_online===true?"online":d.network_online===false?"offline":"desconhecida")+" · iframe="+(d.iframe_connected===true?"conectado":d.iframe_connected===false?"desconectado":"desconhecido")+" · tela="+(d.visibility_state||"—");line.append(detail)}}
    out.append(line);
   }
   status("diagnosticsStatus",rows.length+" vídeo(s) com eventos nos últimos 30 dias. Ordenado por quantidade de erros.");
