@@ -374,7 +374,7 @@ function doramaxWatchStartTimeout(frame){
   const player=players.get(frame);
   let state=null;
   try{state=player?.getPlayerState?.()??null;}catch(_){}
-  if(state===YT.PlayerState.PLAYING)return;
+  if(window.YT?.PlayerState && state===YT.PlayerState.PLAYING)return;
   doramaxLog('youtube_player_start_timeout',{videoId:videoId(frame)||null,timeoutMs:20000,playerState:state,...doramaxCurrentState()});
   doramaxSendDiagnostic('youtube_player_start_timeout',frame,408);
  },20000);
