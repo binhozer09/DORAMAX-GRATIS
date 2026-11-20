@@ -663,20 +663,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeAds() {
-        // O SDK Mobile Ads deve ser inicializado na thread principal do Android.
-        // Esta função é chamada diretamente por onCreate(), que já roda na UI thread.
         if (isFinishing || isDestroyed) return
         try {
-            MobileAds.initialize(
-                this@MainActivity,
-                InitializationConfig.Builder(ADMOB_APP_ID).build()
-            ) {
-                runOnUiThread {
-                    if (!isFinishing && !isDestroyed) loadBannerAd()
+            // O GMA Next-Gen exige que a inicialização seja feita fora da thread principal.
+            Thread({
+                try {
+                    Log.i(TAG, "Starting GMA Next-Gen initialization on background thread")
+                    MobileAds.initialize(
+                        this@MainActivity,
+                        InitializationConfig.Builder(ADMOB_APP_ID).build()
+                    ) {
+                        Log.i(TAG, "GMA Next-Gen initialization callback completed")
+                        runOnUiThread {
+                            if (!isFinishing && !isDestroyed) loadBannerAd()
+                        }
+                    }
+                } catch (error: Exception) {
+                    Log.e(TAG, "AdMob initialization failed on background thread", error)
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed) {
+                            adContainer.removeAllViews()
+                            adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+                        }
+                    }
                 }
-            }
+            }, "DORAMAX-AdMob-Init").start()
         } catch (error: Exception) {
-            Log.e(TAG, "AdMob initialization failed on main thread", error)
+            Log.e(TAG, "Could not start AdMob initialization thread", error)
             adContainer.removeAllViews()
             adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
         }
