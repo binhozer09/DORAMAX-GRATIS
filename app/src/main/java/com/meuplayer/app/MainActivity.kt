@@ -1,6 +1,8 @@
 package com.meuplayer.app
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -47,6 +49,11 @@ class MainActivity : AppCompatActivity() {
     private var bannerAdView: AdView? = null
     @Volatile private var isCatalogVisible = true
     @Volatile private var bannerAdLoaded = false
+    private val bannerRetryHandler = Handler(Looper.getMainLooper())
+    private var bannerLoadAttempts = 0
+    private val bannerRetryRunnable = Runnable {
+        if (!isFinishing && !isDestroyed && !bannerAdLoaded) loadBannerAd()
+    }
     private val updateInProgress = AtomicBoolean(false)
     private var pendingFileChooser: ValueCallback<Array<Uri>>? = null
     private var fullscreenCustomView: android.view.View? = null
@@ -678,6 +685,9 @@ class MainActivity : AppCompatActivity() {
     private fun loadBannerAd() {
         if (isFinishing || isDestroyed) return
 
+        bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
+        bannerLoadAttempts++
+        Log.i(TAG, "Loading production banner (attempt $bannerLoadAttempts)")
         bannerAdLoaded = false
         adContainer.removeAllViews()
         adContainer.visibility = android.view.View.GONE
@@ -702,6 +712,8 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     if (!isFinishing && !isDestroyed) {
                         bannerAdLoaded = true
+                        bannerLoadAttempts = 0
+                        bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
                         adContainer.visibility = if (isCatalogVisible) {
                             android.view.View.VISIBLE
                         } else {
@@ -719,6 +731,13 @@ class MainActivity : AppCompatActivity() {
                         bannerAdLoaded = false
                         adContainer.removeAllViews()
                         adContainer.visibility = android.view.View.GONE
+                        if (bannerLoadAttempts < 5) {
+                            val retryDelayMs = 10_000L * bannerLoadAttempts
+                            Log.w(TAG, "Scheduling banner retry in ${retryDelayMs}ms")
+                            bannerRetryHandler.postDelayed(bannerRetryRunnable, retryDelayMs)
+                        } else {
+                            Log.e(TAG, "Banner retry limit reached; waiting for next app launch")
+                        }
                     }
                 }
             }
@@ -826,6 +845,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
         pendingFileChooser?.onReceiveValue(null)
         pendingFileChooser = null
         bannerAdView?.let { adView ->
