@@ -826,7 +826,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        if (isFinishing) InAppCloudflareDnsProxy.get().stop()
         pendingFileChooser?.onReceiveValue(null)
         pendingFileChooser = null
         bannerAdView?.let { adView ->
