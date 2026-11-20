@@ -81,6 +81,7 @@ body.player-open .catalog-screen{display:none}
 #customSeekBar .seek-thumb{position:absolute;top:50%;left:0;width:13px;height:13px;border-radius:50%;background:#ff3048;border:2px solid #fff;box-shadow:0 1px 6px #000;transform:translate(-50%,-50%)}
 body.player-open.player-controls-visible #customSeekBar{display:block;pointer-events:auto}
 .video-play-error{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;background:#080808f2;color:#fff;text-align:center}.video-play-error p{max-width:360px;margin:0;font-size:14px;line-height:1.5}.video-play-error button{border:0;border-radius:10px;padding:12px 16px;background:#ff3048;color:#fff;font-size:12px;font-weight:900}
+.video-premiere-notice{position:absolute;inset:0;z-index:19;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:28px;background:#080808ed;color:#fff;text-align:center}.video-premiere-notice strong{font-size:clamp(22px,6vw,32px);font-weight:900;letter-spacing:1px;color:#ff5367}.video-premiere-notice span{max-width:300px;font-size:14px;line-height:1.5;color:#eee}
 
 </style>
 </head>
@@ -368,6 +369,8 @@ function doramaxClearStartTimeout(frame){
  const timer=doramaxStartTimeouts.get(frame);
  if(timer){clearTimeout(timer);doramaxStartTimeouts.delete(frame);}
 }
+function doramaxShowPremiereNotice(frame){const box=frame?.closest('.video')?.querySelector('.player');if(!box||box.querySelector('.video-premiere-notice'))return;const n=document.createElement('div');n.className='video-premiere-notice';const h=document.createElement('strong');h.textContent='AGUARDANDO A ESTREIA';const d=document.createElement('span');d.textContent='Este vídeo ainda não começou a reproduzir. Tente novamente mais tarde.';n.append(h,d);box.appendChild(n);}
+function doramaxClearPremiereNotice(frame){const n=frame?.closest('.video')?.querySelector('.video-premiere-notice');if(n)n.remove();}
 function doramaxWatchStartTimeout(frame){
  if(!frame||doramaxStartTimeouts.has(frame))return;
  const timer=setTimeout(()=>{
@@ -390,6 +393,7 @@ function doramaxWatchStartTimeout(frame){
    },1500);
    return;
   }
+  doramaxShowPremiereNotice(frame);
   doramaxLog('youtube_player_start_timeout',{videoId:id||null,timeoutMs:20000,playerState:state,retries,...doramaxCurrentState()});
   doramaxSendDiagnostic('youtube_player_start_timeout',frame,408,{player_state:state,iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState,timeout_ms:20000});
  },20000);
@@ -967,6 +971,7 @@ function ensurePlayer(frame){
       return;
      }
      if(event.data===YT.PlayerState.PLAYING){
+  doramaxClearPremiereNotice(frame);
   doramaxStartRetries.delete(frame);
   doramaxClearStartTimeout(frame);
   doramaxSendDiagnostic('youtube_player_playing',frame,null);
