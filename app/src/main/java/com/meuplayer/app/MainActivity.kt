@@ -45,6 +45,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var assetLoader: WebViewAssetLoader
     private lateinit var adContainer: FrameLayout
     private var bannerAdView: AdView? = null
+    @Volatile private var isCatalogVisible = true
+    @Volatile private var bannerAdLoaded = false
     private val updateInProgress = AtomicBoolean(false)
     private var pendingFileChooser: ValueCallback<Array<Uri>>? = null
     private var fullscreenCustomView: android.view.View? = null
@@ -77,6 +79,19 @@ class MainActivity : AppCompatActivity() {
                 } else if (!enabled && playerImmersiveMode) {
                     playerImmersiveMode = false
                     decor.systemUiVisibility = playerPreviousSystemUiVisibility
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun setCatalogAdsVisible(visible: Boolean) {
+            isCatalogVisible = visible
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                adContainer.visibility = if (visible && bannerAdLoaded) {
+                    android.view.View.VISIBLE
+                } else {
+                    android.view.View.GONE
                 }
             }
         }
@@ -679,14 +694,16 @@ class MainActivity : AppCompatActivity() {
     private fun loadBannerAd() {
         if (isFinishing || isDestroyed) return
 
+        bannerAdLoaded = false
+        adContainer.removeAllViews()
+        adContainer.visibility = android.view.View.GONE
+
         val adView = AdView(this)
         bannerAdView = adView
 
         val adSize = AdSize.BANNER // Banner padrão compacto: 320 x 50 dp.
         val request = BannerAdRequest.Builder(BANNER_AD_UNIT_ID, adSize).build()
 
-        adContainer.removeAllViews()
-        adContainer.visibility = android.view.View.VISIBLE
         adContainer.addView(
             adView,
             FrameLayout.LayoutParams(
@@ -699,15 +716,23 @@ class MainActivity : AppCompatActivity() {
             override fun onAdLoaded(ad: BannerAd) {
                 Log.d(TAG, "DORAMAX production banner loaded")
                 runOnUiThread {
-                    if (!isFinishing && !isDestroyed) adContainer.visibility = android.view.View.VISIBLE
+                    if (!isFinishing && !isDestroyed) {
+                        bannerAdLoaded = true
+                        adContainer.visibility = if (isCatalogVisible) {
+                            android.view.View.VISIBLE
+                        } else {
+                            android.view.View.GONE
+                        }
+                    }
                 }
             }
 
             override fun onAdFailedToLoad(adError: LoadAdError) {
-                val diagnostic = "Código: ${adError.code}\nMensagem: ${adError.message}\nDetalhes: $adError"
+                val diagnostic = "Código: ${adError.code}\\nMensagem: ${adError.message}\\nDetalhes: $adError"
                 Log.e(TAG, "DORAMAX banner failed to load: $diagnostic")
                 runOnUiThread {
                     if (!isFinishing && !isDestroyed) {
+                        bannerAdLoaded = false
                         adContainer.removeAllViews()
                         adContainer.visibility = android.view.View.GONE
                     }
