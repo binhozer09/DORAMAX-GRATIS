@@ -394,9 +394,9 @@ function doramaxWatchStartTimeout(frame){
    return;
   }
   doramaxShowPremiereNotice(frame);
-  doramaxLog('youtube_player_start_timeout',{videoId:id||null,timeoutMs:15000,playerState:state,retries,...doramaxCurrentState()});
-  doramaxSendDiagnostic('youtube_player_start_timeout',frame,408,{player_state:state,iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState,timeout_ms:15000});
- },15000);
+  doramaxLog('youtube_player_start_timeout',{videoId:id||null,timeoutMs:9000,playerState:state,retries,...doramaxCurrentState()});
+  doramaxSendDiagnostic('youtube_player_start_timeout',frame,408,{player_state:state,iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState,timeout_ms:9000});
+ },9000);
  doramaxStartTimeouts.set(frame,timer);
 }
 function doramaxSendDiagnostic(event,frame,errorCode=null,details=null){
