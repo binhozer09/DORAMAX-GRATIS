@@ -25,7 +25,7 @@ button:disabled{opacity:.5}.secondary{background:#292929;border:1px solid #555}.
 <section id="dashboard" class="hidden">
 <div class="card"><div class="row"><div><h1>Controle de acessos</h1><p class="muted">Autorize ou bloqueie usuários do DORAMAX-GRATIS.</p></div><span class="pill">ADM</span></div>
 <button id="syncBtn" class="full secondary">SINCRONIZAR CANAL DO YOUTUBE</button><input id="search" type="search" placeholder="Buscar por e-mail"><button id="searchBtn" class="full">BUSCAR USUÁRIO</button><button id="listBtn" class="full secondary">ATUALIZAR LISTA</button><div id="users"></div><div id="dashStatus" class="status"></div></div>
-<div class="card"><h2>Diagnóstico dos vídeos</h2><p class="muted">Falhas e inícios de reprodução registrados pelos aplicativos atualizados. Um início confirmado não garante reprodução até o fim.</p><button id="diagnosticsBtn" class="full secondary">ATUALIZAR DIAGNÓSTICO</button><div id="diagnosticsStatus" class="status"></div><div id="diagnosticsList" class="muted">Ainda não consultado.</div></div>
+<div class="card"><h2>Diagnóstico dos vídeos</h2><p class="muted">Erros do YouTube e vídeos que não começam em até 20 segundos, além dos inícios confirmados.</p><button id="diagnosticsBtn" class="full secondary">ATUALIZAR DIAGNÓSTICO</button><div id="diagnosticsStatus" class="status"></div><div id="diagnosticsList" class="muted">Ainda não consultado.</div></div>
 <div class="card"><h2>Enviar arquivo APK</h2><p class="muted">Selecione o APK, informe a versão e publique. O aplicativo dos usuários identificará a atualização automaticamente.</p><input id="apkFile" type="file" accept=".apk,application/vnd.android.package-archive"><input id="apkVersionCode" type="number" min="1" step="1" placeholder="Código da versão (ex.: 3)"><input id="apkVersionName" type="text" placeholder="Nome da versão (ex.: 1.2.0)"><input id="apkNotes" type="text" placeholder="Novidades (opcional)"><button id="publishApkBtn" class="full">ENVIAR APK E PUBLICAR</button><button id="deleteApkBtn" class="full red" disabled>EXCLUIR ATUALIZAÇÃO ENVIADA</button><div id="apkStatus" class="status"></div><p class="muted">O APK precisa manter o mesmo pacote e assinatura da versão instalada. O Android pedirá confirmação para instalar.</p></div><div class="card"><h2>Notificações de pagamento</h2><button id="paymentsBtn" class="full secondary">ATUALIZAR NOTIFICAÇÕES</button><div id="payments" class="muted">Toque para carregar.</div></div>
 </section>
 </main>
@@ -97,10 +97,10 @@ async function loadDiagnostics(){
    const line=document.createElement("div");line.className="user";
    const title=document.createElement("strong");title.textContent=item.video_title||"Vídeo sem título";
    const id=document.createElement("small");id.textContent="ID: "+item.video_id;
-   const stats=document.createElement("small");stats.textContent="Erros: "+item.error_count+" · Inícios: "+item.successful_starts;
+   const stats=document.createElement("small");stats.textContent="Erros do YouTube: "+item.error_count+" · Não iniciou em 20s: "+(item.start_timeout_count||0)+" · Inícios: "+item.successful_starts;
    const last=document.createElement("small");last.textContent="Último evento: "+(item.last_seen_at?new Date(item.last_seen_at).toLocaleString("pt-BR"):"—");
    line.append(title,id,stats,last);
-   if(Number(item.error_count)>0){const warning=document.createElement("small");warning.textContent="Último erro: "+(item.last_error_at?new Date(item.last_error_at).toLocaleString("pt-BR"):"—");line.append(warning)}
+   if(Number(item.error_count)>0||Number(item.start_timeout_count)>0){const warning=document.createElement("small");warning.textContent="Última falha: "+(item.last_error_at?new Date(item.last_error_at).toLocaleString("pt-BR"):"—");line.append(warning)}
    out.append(line);
   }
   status("diagnosticsStatus",rows.length+" vídeo(s) com eventos nos últimos 30 dias. Ordenado por quantidade de erros.");
