@@ -16,7 +16,7 @@
         android:id="@+id/adViewContainer"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:visibility="gone"
+        android:visibility="visible"
         android:foregroundGravity="center"
         android:gravity="center"
         android:background="#090B10" />
