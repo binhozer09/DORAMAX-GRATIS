@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: doramax-release-${{ github.ref }}
+  group: doramax-release-build-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
