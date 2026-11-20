@@ -361,6 +361,25 @@ function doramaxPersistLogs(){
 function doramaxLog(event,details={}){try{doramaxLogBuffer.push({t:new Date().toISOString(),event,...details});if(doramaxLogBuffer.length>500)doramaxLogBuffer.splice(0,doramaxLogBuffer.length-500);doramaxPersistLogs();doramaxRefreshLogsText();}catch(_){}}
 const DORAMAX_DIAGNOSTICS_URL='https://qbwsaahlkovrejwliefv.supabase.co/functions/v1/player-diagnostics';
 const doramaxSentDiagnostics=new Set();
+const doramaxStartTimeouts=new WeakMap();
+function doramaxClearStartTimeout(frame){
+ const timer=doramaxStartTimeouts.get(frame);
+ if(timer){clearTimeout(timer);doramaxStartTimeouts.delete(frame);}
+}
+function doramaxWatchStartTimeout(frame){
+ if(!frame||doramaxStartTimeouts.has(frame))return;
+ const timer=setTimeout(()=>{
+  doramaxStartTimeouts.delete(frame);
+  if(activeFrame!==frame)return;
+  const player=players.get(frame);
+  let state=null;
+  try{state=player?.getPlayerState?.()??null;}catch(_){}
+  if(state===YT.PlayerState.PLAYING)return;
+  doramaxLog('youtube_player_start_timeout',{videoId:videoId(frame)||null,timeoutMs:20000,playerState:state,...doramaxCurrentState()});
+  doramaxSendDiagnostic('youtube_player_start_timeout',frame,408);
+ },20000);
+ doramaxStartTimeouts.set(frame,timer);
+}
 function doramaxSendDiagnostic(event,frame,errorCode=null){
  try{
   const id=videoId(frame)||null;
@@ -890,6 +909,7 @@ function ensurePlayer(frame){
      const isActiveCard=!!card&&card===activeFrame?.closest('.video');
      doramaxLog('youtube_player_ready',{videoId:videoId(frame)||null,isActiveCard,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
      if(card&&activeFrame===frame&&(isActiveCard||(card.getBoundingClientRect().top<innerHeight*0.65&&card.getBoundingClientRect().bottom>innerHeight*0.35))){
+      doramaxWatchStartTimeout(frame);
       try{event.target.playVideo();}catch(error){doramaxLog('youtube_play_on_ready_error',{message:String(error)});}
      }else{
       try{event.target.pauseVideo();}catch(_){}
@@ -897,6 +917,7 @@ function ensurePlayer(frame){
     },
     onError:event=>{
      const code=Number(event.data);
+     doramaxClearStartTimeout(frame);
      doramaxLog('youtube_player_error',{videoId:videoId(frame)||null,errorCode:code,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
      doramaxSendDiagnostic('youtube_player_error',frame,code);
      const playerBox=frame.closest('.video')?.querySelector('.player');
@@ -922,6 +943,7 @@ function ensurePlayer(frame){
       return;
      }
      if(event.data===YT.PlayerState.PLAYING){
+  doramaxClearStartTimeout(frame);
   doramaxSendDiagnostic('youtube_player_playing',frame,null);
       if(activeFrame!==frame){try{event.target.pauseVideo();}catch(_){}return;}
       pauseOthers(frame);
@@ -964,6 +986,7 @@ function resumeVideo(item){
  target.scrollIntoView({behavior:'smooth',block:'start'});
  const frame=target.querySelector('iframe');
  activeFrame=frame;
+ doramaxWatchStartTimeout(frame);
  activateFrame(frame);
  ensurePlayer(frame);
  const player=players.get(frame);
@@ -1043,6 +1066,7 @@ const observer=new IntersectionObserver(entries=>{
   if(entry.isIntersecting&&entry.intersectionRatio>=0.65){
    if(activeFrame!==frame)doramaxLog('observer_selected_video',{previousVideoId:videoId(activeFrame)||null,newVideoId:videoId(frame)||null,intersectionRatio:Number(entry.intersectionRatio.toFixed(3)),...doramaxCurrentState()});
    activeFrame=frame;
+   doramaxWatchStartTimeout(frame);
    const activeIndex=frames.indexOf(frame);
    // Mantém apenas o player atual e um único próximo, conforme o sentido da rolagem.
    const nextIndex=activeIndex+scrollDirection;
@@ -1066,7 +1090,7 @@ const observer=new IntersectionObserver(entries=>{
    }
   }else{
    pauseFrame(frame);
-   if(activeFrame===frame)activeFrame=null;
+   if(activeFrame===frame){activeFrame=null;doramaxClearStartTimeout(frame);}
    const player=players.get(frame);
    if(player&&typeof player.getCurrentTime==='function'){
     try{upsertProgress(card,player.getCurrentTime(),player.getDuration());}catch(_){}
