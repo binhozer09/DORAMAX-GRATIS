@@ -362,6 +362,7 @@ function doramaxLog(event,details={}){try{doramaxLogBuffer.push({t:new Date().to
 const DORAMAX_DIAGNOSTICS_URL='https://qbwsaahlkovrejwliefv.supabase.co/functions/v1/player-diagnostics';
 const doramaxSentDiagnostics=new Set();
 const doramaxStartTimeouts=new WeakMap();
+const doramaxStartRetries=new WeakMap();
 function doramaxClearStartTimeout(frame){
  const timer=doramaxStartTimeouts.get(frame);
  if(timer){clearTimeout(timer);doramaxStartTimeouts.delete(frame);}
@@ -374,8 +375,21 @@ function doramaxWatchStartTimeout(frame){
   const player=players.get(frame);
   let state=null;
   try{state=player?.getPlayerState?.()??null;}catch(_){}
-  if(window.YT?.PlayerState && state===YT.PlayerState.PLAYING)return;
-  doramaxLog('youtube_player_start_timeout',{videoId:videoId(frame)||null,timeoutMs:20000,playerState:state,...doramaxCurrentState()});
+  if(window.YT?.PlayerState && state===YT.PlayerState.PLAYING){doramaxStartRetries.delete(frame);return;}
+  const id=videoId(frame);
+  const retries=doramaxStartRetries.get(frame)||0;
+  if(id&&player&&typeof player.loadVideoById==='function'&&retries<1){
+   doramaxStartRetries.set(frame,retries+1);
+   doramaxLog('youtube_player_start_retry',{videoId:id,retry:retries+1,playerState:state,...doramaxCurrentState()});
+   try{player.loadVideoById({videoId:id,suggestedQuality:'large'});}catch(error){doramaxLog('youtube_player_retry_error',{videoId:id,message:String(error)});}
+   setTimeout(()=>{
+    if(activeFrame!==frame)return;
+    try{players.get(frame)?.playVideo?.();}catch(error){doramaxLog('youtube_player_retry_play_error',{videoId:id,message:String(error)});}
+    doramaxWatchStartTimeout(frame);
+   },1500);
+   return;
+  }
+  doramaxLog('youtube_player_start_timeout',{videoId:id||null,timeoutMs:20000,playerState:state,retries,...doramaxCurrentState()});
   doramaxSendDiagnostic('youtube_player_start_timeout',frame,408,{player_state:state,iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState,timeout_ms:20000});
  },20000);
  doramaxStartTimeouts.set(frame,timer);
@@ -926,6 +940,7 @@ function ensurePlayer(frame){
     onError:event=>{
      const code=Number(event.data);
      doramaxClearStartTimeout(frame);
+     doramaxStartRetries.delete(frame);
      doramaxLog('youtube_player_error',{videoId:videoId(frame)||null,errorCode:code,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
      doramaxSendDiagnostic('youtube_player_error',frame,code,{iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState});
      const playerBox=frame.closest('.video')?.querySelector('.player');
@@ -951,6 +966,7 @@ function ensurePlayer(frame){
       return;
      }
      if(event.data===YT.PlayerState.PLAYING){
+  doramaxStartRetries.delete(frame);
   doramaxClearStartTimeout(frame);
   doramaxSendDiagnostic('youtube_player_playing',frame,null);
       if(activeFrame!==frame){try{event.target.pauseVideo();}catch(_){}return;}
@@ -1016,6 +1032,8 @@ function activateFrame(frame){
 function unloadFrame(card){
  const frame=card?.querySelector('iframe');
  if(!frame)return;
+ doramaxClearStartTimeout(frame);
+ doramaxStartRetries.delete(frame);
  const current=frame.getAttribute('src')||'';
  if(current&&current!=='about:blank'&&/youtube[.]com[/]embed[/]/.test(current)){
   const player=players.get(frame);
