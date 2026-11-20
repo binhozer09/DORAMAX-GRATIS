@@ -24,10 +24,10 @@ Deno.serve(async (req: Request) => {
     if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
       return new Response(JSON.stringify({ error: "invalid_video_id" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (!["youtube_player_error", "youtube_player_playing"].includes(event)) {
+    if (!["youtube_player_error", "youtube_player_playing", "youtube_player_start_timeout"].includes(event)) {
       return new Response(JSON.stringify({ error: "invalid_event" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (event === "youtube_player_error" && errorCode === null) {
+    if ((event === "youtube_player_error" || event === "youtube_player_start_timeout") && errorCode === null) {
       return new Response(JSON.stringify({ error: "missing_error_code" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const url = Deno.env.get("SUPABASE_URL");
