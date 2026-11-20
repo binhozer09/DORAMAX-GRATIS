@@ -81,6 +81,7 @@ body.player-open .catalog-screen{display:none}
 #customSeekBar .seek-thumb{position:absolute;top:50%;left:0;width:13px;height:13px;border-radius:50%;background:#ff3048;border:2px solid #fff;box-shadow:0 1px 6px #000;transform:translate(-50%,-50%)}
 body.player-open.player-controls-visible #customSeekBar{display:block;pointer-events:auto}
 .video-play-error{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;background:#080808f2;color:#fff;text-align:center}.video-play-error p{max-width:360px;margin:0;font-size:14px;line-height:1.5}.video-play-error button{border:0;border-radius:10px;padding:12px 16px;background:#ff3048;color:#fff;font-size:12px;font-weight:900}
+.video-premiere-notice{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:28px;background:linear-gradient(180deg,#080808e8,#16090bf5);color:#fff;text-align:center}.video-premiere-notice strong{font-size:clamp(22px,6vw,32px);font-weight:900;letter-spacing:1px;color:#ff5367}.video-premiere-notice span{max-width:300px;font-size:14px;line-height:1.5;color:#eee}
 </style>
 </head>
 <body>
@@ -532,15 +533,24 @@ function refreshFeedCollections(){
 function buildVideoCard(video){
  const section=document.createElement('section');section.className='video';
  const player=document.createElement('div');player.className='player';
- const frame=document.createElement('iframe');
- frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=1&fs=0&disablekb=0&iv_load_policy=3&cc_load_policy=0&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
- frame.title=video.title||'Vídeo novo';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
- frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope';frame.allowFullscreen=false;frame.removeAttribute('allowfullscreen');
- player.appendChild(frame);section.appendChild(player);
+ const awaitingPremiere=video.id==='qLfaEbIVt4c';
+ if(awaitingPremiere){
+  section.dataset.videoId=video.id;
+  const notice=document.createElement('div');notice.className='video-premiere-notice';
+  const message=document.createElement('strong');message.textContent='AGUARDANDO A ESTREIA';
+  const detail=document.createElement('span');detail.textContent='Este vídeo ainda não foi lançado no YouTube. Volte depois para assistir.';
+  notice.append(message,detail);player.appendChild(notice);
+ }else{
+  const frame=document.createElement('iframe');
+  frame.setAttribute('data-src','https://www.youtube.com/embed/'+encodeURIComponent(video.id)+'?playsinline=1&rel=0&controls=1&fs=0&disablekb=0&iv_load_policy=3&cc_load_policy=0&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net');
+  frame.title=video.title||'Vídeo novo';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';
+  frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope';frame.allowFullscreen=false;frame.removeAttribute('allowfullscreen');
+  player.appendChild(frame);
+ }
+ section.appendChild(player);
  const info=document.createElement('div');info.className='info';
  const heading=document.createElement('h2');heading.className='title';heading.textContent=video.title||'Vídeo novo';
  info.appendChild(heading);section.appendChild(info);
- 
  return section;
 }
 function nextUnusedCatalogVideo(){
