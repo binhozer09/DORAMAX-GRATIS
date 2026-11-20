@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity() {
             isCatalogVisible = visible
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
-                adContainer.visibility = if (visible && bannerAdLoaded) {
+                adContainer.visibility = if (visible) {
                     android.view.View.VISIBLE
                 } else {
                     android.view.View.GONE
@@ -678,7 +678,7 @@ class MainActivity : AppCompatActivity() {
         } catch (error: Exception) {
             Log.e(TAG, "AdMob initialization failed on main thread", error)
             adContainer.removeAllViews()
-            adContainer.visibility = android.view.View.GONE
+            adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
         }
     }
 
@@ -690,7 +690,7 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG, "Loading production banner (attempt $bannerLoadAttempts)")
         bannerAdLoaded = false
         adContainer.removeAllViews()
-        adContainer.visibility = android.view.View.GONE
+        adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
 
         val adView = AdView(this)
         bannerAdView = adView
@@ -730,7 +730,7 @@ class MainActivity : AppCompatActivity() {
                     if (!isFinishing && !isDestroyed) {
                         bannerAdLoaded = false
                         adContainer.removeAllViews()
-                        adContainer.visibility = android.view.View.GONE
+                        adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
                         if (bannerLoadAttempts < 5) {
                             val retryDelayMs = 10_000L * bannerLoadAttempts
                             Log.w(TAG, "Scheduling banner retry in ${retryDelayMs}ms")
