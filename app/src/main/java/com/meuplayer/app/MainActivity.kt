@@ -650,25 +650,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Ativa o DNS-over-HTTPS interno antes da primeira navegação do WebView.
-        startInAppDnsProtection()
+        // Usa o DNS padrão do Android; não instala proxy DNS interno.
+        siteWeb.loadUrl("https://appassets.androidplatform.net/assets/index.html")
         initializeAds()
-    }
-
-    private fun startInAppDnsProtection() {
-        InAppCloudflareDnsProxy.get().start(this) { ready, error ->
-            runOnUiThread {
-                if (isFinishing || isDestroyed || !::siteWeb.isInitialized) return@runOnUiThread
-                if (ready) {
-                    Log.i(TAG, "Cloudflare DoH interno ativo no WebView (sem VPN).")
-                } else {
-                    // Fallback para a rede normal para não deixar o catálogo indisponível.
-                    Log.e(TAG, "DNS DoH interno indisponível; usando DNS do Android: " + (error ?: "erro desconhecido"))
-                    Toast.makeText(this, "DNS Cloudflare indisponível. O DORAMAX continuará usando a rede normal.", Toast.LENGTH_LONG).show()
-                }
-                siteWeb.loadUrl("https://appassets.androidplatform.net/assets/index.html")
-            }
-        }
     }
 
     private fun initializeAds() {
