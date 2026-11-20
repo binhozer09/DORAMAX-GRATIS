@@ -376,11 +376,11 @@ function doramaxWatchStartTimeout(frame){
   try{state=player?.getPlayerState?.()??null;}catch(_){}
   if(window.YT?.PlayerState && state===YT.PlayerState.PLAYING)return;
   doramaxLog('youtube_player_start_timeout',{videoId:videoId(frame)||null,timeoutMs:20000,playerState:state,...doramaxCurrentState()});
-  doramaxSendDiagnostic('youtube_player_start_timeout',frame,408);
+  doramaxSendDiagnostic('youtube_player_start_timeout',frame,408,{player_state:state,iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState,timeout_ms:20000});
  },20000);
  doramaxStartTimeouts.set(frame,timer);
 }
-function doramaxSendDiagnostic(event,frame,errorCode=null){
+function doramaxSendDiagnostic(event,frame,errorCode=null,details=null){
  try{
   const id=videoId(frame)||null;
   if(!id)return;
@@ -389,7 +389,15 @@ function doramaxSendDiagnostic(event,frame,errorCode=null){
   doramaxSentDiagnostics.add(key);
   const card=frame?.closest('.video');
   const title=(frame?.getAttribute('title')||card?.querySelector('.title')?.textContent||'').trim().slice(0,200);
-  fetch(DORAMAX_DIAGNOSTICS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:id,video_title:title,event,error_code:errorCode})}).catch(()=>{});
+  const safeDetails=details&&typeof details==='object'?{
+   player_state:Number.isFinite(details.player_state)?details.player_state:null,
+   iframe_connected:typeof details.iframe_connected==='boolean'?details.iframe_connected:null,
+   iframe_src:typeof details.iframe_src==='string'?details.iframe_src.slice(0,500):'',
+   network_online:typeof details.network_online==='boolean'?details.network_online:null,
+   visibility_state:typeof details.visibility_state==='string'?details.visibility_state.slice(0,20):'',
+   timeout_ms:Number.isFinite(details.timeout_ms)?details.timeout_ms:null
+  }:null;
+  fetch(DORAMAX_DIAGNOSTICS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:id,video_title:title,event,error_code:errorCode,details:safeDetails})}).catch(()=>{});
  }catch(_){}
 }
 function doramaxCurrentState(){const card=activeFrame?.closest('.video')||null;const frame=card?.querySelector('iframe')||activeFrame;return{videoId:videoId(frame)||null,scrollTop:Math.round(feed.scrollTop),cardIndex:card?cards.indexOf(card):-1,iframeConnected:!!frame?.isConnected};}
@@ -919,7 +927,7 @@ function ensurePlayer(frame){
      const code=Number(event.data);
      doramaxClearStartTimeout(frame);
      doramaxLog('youtube_player_error',{videoId:videoId(frame)||null,errorCode:code,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
-     doramaxSendDiagnostic('youtube_player_error',frame,code);
+     doramaxSendDiagnostic('youtube_player_error',frame,code,{iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState});
      const playerBox=frame.closest('.video')?.querySelector('.player');
      if(playerBox&&!playerBox.querySelector('.video-play-error')){
       const panel=document.createElement('div');panel.className='video-play-error';
