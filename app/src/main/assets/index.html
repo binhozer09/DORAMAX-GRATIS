@@ -359,6 +359,20 @@ function doramaxPersistLogs(){
  catch(error){try{doramaxLogBuffer.splice(0,Math.max(1,doramaxLogBuffer.length-250));localStorage.setItem(DORAMAX_LOGS_STORAGE_KEY,JSON.stringify(doramaxLogBuffer));}catch(_){}}
 }
 function doramaxLog(event,details={}){try{doramaxLogBuffer.push({t:new Date().toISOString(),event,...details});if(doramaxLogBuffer.length>500)doramaxLogBuffer.splice(0,doramaxLogBuffer.length-500);doramaxPersistLogs();doramaxRefreshLogsText();}catch(_){}}
+const DORAMAX_DIAGNOSTICS_URL='https://qbwsaahlkovrejwliefv.supabase.co/functions/v1/player-diagnostics';
+const doramaxSentDiagnostics=new Set();
+function doramaxSendDiagnostic(event,frame,errorCode=null){
+ try{
+  const id=videoId(frame)||null;
+  if(!id)return;
+  const key=id+':'+event+':'+(errorCode??'');
+  if(doramaxSentDiagnostics.has(key))return;
+  doramaxSentDiagnostics.add(key);
+  const card=frame?.closest('.video');
+  const title=(frame?.getAttribute('title')||card?.querySelector('.title')?.textContent||'').trim().slice(0,200);
+  fetch(DORAMAX_DIAGNOSTICS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:id,video_title:title,event,error_code:errorCode})}).catch(()=>{});
+ }catch(_){}
+}
 function doramaxCurrentState(){const card=activeFrame?.closest('.video')||null;const frame=card?.querySelector('iframe')||activeFrame;return{videoId:videoId(frame)||null,scrollTop:Math.round(feed.scrollTop),cardIndex:card?cards.indexOf(card):-1,iframeConnected:!!frame?.isConnected};}
 function doramaxRefreshLogsText(){const output=document.getElementById('doramaxLogsText');if(output)output.value=doramaxLogBuffer.map(item=>JSON.stringify(item)).join('\n');}
 const doramaxLogsButton=document.getElementById('doramaxLogsButton'),doramaxLogsPanel=document.getElementById('doramaxLogsPanel');
@@ -884,6 +898,7 @@ function ensurePlayer(frame){
     onError:event=>{
      const code=Number(event.data);
      doramaxLog('youtube_player_error',{videoId:videoId(frame)||null,errorCode:code,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
+     doramaxSendDiagnostic('youtube_player_error',frame,code);
      const playerBox=frame.closest('.video')?.querySelector('.player');
      if(playerBox&&!playerBox.querySelector('.video-play-error')){
       const panel=document.createElement('div');panel.className='video-play-error';
@@ -907,6 +922,7 @@ function ensurePlayer(frame){
       return;
      }
      if(event.data===YT.PlayerState.PLAYING){
+  doramaxSendDiagnostic('youtube_player_playing',frame,null);
       if(activeFrame!==frame){try{event.target.pauseVideo();}catch(_){}return;}
       pauseOthers(frame);
       const playingCard=frame.closest('.video');document.body.classList.add('player-playing');showPlayerControls(playingCard);
