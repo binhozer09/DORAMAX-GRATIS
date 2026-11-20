@@ -9,14 +9,21 @@ create table if not exists public.player_diagnostics (
 create index if not exists player_diagnostics_created_at_idx on public.player_diagnostics (created_at desc);
 create index if not exists player_diagnostics_video_idx on public.player_diagnostics (video_id, created_at desc);
 alter table public.player_diagnostics enable row level security;
-revoke all on public.player_diagnostics from anon, authenticated;
+revoke all on public.player_diagnostics from anon;
+grant select on public.player_diagnostics to authenticated;
+drop policy if exists admins_read_player_diagnostics on public.player_diagnostics;
+create policy admins_read_player_diagnostics
+on public.player_diagnostics
+for select
+to authenticated
+using (exists (select 1 from public.admin_users a where a.user_id = auth.uid()));
 
 create or replace function public.admin_player_diagnostics()
 returns table (
   video_id text, video_title text, error_count bigint, successful_starts bigint,
   last_error_at timestamptz, last_seen_at timestamptz
 )
-language plpgsql security definer
+language plpgsql security invoker
 set search_path = public, auth
 as $$
 begin
