@@ -369,7 +369,7 @@ function doramaxClearStartTimeout(frame){
  const timer=doramaxStartTimeouts.get(frame);
  if(timer){clearTimeout(timer);doramaxStartTimeouts.delete(frame);}
 }
-function doramaxShowPremiereNotice(frame){const box=frame?.closest('.video')?.querySelector('.player');if(!box||box.querySelector('.video-premiere-notice'))return;const n=document.createElement('div');n.className='video-premiere-notice';const h=document.createElement('strong');h.textContent='AGUARDANDO A ESTREIA';const d=document.createElement('span');d.textContent='Este vídeo ainda não começou a reproduzir. Tente novamente mais tarde.';n.append(h,d);box.appendChild(n);}
+function doramaxShowPremiereNotice(frame){const box=frame?.closest('.video')?.querySelector('.player');if(!box||box.querySelector('.video-premiere-notice'))return;const n=document.createElement('div');n.className='video-premiere-notice';const h=document.createElement('strong');h.textContent='VAI ESTREAR AINDA';const d=document.createElement('span');d.textContent='AGUARDE A ESTREIA';n.append(h,d);box.appendChild(n);}
 function doramaxClearPremiereNotice(frame){const n=frame?.closest('.video')?.querySelector('.video-premiere-notice');if(n)n.remove();}
 function doramaxWatchStartTimeout(frame){
  if(!frame||doramaxStartTimeouts.has(frame))return;
@@ -394,9 +394,9 @@ function doramaxWatchStartTimeout(frame){
    return;
   }
   doramaxShowPremiereNotice(frame);
-  doramaxLog('youtube_player_start_timeout',{videoId:id||null,timeoutMs:20000,playerState:state,retries,...doramaxCurrentState()});
-  doramaxSendDiagnostic('youtube_player_start_timeout',frame,408,{player_state:state,iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState,timeout_ms:20000});
- },20000);
+  doramaxLog('youtube_player_start_timeout',{videoId:id||null,timeoutMs:15000,playerState:state,retries,...doramaxCurrentState()});
+  doramaxSendDiagnostic('youtube_player_start_timeout',frame,408,{player_state:state,iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState,timeout_ms:15000});
+ },15000);
  doramaxStartTimeouts.set(frame,timer);
 }
 function doramaxSendDiagnostic(event,frame,errorCode=null,details=null){
