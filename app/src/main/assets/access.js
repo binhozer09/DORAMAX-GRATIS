@@ -251,7 +251,7 @@
     cover.innerHTML = `
       <div class="dm-cover-card">
         <h2>Continue assistindo</h2>
-        <p>Os 2 primeiros vídeos são grátis. Para liberar os demais, faça seu cadastro e pague R$ 5,00 uma única vez.</p>
+        <p>Os 3 primeiros vídeos são grátis. Para liberar os demais, faça seu cadastro e pague R$ 5,00 uma única vez.</p>
         <button class="dm-btn" type="button">CRIAR CONTA / ENTRAR</button>
         <button class="dm-btn green dm-pay-button" type="button" style="display:none">LIBERAR ACESSO — R$ 5,00</button>
         <p class="dm-small dm-pay-hint">Entre na sua conta para solicitar a liberação do acesso pelo suporte.</p>
