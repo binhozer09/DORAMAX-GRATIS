@@ -153,6 +153,9 @@
       .dm-status{font-size:12px;color:#bbb;margin:8px 0}\n
       .dm-support-launcher{position:fixed;right:18px;bottom:calc(22px + var(--safe-bottom,0px));z-index:950;width:58px;height:58px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#ff5268,#df1738);color:#fff;font-size:25px;box-shadow:0 8px 26px #0009,0 0 0 4px #ff52682b;cursor:pointer;-webkit-tap-highlight-color:transparent}
       .dm-support-launcher:active{transform:scale(.94)}
+      .dm-support-prompt{position:fixed;right:86px;bottom:calc(34px + var(--safe-bottom,0px));z-index:949;max-width:170px;padding:8px 11px;border:1px solid #ff7184;border-radius:12px;background:#191116;color:#fff;font-size:11px;font-weight:900;line-height:1.25;text-align:center;box-shadow:0 5px 18px #0009;cursor:pointer}
+      .dm-support-prompt:after{content:"";position:absolute;right:-6px;top:50%;width:10px;height:10px;background:#191116;border-top:1px solid #ff7184;border-right:1px solid #ff7184;transform:translateY(-50%) rotate(45deg)}
+      .dm-support-prompt[hidden]{display:none!important}
       .dm-support-panel{position:fixed;right:14px;bottom:calc(92px + var(--safe-bottom,0px));z-index:951;width:min(370px,calc(100vw - 28px));height:min(520px,68dvh);min-height:300px;display:none;flex-direction:column;overflow:hidden;border:1px solid #ffffff28;border-radius:20px;background:#101318;color:#fff;box-shadow:0 18px 55px #000c}
       .dm-support-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:linear-gradient(120deg,#e72e4b,#8e1d53);font-weight:900}
       .dm-support-head small{display:block;margin-top:3px;font-size:10px;font-weight:500;color:#ffe7ec}
@@ -166,7 +169,7 @@
       .dm-support-compose button,.dm-support-login{border:0;border-radius:11px;padding:0 14px;background:#e72e4b;color:#fff;font-size:12px;font-weight:900}
       .dm-support-login{margin:12px;padding:12px}
       .dm-support-note{padding:18px 12px;color:#b9c0cc;text-align:center;font-size:12px;line-height:1.5}
-      body.player-playing:not(.player-controls-visible) .dm-support-launcher,body.player-playing:not(.player-controls-visible) .dm-support-panel{opacity:0!important;visibility:hidden!important;pointer-events:none!important}body.player-playing.player-controls-visible .dm-support-launcher{bottom:calc(82px + var(--safe-bottom,0px))}
+      body.player-playing:not(.player-controls-visible) .dm-support-launcher,body.player-playing:not(.player-controls-visible) .dm-support-panel,body.player-playing:not(.player-controls-visible) .dm-support-prompt{opacity:0!important;visibility:hidden!important;pointer-events:none!important}body.player-playing.player-controls-visible .dm-support-launcher{bottom:calc(82px + var(--safe-bottom,0px))}
       .dm-logged-as{max-width:112px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;font-weight:600;color:#fff;background:#0009;border:1px solid #ffffff30;border-radius:12px;padding:4px 6px;pointer-events:none}
       
     `;
@@ -390,7 +393,7 @@
 
   async function loadAccess() {
     if (!session || !session.access_token) {
-      currentUser = null;
+      currentUser = null; updateSupportPrompt();
       isAdmin = false;
       unlocked = false;
       updateLoggedAs();
@@ -412,7 +415,7 @@
       isAdmin = Array.isArray(adminRows) && adminRows.length > 0;
       unlocked = isAdmin || !!(Array.isArray(grantRows) && grantRows[0] && grantRows[0].is_unlocked === true);
       updateGate();
-      document.getElementById("dmLogout").style.display = "block";
+      updateSupportPrompt(); document.getElementById("dmLogout").style.display = "block";
       document.getElementById("dmStatus").textContent = unlocked
         ? "Acesso liberado. Aproveite todos os vídeos!"
         : "Conta conectada. Acesso aguardando liberação.";
@@ -614,7 +617,7 @@
     return Number.isNaN(date.getTime()) ? "" : date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
   }
 
-  function createSupportUI() {
+  function updateSupportPrompt() { const p=document.getElementById("dmSupportPrompt"); if(p) p.hidden=!!(unlocked||isAdmin); }\n\n  function createSupportUI() {
     if (document.getElementById("dmSupportLauncher")) return;
     const launcher = document.createElement("button");
     launcher.id = "dmSupportLauncher";
@@ -623,7 +626,7 @@
     launcher.setAttribute("aria-label", "Abrir suporte");
     launcher.title = "Suporte";
     launcher.textContent = "💬";
-    const panel = document.createElement("section");
+    const prompt=document.createElement("button"); prompt.id="dmSupportPrompt"; prompt.className="dm-support-prompt"; prompt.type="button"; prompt.textContent="LIBERE AQUI SEU ACESSO  ➜"; prompt.setAttribute("aria-label","Toque aqui para liberar seu acesso");\n    const panel = document.createElement("section");
     panel.id = "dmSupportPanel";
     panel.className = "dm-support-panel";
     panel.setAttribute("aria-label", "Suporte DORAMAX");
@@ -631,8 +634,8 @@
       <header class="dm-support-head"><div>SUPORTE DORAMAX<small>Envie sua mensagem para nossa equipe</small></div><button class="dm-support-close" id="dmSupportClose" type="button" aria-label="Fechar">×</button></header>
       <div class="dm-support-messages" id="dmSupportMessages"><div class="dm-support-note">Carregando suporte...</div></div>
       <form class="dm-support-compose" id="dmSupportForm"><textarea id="dmSupportInput" rows="2" maxlength="4000" placeholder="Digite sua mensagem..." aria-label="Sua mensagem"></textarea><button id="dmSupportSend" type="submit">ENVIAR</button></form>`;
-    document.body.append(launcher, panel);
-    launcher.addEventListener("click", openSupportPanel);
+    document.body.append(launcher, prompt, panel);
+    launcher.addEventListener("click", openSupportPanel); prompt.addEventListener("click", openSupportPanel);
     document.getElementById("dmSupportClose").addEventListener("click", closeSupportPanel);
     document.getElementById("dmSupportForm").addEventListener("submit", sendSupportMessage);
   }
@@ -766,7 +769,7 @@
   createModal();
   createSupportUI();
   installAdminEntry();
-  updateGate();
+  updateGate();\n  updateSupportPrompt();
 
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -776,7 +779,7 @@
   loadAccess();
   loadRemoteSettings();
   // Refresh access when the app returns to foreground.
-  document.addEventListener("visibilitychange", () => {
+  setInterval(() => { if (!document.hidden && session) loadAccess(); }, 15000);\n  document.addEventListener("visibilitychange", () => {
     if (!document.hidden && session) loadAccess();
   });
 })();
