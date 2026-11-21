@@ -1,0 +1,48 @@
+name: Build DORAMAX ADM APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'admin/**'
+      - 'gradle/**'
+      - 'build.gradle*'
+      - 'settings.gradle*'
+      - 'gradle.properties'
+      - 'gradlew'
+      - '.github/workflows/build-admin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  build-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Build DORAMAX ADM APK
+        run: gradle --no-daemon :admin:clean :admin:assembleDebug
+      - name: Upload DORAMAX ADM APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DORAMAX-ADM-APK
+          path: admin/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
