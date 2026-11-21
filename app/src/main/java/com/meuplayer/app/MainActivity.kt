@@ -662,8 +662,39 @@ class MainActivity : AppCompatActivity() {
         initializeAds()
     }
 
+    // Exibe o motivo real da falha dentro da área do banner, sem esconder o catálogo.
+    private fun showAdStatus(message: String) {
+        if (!::adContainer.isInitialized || isFinishing || isDestroyed) return
+
+        bannerAdView?.let { previousAdView ->
+            (previousAdView.parent as? ViewGroup)?.removeView(previousAdView)
+            previousAdView.destroy()
+        }
+        bannerAdView = null
+        adContainer.removeAllViews()
+
+        val statusView = android.widget.TextView(this).apply {
+            text = message
+            setTextColor(android.graphics.Color.WHITE)
+            textSize = 10f
+            gravity = android.view.Gravity.CENTER
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            setPadding(8, 0, 8, 0)
+        }
+        adContainer.addView(
+            statusView,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+    }
+
     private fun initializeAds() {
         if (isFinishing || isDestroyed) return
+        showAdStatus("Conectando ao Google AdMob...")
         try {
             // O GMA Next-Gen exige que a inicialização seja feita fora da thread principal.
             Thread({
@@ -681,17 +712,13 @@ class MainActivity : AppCompatActivity() {
                 } catch (error: Exception) {
                     Log.e(TAG, "AdMob initialization failed on background thread", error)
                     runOnUiThread {
-                        if (!isFinishing && !isDestroyed) {
-                            adContainer.removeAllViews()
-                            adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
-                        }
+                        showAdStatus("Falha ao iniciar o AdMob: " + (error.message ?: error.javaClass.simpleName))
                     }
                 }
             }, "DORAMAX-AdMob-Init").start()
         } catch (error: Exception) {
             Log.e(TAG, "Could not start AdMob initialization thread", error)
-            adContainer.removeAllViews()
-            adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+            showAdStatus("Não foi possível iniciar o AdMob: " + (error.message ?: error.javaClass.simpleName))
         }
     }
 
@@ -702,6 +729,11 @@ class MainActivity : AppCompatActivity() {
         bannerLoadAttempts++
         Log.i(TAG, "Loading production banner (attempt $bannerLoadAttempts)")
         bannerAdLoaded = false
+        bannerAdView?.let { previousAdView ->
+            (previousAdView.parent as? ViewGroup)?.removeView(previousAdView)
+            previousAdView.destroy()
+        }
+        bannerAdView = null
         adContainer.removeAllViews()
         adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
 
@@ -721,7 +753,7 @@ class MainActivity : AppCompatActivity() {
 
         adView.loadAd(request, object : AdLoadCallback<BannerAd> {
             override fun onAdLoaded(ad: BannerAd) {
-                Log.d(TAG, "DORAMAX production banner loaded")
+                Log.d(TAG, "DORAMAX production banner loaded; responseInfo=" + ad.responseInfo)
                 runOnUiThread {
                     if (!isFinishing && !isDestroyed) {
                         bannerAdLoaded = true
@@ -737,13 +769,13 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onAdFailedToLoad(adError: LoadAdError) {
-                val diagnostic = "Código: ${adError.code}\nMensagem: ${adError.message}\nDetalhes: $adError"
-                Log.e(TAG, "DORAMAX banner failed to load: $diagnostic")
+                val responseInfo = adError.responseInfo?.toString() ?: "Sem informações de resposta do servidor"
+                val diagnostic = "Código: ${adError.code}\nMensagem: ${adError.message}\nResposta: $responseInfo\nDetalhes: $adError"
+                Log.e(TAG, "DORAMAX banner failed to load: $diagnostic", adError.cause)
                 runOnUiThread {
                     if (!isFinishing && !isDestroyed) {
                         bannerAdLoaded = false
-                        adContainer.removeAllViews()
-                        adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+                        showAdStatus("Anúncio não carregou (${adError.code}): ${adError.message}")
                         if (bannerLoadAttempts < 5) {
                             val retryDelayMs = 10_000L * bannerLoadAttempts
                             Log.w(TAG, "Scheduling banner retry in ${retryDelayMs}ms")
