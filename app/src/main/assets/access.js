@@ -600,6 +600,7 @@
     document.getElementById("dmSwitch").style.display = "block";
     document.getElementById("dmLogout").style.display = "none";
     updateGate();
+    closeSupportPanel();
     closeModal();
   }
 
