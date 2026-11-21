@@ -97,6 +97,59 @@ async function renderUsers(profiles){const out=$("users");out.replaceChildren();
 async function listUsers(){if(!admin)return;status("dashStatus","Carregando usuários...");try{const p=await api("/rest/v1/profiles?select=user_id,email&order=created_at.desc&limit=100",{},session.access_token);await renderUsers(p);status("dashStatus",p.length+" usuário(s) carregado(s).")}catch(e){status("dashStatus",e.message)}}
 async function search(){if(!admin)return;const email=$("search").value.trim().toLowerCase();if(!email){status("dashStatus","Digite o e-mail para buscar.");return}try{const p=await api("/rest/v1/profiles?select=user_id,email&email=ilike."+encodeURIComponent(email),{},session.access_token);await renderUsers(p);status("dashStatus",p.length+" resultado(s).")}catch(e){status("dashStatus",e.message)}}
 async function payments(){if(!admin)return;const box=$("payments");box.textContent="Carregando...";try{const p=await api("/rest/v1/payment_click_notifications?select=email,amount,clicked_at&order=clicked_at.desc&limit=30",{},session.access_token);box.replaceChildren();if(!p.length){box.textContent="Nenhuma notificação.";return}p.forEach(x=>{const d=document.createElement("p");d.textContent=(x.email||"E-mail não informado")+" — R$ "+Number(x.amount||5).toFixed(2)+" — "+new Date(x.clicked_at).toLocaleString("pt-BR");box.append(d)})}catch(e){box.textContent=e.message}}
+
+async function loadSupportInbox(){
+ if(!admin||!session?.access_token)return;
+ const box=$("supportInbox");
+ try{
+  const conversations=await api("/rest/v1/support_conversations?select=id,user_id,created_at,last_message_at&order=last_message_at.desc&limit=100",{},session.access_token);
+  box.replaceChildren();
+  if(!conversations.length){box.textContent="Nenhuma mensagem recebida ainda.";return}
+  const ids=[...new Set(conversations.map(c=>c.user_id))];
+  const profiles=await api("/rest/v1/profiles?select=user_id,email&user_id=in.("+ids.join(",")+")",{},session.access_token);
+  const emails=new Map((profiles||[]).map(p=>[p.user_id,p.email||p.user_id]));
+  conversations.forEach(c=>{
+   const btn=document.createElement("button");btn.type="button";btn.className="support-conversation"+(activeSupportConversation?.id===c.id?" active":"");
+   const who=document.createElement("strong");who.textContent=emails.get(c.user_id)||c.user_id;
+   const when=document.createElement("small");when.textContent="Última atividade: "+new Date(c.last_message_at||c.created_at).toLocaleString("pt-BR");
+   btn.append(who,when);btn.onclick=()=>selectSupportConversation(c.id,c.user_id,emails.get(c.user_id)||c.user_id);box.append(btn);
+  });
+  if(activeSupportConversation)await loadSupportAdminThread();
+  status("supportStatus",conversations.length+" conversa(s) na caixa de entrada.");
+ }catch(e){box.textContent="Falha ao carregar: "+e.message;status("supportStatus",e.message)}
+}
+async function selectSupportConversation(id,userId,email){
+ activeSupportConversation={id,userId,email};
+ $("supportReplyForm").classList.remove("hidden");
+ $("supportThreadTitle").textContent="Conversa com "+email;
+ await loadSupportInbox();
+}
+async function loadSupportAdminThread(){
+ if(!admin||!activeSupportConversation)return;
+ try{
+  const rows=await api("/rest/v1/support_messages?select=id,sender_type,body,created_at&conversation_id=eq."+encodeURIComponent(activeSupportConversation.id)+"&order=created_at.asc&limit=200",{},session.access_token);
+  const out=$("supportThreadMessages");out.replaceChildren();
+  if(!rows.length){out.textContent="Nenhuma mensagem nesta conversa.";return}
+  rows.forEach(m=>{
+   const item=document.createElement("div");item.className="support-message"+(m.sender_type==="admin"?" admin":"");
+   const body=document.createElement("span");body.textContent=m.body;
+   const meta=document.createElement("small");meta.textContent=(m.sender_type==="admin"?"Você (ADM)":"Usuário")+" · "+new Date(m.created_at).toLocaleString("pt-BR");
+   item.append(body,meta);out.append(item);
+  });
+  out.scrollTop=out.scrollHeight;
+ }catch(e){$("supportThreadMessages").textContent="Erro ao carregar conversa: "+e.message}
+}
+async function sendSupportReply(event){
+ event.preventDefault();if(!admin||!activeSupportConversation||supportReplyBusy)return;
+ const input=$("supportReplyInput"),body=input.value.trim();if(!body)return;
+ const btn=$("supportReplyBtn");supportReplyBusy=true;btn.disabled=true;
+ try{
+  await api("/rest/v1/support_messages",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify({conversation_id:activeSupportConversation.id,sender_id:adminUserId,sender_type:"admin",body})},session.access_token);
+  await api("/rest/v1/support_conversations?id=eq."+encodeURIComponent(activeSupportConversation.id),{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({last_message_at:new Date().toISOString()})},session.access_token);
+  input.value="";await loadSupportInbox();status("supportStatus","Resposta enviada.");
+ }catch(e){status("supportStatus","Não foi possível responder: "+e.message)}
+ finally{supportReplyBusy=false;btn.disabled=false}
+}
 async function syncCatalog(){if(!admin)return;const b=$("syncBtn");b.disabled=true;status("dashStatus","Sincronizando vídeos diretamente do YouTube para o Supabase...");try{const result=await api("/functions/v1/sync-videos",{method:"POST",body:"{}"},session.access_token);status("dashStatus",result.synced?"Catálogo atualizado: "+result.saved+" vídeo(s) sincronizado(s). Total ativo: "+result.activeVideos+".":(result.message||"O catálogo já está atualizado."));}catch(e){status("dashStatus","Falha na sincronização: "+e.message);}finally{b.disabled=false}}
 async function loadDiagnostics(){
  if(!admin||!session?.access_token)return;
