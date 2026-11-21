@@ -465,7 +465,13 @@ function catalogPosterUrl(id,quality='maxresdefault'){
 function renderCatalog(){
  if(!catalogGrid)return;
  const fallback=[...feed.querySelectorAll('.video')].map(card=>({id:videoId(card.querySelector('iframe')),title:card.querySelector('.title')?.textContent?.trim()||'Vídeo'})).filter(item=>item.id);
- const source=remoteCatalogVideos.length?remoteCatalogVideos:fallback;
+ // Mantém os três vídeos gratuitos fixos no topo, mesmo quando o catálogo remoto é carregado.
+ const freePreviews=[...feed.querySelectorAll('.video[data-free-preview="true"]')].map(card=>({
+  id:videoId(card.querySelector('iframe')),
+  title:card.querySelector('.title')?.textContent?.trim()||'Vídeo grátis'
+ })).filter(item=>item.id);
+ const remoteWithoutFree=remoteCatalogVideos.filter(item=>!freePreviews.some(free=>free.id===item.id));
+ const source=remoteCatalogVideos.length?[...freePreviews,...remoteWithoutFree]:fallback;
  const seen=new Set();
  const list=source.filter(item=>item.id&&!seen.has(item.id)&&(seen.add(item.id),true));
  catalogGrid.innerHTML='';
