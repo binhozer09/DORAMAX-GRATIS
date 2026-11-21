@@ -7,7 +7,7 @@
   if (window.__doramaxAccessLoaded) return;
   window.__doramaxAccessLoaded = true;
   window.__doramaxAccessSource = "local";
-  window.__doramaxAccessVersion = "2026.11.13";
+  window.__doramaxAccessVersion = "2026.11.21";
 
   const SUPABASE_URL = "https://qbwsaahlkovrejwliefv.supabase.co";
   const SUPABASE_KEY = "sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK";
@@ -166,7 +166,7 @@
       .dm-support-compose button,.dm-support-login{border:0;border-radius:11px;padding:0 14px;background:#e72e4b;color:#fff;font-size:12px;font-weight:900}
       .dm-support-login{margin:12px;padding:12px}
       .dm-support-note{padding:18px 12px;color:#b9c0cc;text-align:center;font-size:12px;line-height:1.5}
-      body.player-playing:not(.player-controls-visible) .dm-support-launcher,body.player-playing:not(.player-controls-visible) .dm-support-panel{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+      body.player-playing:not(.player-controls-visible) .dm-support-launcher,body.player-playing:not(.player-controls-visible) .dm-support-panel{opacity:0!important;visibility:hidden!important;pointer-events:none!important}body.player-playing.player-controls-visible .dm-support-launcher{bottom:calc(82px + var(--safe-bottom,0px))}
       .dm-logged-as{max-width:112px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;font-weight:600;color:#fff;background:#0009;border:1px solid #ffffff30;border-radius:12px;padding:4px 6px;pointer-events:none}
       
     `;
