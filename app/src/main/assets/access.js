@@ -138,7 +138,7 @@
       .dm-btn{display:block;width:100%;border:0;border-radius:12px;padding:14px 16px;margin:9px 0;background:#e62e49;color:#fff;font-size:15px;font-weight:800}
       .dm-btn.secondary{background:#292929;border:1px solid #555}
       .dm-btn.green{background:#159b60}
-      .dm-modal-backdrop{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;padding:18px;background:#000d}
+      .dm-modal-backdrop{position:fixed;inset:0;z-index:2147483001;display:none;align-items:center;justify-content:center;padding:18px;background:#000d}
       .dm-modal{width:min(100%,420px);max-height:90dvh;overflow:auto;padding:24px 20px;border:1px solid #ffffff26;border-radius:20px;background:#141414;color:#fff;box-shadow:0 15px 60px #000}
       .dm-modal input{display:block;width:100%;padding:14px;margin:10px 0;border-radius:10px;border:1px solid #555;background:#090909;color:#fff;font-size:16px}
       .dm-modal .dm-small{font-size:12px;color:#aaa}
