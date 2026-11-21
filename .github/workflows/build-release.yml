@@ -82,7 +82,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='76' versionName='5.39'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='77' versionName='5.40'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -96,12 +96,12 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 76,
-              "versionName": "5.39",
+              "versionCode": 77,
+              "versionName": "5.40",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Corrige o ciclo de vida do banner AdMob para evitar cancelamento de solicitações durante o carregamento."
+              "releaseNotes": "Adiciona suporte por mensagens dentro do aplicativo e atualiza a caixa de entrada do DORAMAX ADM."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + chr(10))
           PY
