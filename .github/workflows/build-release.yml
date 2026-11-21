@@ -117,3 +117,15 @@ jobs:
           files: |
             release/DORAMAX-GRATIS.apk
             release/update.json
+
+      - name: Atualizar link antigo usado pelo site promocional
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: doramax-v5.46
+          name: DORAMAX-GRATIS 5.46 (link do site atualizado)
+          target_commitish: main
+          generate_release_notes: false
+          overwrite_files: true
+          files: |
+            release/DORAMAX-GRATIS.apk
+            release/update.json
