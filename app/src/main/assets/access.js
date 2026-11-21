@@ -151,9 +151,9 @@
       .dm-user button{border:0;border-radius:9px;padding:10px 12px;background:#159b60;color:#fff;font-size:11px;font-weight:800;white-space:normal;min-width:150px}.dm-user{align-items:flex-start}.dm-user span{flex:1;overflow-wrap:anywhere}
       .dm-user button.lock{background:#b52b3f}
       .dm-status{font-size:12px;color:#bbb;margin:8px 0}\n
-      .dm-support-launcher{position:fixed;right:18px;bottom:calc(22px + var(--safe-bottom,0px));z-index:1101;width:58px;height:58px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#ff5268,#df1738);color:#fff;font-size:25px;box-shadow:0 8px 26px #0009,0 0 0 4px #ff52682b;cursor:pointer;-webkit-tap-highlight-color:transparent}
+      .dm-support-launcher{position:fixed;right:18px;bottom:calc(22px + var(--safe-bottom,0px));z-index:950;width:58px;height:58px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#ff5268,#df1738);color:#fff;font-size:25px;box-shadow:0 8px 26px #0009,0 0 0 4px #ff52682b;cursor:pointer;-webkit-tap-highlight-color:transparent}
       .dm-support-launcher:active{transform:scale(.94)}
-      .dm-support-panel{position:fixed;right:14px;bottom:calc(92px + var(--safe-bottom,0px));z-index:1102;width:min(370px,calc(100vw - 28px));height:min(520px,68dvh);min-height:300px;display:none;flex-direction:column;overflow:hidden;border:1px solid #ffffff28;border-radius:20px;background:#101318;color:#fff;box-shadow:0 18px 55px #000c}
+      .dm-support-panel{position:fixed;right:14px;bottom:calc(92px + var(--safe-bottom,0px));z-index:951;width:min(370px,calc(100vw - 28px));height:min(520px,68dvh);min-height:300px;display:none;flex-direction:column;overflow:hidden;border:1px solid #ffffff28;border-radius:20px;background:#101318;color:#fff;box-shadow:0 18px 55px #000c}
       .dm-support-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:linear-gradient(120deg,#e72e4b,#8e1d53);font-weight:900}
       .dm-support-head small{display:block;margin-top:3px;font-size:10px;font-weight:500;color:#ffe7ec}
       .dm-support-close{border:0;background:#ffffff20;color:#fff;border-radius:50%;width:30px;height:30px;font-size:20px}
