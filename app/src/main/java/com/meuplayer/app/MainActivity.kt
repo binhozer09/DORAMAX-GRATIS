@@ -49,10 +49,12 @@ class MainActivity : AppCompatActivity() {
     private var bannerAdView: AdView? = null
     @Volatile private var isCatalogVisible = true
     @Volatile private var bannerAdLoaded = false
+    @Volatile private var bannerLoadInProgress = false
+    private var adStatusView: android.widget.TextView? = null
     private val bannerRetryHandler = Handler(Looper.getMainLooper())
     private var bannerLoadAttempts = 0
     private val bannerRetryRunnable = Runnable {
-        if (!isFinishing && !isDestroyed && !bannerAdLoaded) loadBannerAd()
+        if (!isFinishing && !isDestroyed && !bannerAdLoaded && !bannerLoadInProgress) loadBannerAd()
     }
     private val updateInProgress = AtomicBoolean(false)
     private var pendingFileChooser: ValueCallback<Array<Uri>>? = null
@@ -665,14 +667,9 @@ class MainActivity : AppCompatActivity() {
     // Exibe o motivo real da falha dentro da área do banner, sem esconder o catálogo.
     private fun showAdStatus(message: String) {
         if (!::adContainer.isInitialized || isFinishing || isDestroyed) return
-
-        bannerAdView?.let { previousAdView ->
-            (previousAdView.parent as? ViewGroup)?.removeView(previousAdView)
-            previousAdView.destroy()
-        }
-        bannerAdView = null
-        adContainer.removeAllViews()
-
+        // Never destroy an AdView while its network request may still be active.
+        if (!bannerLoadInProgress) bannerAdView?.visibility = android.view.View.GONE
+        adStatusView?.let { previousStatus -> (previousStatus.parent as? ViewGroup)?.removeView(previousStatus) }
         val statusView = android.widget.TextView(this).apply {
             text = message
             setTextColor(android.graphics.Color.WHITE)
@@ -682,13 +679,8 @@ class MainActivity : AppCompatActivity() {
             ellipsize = android.text.TextUtils.TruncateAt.END
             setPadding(8, 0, 8, 0)
         }
-        adContainer.addView(
-            statusView,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        )
+        adStatusView = statusView
+        adContainer.addView(statusView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
     }
 
@@ -723,69 +715,72 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadBannerAd() {
-        if (isFinishing || isDestroyed) return
-
+        if (isFinishing || isDestroyed || bannerAdLoaded || bannerLoadInProgress) {
+            Log.d(TAG, "Skipping banner load: finishing=$isFinishing destroyed=$isDestroyed loaded=$bannerAdLoaded loading=$bannerLoadInProgress")
+            return
+        }
         bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
         bannerLoadAttempts++
+        bannerLoadInProgress = true
         Log.i(TAG, "Loading production banner (attempt $bannerLoadAttempts)")
         bannerAdLoaded = false
+
+        // Destroy the previous view only after its request callback has completed.
         bannerAdView?.let { previousAdView ->
             (previousAdView.parent as? ViewGroup)?.removeView(previousAdView)
             previousAdView.destroy()
         }
         bannerAdView = null
+        adStatusView?.let { previousStatus -> (previousStatus.parent as? ViewGroup)?.removeView(previousStatus) }
+        adStatusView = null
         adContainer.removeAllViews()
         adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
 
         val adView = AdView(this)
         bannerAdView = adView
+        val request = BannerAdRequest.Builder(BANNER_AD_UNIT_ID, AdSize.BANNER).build()
+        adContainer.addView(adView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
-        val adSize = AdSize.BANNER // Banner padrão compacto: 320 x 50 dp.
-        val request = BannerAdRequest.Builder(BANNER_AD_UNIT_ID, adSize).build()
-
-        adContainer.addView(
-            adView,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        )
-
-        adView.loadAd(request, object : AdLoadCallback<BannerAd> {
-            override fun onAdLoaded(ad: BannerAd) {
-                Log.d(TAG, "DORAMAX production banner loaded successfully")
-                runOnUiThread {
-                    if (!isFinishing && !isDestroyed) {
-                        bannerAdLoaded = true
-                        bannerLoadAttempts = 0
-                        bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
-                        adContainer.visibility = if (isCatalogVisible) {
-                            android.view.View.VISIBLE
-                        } else {
-                            android.view.View.GONE
+        try {
+            adView.loadAd(request, object : AdLoadCallback<BannerAd> {
+                override fun onAdLoaded(ad: BannerAd) {
+                    Log.d(TAG, "DORAMAX production banner loaded successfully")
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed && bannerAdView === adView) {
+                            bannerLoadInProgress = false
+                            bannerAdLoaded = true
+                            bannerLoadAttempts = 0
+                            bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
+                            adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
                         }
                     }
                 }
-            }
-
-            override fun onAdFailedToLoad(adError: LoadAdError) {
-                val diagnostic = "Código: ${adError.code}\nMensagem: ${adError.message}\nDetalhes: $adError"
-                Log.e(TAG, "DORAMAX banner failed to load: $diagnostic")
-                runOnUiThread {
-                    if (!isFinishing && !isDestroyed) {
-                        bannerAdLoaded = false
-                        showAdStatus("Anúncio não carregou (${adError.code}): ${adError.message}")
-                        if (bannerLoadAttempts < 5) {
-                            val retryDelayMs = 10_000L * bannerLoadAttempts
-                            Log.w(TAG, "Scheduling banner retry in ${retryDelayMs}ms")
-                            bannerRetryHandler.postDelayed(bannerRetryRunnable, retryDelayMs)
-                        } else {
-                            Log.e(TAG, "Banner retry limit reached; waiting for next app launch")
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    val diagnostic = "Código: ${adError.code}\\nMensagem: ${adError.message}\\nDetalhes: $adError"
+                    Log.e(TAG, "DORAMAX banner failed to load: $diagnostic")
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed && bannerAdView === adView) {
+                            bannerLoadInProgress = false
+                            bannerAdLoaded = false
+                            showAdStatus("Anúncio não carregou (${adError.code}): ${adError.message}")
+                            if (bannerLoadAttempts < 5) {
+                                val retryDelayMs = 10_000L * bannerLoadAttempts
+                                Log.w(TAG, "Scheduling banner retry in ${retryDelayMs}ms")
+                                bannerRetryHandler.postDelayed(bannerRetryRunnable, retryDelayMs)
+                            } else {
+                                Log.e(TAG, "Banner retry limit reached; waiting for next app launch")
+                            }
                         }
                     }
                 }
-            }
-        })
+            })
+        } catch (error: Exception) {
+            Log.e(TAG, "DORAMAX banner load threw an exception", error)
+            bannerLoadInProgress = false
+            bannerAdLoaded = false
+            showAdStatus("Falha ao solicitar anúncio: ${error.message ?: error.javaClass.simpleName}")
+            if (bannerLoadAttempts < 5) bannerRetryHandler.postDelayed(bannerRetryRunnable, 10_000L * bannerLoadAttempts)
+        }
     }
 
     @Deprecated("Deprecated in Android")
@@ -890,6 +885,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
+        bannerLoadInProgress = false
         pendingFileChooser?.onReceiveValue(null)
         pendingFileChooser = null
         bannerAdView?.let { adView ->
