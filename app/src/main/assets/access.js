@@ -153,6 +153,8 @@
 
       .dm-support-launcher{position:fixed;right:18px;bottom:calc(22px + var(--safe-bottom,0px));z-index:950;width:58px;height:58px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#ff5268,#df1738);color:#fff;font-size:25px;box-shadow:0 8px 26px #0009,0 0 0 4px #ff52682b;cursor:pointer;-webkit-tap-highlight-color:transparent}
       .dm-support-launcher:active{transform:scale(.94)}
+      .dm-support-unread{position:absolute;top:1px;right:1px;width:12px;height:12px;border:2px solid #fff;border-radius:50%;background:#ff1f3d;box-shadow:0 1px 7px #000b;display:none;pointer-events:none}
+      .dm-support-launcher.has-unread .dm-support-unread{display:block}
       .dm-support-prompt{position:fixed;right:86px;bottom:calc(34px + var(--safe-bottom,0px));z-index:949;max-width:170px;padding:8px 11px;border:1px solid #ff7184;border-radius:12px;background:#191116;color:#fff;font-size:11px;font-weight:900;line-height:1.25;text-align:center;box-shadow:0 5px 18px #0009;cursor:pointer}
       .dm-support-prompt:after{content:"";position:absolute;right:-6px;top:50%;width:10px;height:10px;background:#191116;border-top:1px solid #ff7184;border-right:1px solid #ff7184;transform:translateY(-50%) rotate(45deg)}
       .dm-support-prompt[hidden]{display:none!important}
@@ -616,6 +618,10 @@
     launcher.setAttribute("aria-label", "Abrir suporte");
     launcher.title = "Suporte";
     launcher.textContent = "💬";
+    const unreadDot = document.createElement("span");
+    unreadDot.className = "dm-support-unread";
+    unreadDot.setAttribute("aria-hidden", "true");
+    launcher.appendChild(unreadDot);
     const prompt=document.createElement("button"); prompt.id="dmSupportPrompt"; prompt.className="dm-support-prompt"; prompt.type="button"; prompt.textContent="LIBERE AQUI SEU ACESSO  ➜"; prompt.setAttribute("aria-label","Toque aqui para liberar seu acesso");
     const panel = document.createElement("section");
     panel.id = "dmSupportPanel";
@@ -660,8 +666,11 @@
     document.getElementById("dmSupportForm").style.display = "flex";
     try {
       await loadSupportThread();
+      await markSupportMessagesSeen();
       if (!supportPoller) supportPoller = setInterval(() => {
-        if (panel.style.display === "flex" && session && currentUser) loadSupportThread();
+        if (panel.style.display === "flex" && session && currentUser) {
+          loadSupportThread().then(markSupportMessagesSeen).catch(() => {});
+        }
       }, 7000);
     } catch (error) {
       const list = document.getElementById("dmSupportMessages");
@@ -713,6 +722,50 @@
       list.appendChild(bubble);
     });
     list.scrollTop = list.scrollHeight;
+  }
+
+  function supportSeenKey() {
+    return "doramax_support_admin_seen_" + (currentUser?.id || "guest");
+  }
+
+  function setSupportUnread(unread) {
+    const launcher = document.getElementById("dmSupportLauncher");
+    if (!launcher) return;
+    launcher.classList.toggle("has-unread", !!unread);
+    launcher.setAttribute("aria-label", unread ? "Abrir suporte: mensagem nova do ADM" : "Abrir suporte");
+  }
+
+  async function getLatestAdminSupportMessage() {
+    if (!session || !currentUser) return null;
+    const conversationId = await ensureSupportConversation();
+    const rows = await api("/rest/v1/support_messages?select=id,created_at&conversation_id=eq." +
+      encodeURIComponent(conversationId) + "&sender_type=eq.admin&order=created_at.desc&limit=1",
+      { method: "GET" }, session.access_token);
+    return Array.isArray(rows) && rows.length ? rows[0] : null;
+  }
+
+  async function markSupportMessagesSeen() {
+    const latest = await getLatestAdminSupportMessage();
+    if (latest?.id) {
+      localStorage.setItem(supportSeenKey(), latest.id);
+    }
+    setSupportUnread(false);
+  }
+
+  async function checkSupportUnread() {
+    if (!session || !currentUser || document.hidden) return;
+    try {
+      await refreshSessionIfNeeded();
+      const latest = await getLatestAdminSupportMessage();
+      if (!latest?.id) return;
+      const seen = localStorage.getItem(supportSeenKey());
+      if (seen === null) {
+        localStorage.setItem(supportSeenKey(), latest.id);
+        setSupportUnread(false);
+      } else {
+        setSupportUnread(seen !== latest.id);
+      }
+    } catch (_) {}
   }
 
   async function sendSupportMessage(event) {
@@ -770,9 +823,18 @@
 
   loadAccess();
   loadRemoteSettings();
-  // Refresh access when the app returns to foreground.
-  setInterval(() => { if (!document.hidden && session) loadAccess(); }, 15000);
+  // Verifica mensagens novas do ADM e mantém a bolinha até abrir o suporte.
+  checkSupportUnread();
+  setInterval(() => {
+    if (!document.hidden && session) {
+      loadAccess();
+      checkSupportUnread();
+    }
+  }, 15000);
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden && session) loadAccess();
+    if (!document.hidden && session) {
+      loadAccess();
+      checkSupportUnread();
+    }
   });
 })();
