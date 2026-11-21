@@ -98,7 +98,7 @@ body.player-open.player-controls-visible #customSeekBar{display:block;pointer-ev
  <div class="history-header"><h2>CONTINUAR ASSISTINDO</h2><button id="closeHistory" type="button" aria-label="Fechar">✕</button></div>
  <div id="historyList" class="history-list"></div>
 </div>
-<a class="donate" href="https://link.picpay.com/p/17945341236af66aeb27abc" aria-label="Apoiar o DORAMAX pelo PicPay" title="Apoiar o DORAMAX">donate</a>
+<button class="donate" id="pixDonateButton" type="button" aria-label="Copiar PIX para apoiar o DORAMAX" title="Copiar PIX">PIX</button>
 <section id="catalogScreen" class="catalog-screen" aria-label="Catálogo de filmes e séries"><header class="catalog-heading"><h1>Escolha seu dorama favorito</h1></header><div id="catalogGrid" class="catalog-grid"><div class="catalog-empty">Carregando catálogo...</div></div></section>
 <main id="feed" class="feed" aria-label="Reprodutor de vídeos">
 <section class="video" data-free-preview="true">
@@ -1277,5 +1277,37 @@ window.addEventListener('pagehide',()=>{
 });
 </script>
 <script src="./access.js"></script>
+<script>
+(() => {
+ const button = document.getElementById('pixDonateButton');
+ if (!button) return;
+ const pixCode = '00020126330014br.gov.bcb.pix01110804216150652040000530398654045.005802BR5925ROBERT SATURNINO DE CARVA6009Sao Paulo62290525REC6B01EC29E0A5F84122310663043889';
+ button.addEventListener('click', async () => {
+  try {
+   if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(pixCode);
+   } else {
+    const field = document.createElement('textarea');
+    field.value = pixCode;
+    field.setAttribute('readonly', '');
+    field.style.position = 'fixed';
+    field.style.opacity = '0';
+    document.body.appendChild(field);
+    field.select();
+    const copied = document.execCommand('copy');
+    field.remove();
+    if (!copied) throw new Error('Não foi possível copiar');
+   }
+   const original = button.textContent;
+   button.textContent = 'PIX COPIADO!';
+   window.setTimeout(() => { button.textContent = original; }, 2200);
+   window.alert('Código PIX de R$ 5,00 copiado! Abra seu banco, escolha Pix Copia e Cola e cole o código.');
+  } catch (error) {
+   window.prompt('Copie o código PIX de R$ 5,00:', pixCode);
+  }
+ });
+})();
+</script>
+
 </body>
 </html>
