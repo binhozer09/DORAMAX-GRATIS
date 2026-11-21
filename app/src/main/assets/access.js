@@ -11,7 +11,6 @@
 
   const SUPABASE_URL = "https://qbwsaahlkovrejwliefv.supabase.co";
   const SUPABASE_KEY = "sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK";
-  const PICPay_URL = "https://link.picpay.com/p/17945341236af66aeb27abc";
   const STORAGE_KEY = "doramax_session_v1";
   const REMOTE_SETTINGS_CACHE_KEY = "doramax_remote_settings_v1";
 
@@ -263,28 +262,16 @@
     const isLoggedIn = !!(session && currentUser && currentUser.id);
     payButton.style.display = isLoggedIn ? "block" : "none";
     payHint.style.display = isLoggedIn ? "none" : "block";
-    payButton.onclick = async (event) => {
+    payButton.onclick = async () => {
       if (!session || !currentUser || !currentUser.id) {
-        openModal("signup");
+        openModal("login");
         return;
       }
-      const button = event.currentTarget;
-      button.disabled = true;
-      button.textContent = "Abrindo PicPay...";
-      try {
-        await api("/rest/v1/payment_click_notifications", {
-          method: "POST",
-          headers: { "Prefer": "return=minimal" },
-          body: JSON.stringify({
-            user_id: currentUser && currentUser.id ? currentUser.id : null,
-            email: currentUser && currentUser.email ? currentUser.email : null,
-            amount: 5.00
-          })
-        }, session && session.access_token ? session.access_token : null);
-      } catch (error) {
-        console.warn("Não foi possível registrar o clique de pagamento:", error);
-      } finally {
-        window.location.href = PICPay_URL;
+      await openSupportPanel();
+      const input = document.getElementById("dmSupportInput");
+      if (input) {
+        input.value = "Olá! Quero liberar meu acesso ao DORAMAX. Gostaria de combinar a liberação de R$ 5,00.";
+        input.focus();
       }
     };
     card.style.position = "relative";
