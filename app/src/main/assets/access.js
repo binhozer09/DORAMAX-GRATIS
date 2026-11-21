@@ -149,7 +149,8 @@
       .dm-user{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #333;font-size:13px}
       .dm-user button{border:0;border-radius:9px;padding:10px 12px;background:#159b60;color:#fff;font-size:11px;font-weight:800;white-space:normal;min-width:150px}.dm-user{align-items:flex-start}.dm-user span{flex:1;overflow-wrap:anywhere}
       .dm-user button.lock{background:#b52b3f}
-      .dm-status{font-size:12px;color:#bbb;margin:8px 0}\n
+      .dm-status{font-size:12px;color:#bbb;margin:8px 0}
+
       .dm-support-launcher{position:fixed;right:18px;bottom:calc(22px + var(--safe-bottom,0px));z-index:950;width:58px;height:58px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#ff5268,#df1738);color:#fff;font-size:25px;box-shadow:0 8px 26px #0009,0 0 0 4px #ff52682b;cursor:pointer;-webkit-tap-highlight-color:transparent}
       .dm-support-launcher:active{transform:scale(.94)}
       .dm-support-prompt{position:fixed;right:86px;bottom:calc(34px + var(--safe-bottom,0px));z-index:949;max-width:170px;padding:8px 11px;border:1px solid #ff7184;border-radius:12px;background:#191116;color:#fff;font-size:11px;font-weight:900;line-height:1.25;text-align:center;box-shadow:0 5px 18px #0009;cursor:pointer}
@@ -604,7 +605,9 @@
     return Number.isNaN(date.getTime()) ? "" : date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
   }
 
-  function updateSupportPrompt() { const p=document.getElementById("dmSupportPrompt"); if(p) p.hidden=!!(unlocked||isAdmin); }\n\n  function createSupportUI() {
+  function updateSupportPrompt() { const p=document.getElementById("dmSupportPrompt"); if(p) p.hidden=!!(unlocked||isAdmin); }
+
+  function createSupportUI() {
     if (document.getElementById("dmSupportLauncher")) return;
     const launcher = document.createElement("button");
     launcher.id = "dmSupportLauncher";
@@ -757,7 +760,8 @@
   createModal();
   createSupportUI();
   installAdminEntry();
-  updateGate();\n  updateSupportPrompt();
+  updateGate();
+  updateSupportPrompt();
 
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -767,7 +771,8 @@
   loadAccess();
   loadRemoteSettings();
   // Refresh access when the app returns to foreground.
-  setInterval(() => { if (!document.hidden && session) loadAccess(); }, 15000);\n  document.addEventListener("visibilitychange", () => {
+  setInterval(() => { if (!document.hidden && session) loadAccess(); }, 15000);
+  document.addEventListener("visibilitychange", () => {
     if (!document.hidden && session) loadAccess();
   });
 })();
