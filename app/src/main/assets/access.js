@@ -252,9 +252,9 @@
         <h2>Continue assistindo</h2>
         <p>Os 2 primeiros vídeos são grátis. Para liberar os demais, faça seu cadastro e pague R$ 5,00 uma única vez.</p>
         <button class="dm-btn" type="button">CRIAR CONTA / ENTRAR</button>
-        <button class="dm-btn green dm-pay-button" type="button" style="display:none">PAGUE 5 REAIS APENAS UMA VEZ</button>
-        <p class="dm-small dm-pay-hint">Crie sua conta ou entre nela para liberar a opção de pagamento.</p>
-        <p class="dm-small">Depois do pagamento, aguarde a confirmação e liberação pelo administrador.</p>
+        <button class="dm-btn green dm-pay-button" type="button" style="display:none">LIBERAR ACESSO — R$ 5,00</button>
+        <p class="dm-small dm-pay-hint">Entre na sua conta para solicitar a liberação do acesso pelo suporte.</p>
+        <p class="dm-small">Toque em LIBERAR ACESSO para conversar com o suporte e combinar a liberação.</p>
       </div>`;
     cover.querySelector(".dm-btn").onclick = () => openModal(session && currentUser ? "login" : "signup");
     const payButton = cover.querySelector(".dm-pay-button");
@@ -613,7 +613,8 @@
     launcher.setAttribute("aria-label", "Abrir suporte");
     launcher.title = "Suporte";
     launcher.textContent = "💬";
-    const prompt=document.createElement("button"); prompt.id="dmSupportPrompt"; prompt.className="dm-support-prompt"; prompt.type="button"; prompt.textContent="LIBERE AQUI SEU ACESSO  ➜"; prompt.setAttribute("aria-label","Toque aqui para liberar seu acesso");\n    const panel = document.createElement("section");
+    const prompt=document.createElement("button"); prompt.id="dmSupportPrompt"; prompt.className="dm-support-prompt"; prompt.type="button"; prompt.textContent="LIBERE AQUI SEU ACESSO  ➜"; prompt.setAttribute("aria-label","Toque aqui para liberar seu acesso");
+    const panel = document.createElement("section");
     panel.id = "dmSupportPanel";
     panel.className = "dm-support-panel";
     panel.setAttribute("aria-label", "Suporte DORAMAX");
