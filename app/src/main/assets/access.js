@@ -150,7 +150,24 @@
       .dm-user{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #333;font-size:13px}
       .dm-user button{border:0;border-radius:9px;padding:10px 12px;background:#159b60;color:#fff;font-size:11px;font-weight:800;white-space:normal;min-width:150px}.dm-user{align-items:flex-start}.dm-user span{flex:1;overflow-wrap:anywhere}
       .dm-user button.lock{background:#b52b3f}
-      .dm-status{font-size:12px;color:#bbb;margin:8px 0}\n      .dm-logged-as{max-width:112px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;font-weight:600;color:#fff;background:#0009;border:1px solid #ffffff30;border-radius:12px;padding:4px 6px;pointer-events:none}
+      .dm-status{font-size:12px;color:#bbb;margin:8px 0}\n
+      .dm-support-launcher{position:fixed;right:18px;bottom:calc(22px + var(--safe-bottom,0px));z-index:1101;width:58px;height:58px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#ff5268,#df1738);color:#fff;font-size:25px;box-shadow:0 8px 26px #0009,0 0 0 4px #ff52682b;cursor:pointer;-webkit-tap-highlight-color:transparent}
+      .dm-support-launcher:active{transform:scale(.94)}
+      .dm-support-panel{position:fixed;right:14px;bottom:calc(92px + var(--safe-bottom,0px));z-index:1102;width:min(370px,calc(100vw - 28px));height:min(520px,68dvh);min-height:300px;display:none;flex-direction:column;overflow:hidden;border:1px solid #ffffff28;border-radius:20px;background:#101318;color:#fff;box-shadow:0 18px 55px #000c}
+      .dm-support-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:linear-gradient(120deg,#e72e4b,#8e1d53);font-weight:900}
+      .dm-support-head small{display:block;margin-top:3px;font-size:10px;font-weight:500;color:#ffe7ec}
+      .dm-support-close{border:0;background:#ffffff20;color:#fff;border-radius:50%;width:30px;height:30px;font-size:20px}
+      .dm-support-messages{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:9px}
+      .dm-support-bubble{max-width:88%;padding:10px 12px;border-radius:14px;background:#262c36;font-size:13px;line-height:1.45;overflow-wrap:anywhere;align-self:flex-start;white-space:pre-wrap}
+      .dm-support-bubble.mine{align-self:flex-end;background:#8e2038}
+      .dm-support-bubble small{display:block;margin-top:5px;color:#ffffffa8;font-size:9px}
+      .dm-support-compose{display:flex;gap:8px;padding:10px;border-top:1px solid #ffffff1c;background:#171b22}
+      .dm-support-compose textarea{flex:1;min-width:0;resize:none;max-height:90px;border:1px solid #ffffff24;border-radius:12px;padding:10px;background:#090c11;color:#fff;font:13px Arial}
+      .dm-support-compose button,.dm-support-login{border:0;border-radius:11px;padding:0 14px;background:#e72e4b;color:#fff;font-size:12px;font-weight:900}
+      .dm-support-login{margin:12px;padding:12px}
+      .dm-support-note{padding:18px 12px;color:#b9c0cc;text-align:center;font-size:12px;line-height:1.5}
+      body.player-playing:not(.player-controls-visible) .dm-support-launcher,body.player-playing:not(.player-controls-visible) .dm-support-panel{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+      .dm-logged-as{max-width:112px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;font-weight:600;color:#fff;background:#0009;border:1px solid #ffffff30;border-radius:12px;padding:4px 6px;pointer-events:none}
       
     `;
     document.head.appendChild(style);
@@ -585,6 +602,159 @@
     closeModal();
   }
 
+
+  let supportConversationId = null;
+  let supportPoller = null;
+  let supportSending = false;
+
+  function supportDate(value) {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "" : date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  }
+
+  function createSupportUI() {
+    if (document.getElementById("dmSupportLauncher")) return;
+    const launcher = document.createElement("button");
+    launcher.id = "dmSupportLauncher";
+    launcher.className = "dm-support-launcher";
+    launcher.type = "button";
+    launcher.setAttribute("aria-label", "Abrir suporte");
+    launcher.title = "Suporte";
+    launcher.textContent = "💬";
+    const panel = document.createElement("section");
+    panel.id = "dmSupportPanel";
+    panel.className = "dm-support-panel";
+    panel.setAttribute("aria-label", "Suporte DORAMAX");
+    panel.innerHTML = `
+      <header class="dm-support-head"><div>SUPORTE DORAMAX<small>Envie sua mensagem para nossa equipe</small></div><button class="dm-support-close" id="dmSupportClose" type="button" aria-label="Fechar">×</button></header>
+      <div class="dm-support-messages" id="dmSupportMessages"><div class="dm-support-note">Carregando suporte...</div></div>
+      <form class="dm-support-compose" id="dmSupportForm"><textarea id="dmSupportInput" rows="2" maxlength="4000" placeholder="Digite sua mensagem..." aria-label="Sua mensagem"></textarea><button id="dmSupportSend" type="submit">ENVIAR</button></form>`;
+    document.body.append(launcher, panel);
+    launcher.addEventListener("click", openSupportPanel);
+    document.getElementById("dmSupportClose").addEventListener("click", closeSupportPanel);
+    document.getElementById("dmSupportForm").addEventListener("submit", sendSupportMessage);
+  }
+
+  function closeSupportPanel() {
+    const panel = document.getElementById("dmSupportPanel");
+    if (panel) panel.style.display = "none";
+    if (supportPoller) clearInterval(supportPoller);
+    supportPoller = null;
+  }
+
+  async function openSupportPanel() {
+    const panel = document.getElementById("dmSupportPanel");
+    if (!panel) return;
+    panel.style.display = "flex";
+    if (!session || !currentUser) {
+      const list = document.getElementById("dmSupportMessages");
+      list.replaceChildren();
+      const note = document.createElement("div");
+      note.className = "dm-support-note";
+      note.textContent = "Para enviar e acompanhar suas mensagens, entre na sua conta do DORAMAX.";
+      const login = document.createElement("button");
+      login.className = "dm-support-login";
+      login.type = "button";
+      login.textContent = "ENTRAR / CRIAR CONTA";
+      login.onclick = () => openModal("login");
+      list.append(note, login);
+      document.getElementById("dmSupportForm").style.display = "none";
+      return;
+    }
+    document.getElementById("dmSupportForm").style.display = "flex";
+    try {
+      await loadSupportThread();
+      if (!supportPoller) supportPoller = setInterval(() => {
+        if (panel.style.display === "flex" && session && currentUser) loadSupportThread();
+      }, 7000);
+    } catch (error) {
+      const list = document.getElementById("dmSupportMessages");
+      list.textContent = "Não foi possível carregar o suporte: " + (error.message || "erro desconhecido");
+    }
+  }
+
+  async function ensureSupportConversation() {
+    if (!session || !currentUser) throw new Error("Entre na sua conta para usar o suporte.");
+    await refreshSessionIfNeeded();
+    const query = "/rest/v1/support_conversations?select=id&user_id=eq." + encodeURIComponent(currentUser.id) + "&limit=1";
+    const existing = await api(query, { method: "GET" }, session.access_token);
+    if (Array.isArray(existing) && existing.length) {
+      supportConversationId = existing[0].id;
+      return supportConversationId;
+    }
+    const created = await api("/rest/v1/support_conversations", {
+      method: "POST",
+      headers: { "Prefer": "return=representation" },
+      body: JSON.stringify({ user_id: currentUser.id })
+    }, session.access_token);
+    if (!Array.isArray(created) || !created[0]?.id) throw new Error("Não foi possível iniciar a conversa.");
+    supportConversationId = created[0].id;
+    return supportConversationId;
+  }
+
+  async function loadSupportThread() {
+    const conversationId = await ensureSupportConversation();
+    const rows = await api("/rest/v1/support_messages?select=id,sender_type,body,created_at&conversation_id=eq." +
+      encodeURIComponent(conversationId) + "&order=created_at.asc&limit=150", { method: "GET" }, session.access_token);
+    const list = document.getElementById("dmSupportMessages");
+    if (!list) return;
+    list.replaceChildren();
+    if (!rows.length) {
+      const empty = document.createElement("div");
+      empty.className = "dm-support-note";
+      empty.textContent = "Olá! Escreva sua dúvida ou solicitação. Nossa equipe responderá por aqui.";
+      list.appendChild(empty);
+      return;
+    }
+    rows.forEach(message => {
+      const bubble = document.createElement("div");
+      bubble.className = "dm-support-bubble" + (message.sender_type === "user" ? " mine" : "");
+      const body = document.createElement("span");
+      body.textContent = message.body;
+      const time = document.createElement("small");
+      time.textContent = (message.sender_type === "user" ? "Você" : "DORAMAX ADM") + " · " + supportDate(message.created_at);
+      bubble.append(body, time);
+      list.appendChild(bubble);
+    });
+    list.scrollTop = list.scrollHeight;
+  }
+
+  async function sendSupportMessage(event) {
+    event.preventDefault();
+    if (supportSending) return;
+    const input = document.getElementById("dmSupportInput");
+    const message = input.value.trim();
+    if (!message) return;
+    if (!session || !currentUser) { openModal("login"); return; }
+    const button = document.getElementById("dmSupportSend");
+    supportSending = true;
+    button.disabled = true;
+    try {
+      const conversationId = await ensureSupportConversation();
+      await api("/rest/v1/support_messages", {
+        method: "POST",
+        headers: { "Prefer": "return=minimal" },
+        body: JSON.stringify({ conversation_id: conversationId, sender_id: currentUser.id, sender_type: "user", body: message })
+      }, session.access_token);
+      await api("/rest/v1/support_conversations?id=eq." + encodeURIComponent(conversationId), {
+        method: "PATCH",
+        headers: { "Prefer": "return=minimal" },
+        body: JSON.stringify({ last_message_at: new Date().toISOString() })
+      }, session.access_token);
+      input.value = "";
+      await loadSupportThread();
+    } catch (error) {
+      const list = document.getElementById("dmSupportMessages");
+      const note = document.createElement("div");
+      note.className = "dm-support-note";
+      note.textContent = "Falha ao enviar: " + (error.message || "tente novamente.");
+      list.appendChild(note);
+    } finally {
+      supportSending = false;
+      button.disabled = false;
+    }
+  }
+
   function installAdminEntry() {
     window.addEventListener("doramax:open-account", () => openModal("login"));
     window.addEventListener("doramax:request-account-state", updateLoggedAs);
@@ -592,6 +762,7 @@
 
   addStyles();
   createModal();
+  createSupportUI();
   installAdminEntry();
   updateGate();
 
