@@ -416,6 +416,7 @@
       document.getElementById("dmStatus").textContent = unlocked
         ? "Acesso liberado. Aproveite todos os vídeos!"
         : "Conta conectada. Acesso aguardando liberação.";
+      if (document.getElementById("dmSupportPanel")?.style.display === "flex") openSupportPanel();
     } catch (error) {
       // Keep the authenticated session so the user can see the real permission/API error.
       isAdmin = false;
