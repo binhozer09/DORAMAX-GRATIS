@@ -753,7 +753,7 @@ class MainActivity : AppCompatActivity() {
 
         adView.loadAd(request, object : AdLoadCallback<BannerAd> {
             override fun onAdLoaded(ad: BannerAd) {
-                Log.d(TAG, "DORAMAX production banner loaded; responseInfo=" + ad.responseInfo)
+                Log.d(TAG, "DORAMAX production banner loaded successfully")
                 runOnUiThread {
                     if (!isFinishing && !isDestroyed) {
                         bannerAdLoaded = true
@@ -769,9 +769,8 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onAdFailedToLoad(adError: LoadAdError) {
-                val responseInfo = adError.responseInfo?.toString() ?: "Sem informações de resposta do servidor"
-                val diagnostic = "Código: ${adError.code}\nMensagem: ${adError.message}\nResposta: $responseInfo\nDetalhes: $adError"
-                Log.e(TAG, "DORAMAX banner failed to load: $diagnostic", adError.cause)
+                val diagnostic = "Código: ${adError.code}\nMensagem: ${adError.message}\nDetalhes: $adError"
+                Log.e(TAG, "DORAMAX banner failed to load: $diagnostic")
                 runOnUiThread {
                     if (!isFinishing && !isDestroyed) {
                         bannerAdLoaded = false
