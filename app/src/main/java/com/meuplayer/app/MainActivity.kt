@@ -756,7 +756,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 override fun onAdFailedToLoad(adError: LoadAdError) {
-                    val diagnostic = "Código: ${adError.code}\\nMensagem: ${adError.message}\\nDetalhes: $adError"
+                    val diagnostic = "Código: ${adError.code}\nMensagem: ${adError.message}\nDetalhes: $adError"
                     Log.e(TAG, "DORAMAX banner failed to load: $diagnostic")
                     runOnUiThread {
                         if (!isFinishing && !isDestroyed && bannerAdView === adView) {
