@@ -851,13 +851,12 @@ class MainActivity : AppCompatActivity() {
             return
         }
         if (::siteWeb.isInitialized) {
-            // O player usa fullscreen simulado dentro do WebView. O botão Voltar
-            // do Android não gera keydown no JavaScript; consulte o estado do player
-            // antes de permitir que o app navegue para trás ou feche.
+            // Quando um vídeo está aberto, o Voltar do Android retorna ao catálogo.
+            // Só permite sair do aplicativo quando já estamos no catálogo.
             siteWeb.evaluateJavascript(
-                "(function(){return !!(document.querySelector('.video.fullscreen-fallback') && window.doramaxExitFullscreen && window.doramaxExitFullscreen());})()"
+                "(function(){if(document.body.classList.contains('player-open')){if(typeof window.returnToCatalog==='function'){window.returnToCatalog();return 'catalog';}return 'player';}return 'catalog-screen';})()"
             ) { result ->
-                if (result != "true") {
+                if (result == "\"catalog-screen\"") {
                     if (siteWeb.canGoBack()) siteWeb.goBack() else super.onBackPressed()
                 }
             }
