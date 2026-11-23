@@ -82,7 +82,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='85' versionName='5.48'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='84' versionName='5.47'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -96,22 +96,22 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 85,
-              "versionName": "5.48",
+              "versionCode": 84,
+              "versionName": "5.47",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Corrige falhas de inicialização do player, mantém o botão de voltar ao catálogo visível e oferece recuperação para vídeos com erro do YouTube."
+              "releaseNotes": "Altera o botão de contribuição de PIX para DOAR; mantém o PIX copia e cola."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + chr(10))
           PY
-          echo "tag=doramax-v5.48" >> "$GITHUB_OUTPUT"
+          echo "tag=doramax-v5.47" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.manifest.outputs.tag }}
-          name: DORAMAX-GRATIS 5.48
+          name: DORAMAX-GRATIS 5.47
           target_commitish: main
           generate_release_notes: true
           files: |
@@ -121,8 +121,8 @@ jobs:
       - name: Atualizar link antigo usado pelo site promocional
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: doramax-v5.47
-          name: DORAMAX-GRATIS 5.47 (link do site atualizado)
+          tag_name: doramax-v5.46
+          name: DORAMAX-GRATIS 5.46 (link do site atualizado)
           target_commitish: main
           generate_release_notes: false
           overwrite_files: true
