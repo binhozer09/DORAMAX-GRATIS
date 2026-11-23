@@ -1015,6 +1015,7 @@ function ensurePlayer(frame){
      }
      if(event.data===YT.PlayerState.PLAYING){
   doramaxClearPremiereNotice(frame);
+  doramaxClearPlaybackRecovery(frame);
   doramaxStartRetries.delete(frame);
   doramaxClearStartTimeout(frame);
   doramaxSendDiagnostic('youtube_player_playing',frame,null);
