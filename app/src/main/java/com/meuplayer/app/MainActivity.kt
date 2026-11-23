@@ -106,19 +106,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         @JavascriptInterface
-        fun openYoutubeVideo(videoId: String) {
-            if (!videoId.matches(Regex("[A-Za-z0-9_-]{11}"))) return
-            runOnUiThread {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=$videoId")))
-                } catch (error: Exception) {
-                    Toast.makeText(this@MainActivity, "Não foi possível abrir o vídeo no YouTube.", Toast.LENGTH_LONG).show()
-                    Log.w(TAG, "Could not open YouTube video externally", error)
-                }
-            }
-        }
-
-        @JavascriptInterface
         fun getVersionCode(): Int = BuildConfig.VERSION_CODE
 
         @JavascriptInterface
