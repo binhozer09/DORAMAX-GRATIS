@@ -69,7 +69,7 @@ body.player-playing:not(.player-controls-visible) .topbar,body.player-playing:no
 #feed{display:none}
 #feed.player-mode{display:block}
 .back-catalog{display:none;position:fixed;top:calc(66px + var(--safe-top));left:14px;z-index:2147483647;pointer-events:auto;border:1px solid #ffffff40;border-radius:18px;padding:8px 12px;background:#080b12ef;color:#fff;font-size:10px;font-weight:800;box-shadow:0 4px 14px #0008}
-body.player-open .back-catalog{display:inline-flex;opacity:1;visibility:visible;pointer-events:auto;transition:opacity .18s ease}
+body.player-open .back-catalog{display:inline-flex;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,visibility .18s ease}body.player-open.player-controls-visible .back-catalog{opacity:1;visibility:visible;pointer-events:auto}
 body.player-open .catalog-screen{display:none}
 @media(min-width:700px){.catalog-screen{max-width:520px;left:50%;right:auto;transform:translateX(-50%);width:100%;border-left:1px solid #ffffff0c;border-right:1px solid #ffffff0c}.catalog-grid{gap:22px 16px}}
 
@@ -371,31 +371,6 @@ function doramaxClearStartTimeout(frame){
 }
 function doramaxShowPremiereNotice(frame){const box=frame?.closest('.video')?.querySelector('.player');if(!box||box.querySelector('.video-premiere-notice'))return;const n=document.createElement('div');n.className='video-premiere-notice';const h=document.createElement('strong');h.textContent='VAI ESTREAR AINDA';const d=document.createElement('span');d.textContent='AGUARDE A ESTREIA';n.append(h,d);box.appendChild(n);}
 function doramaxClearPremiereNotice(frame){const n=frame?.closest('.video')?.querySelector('.video-premiere-notice');if(n)n.remove();}
-function doramaxClearPlaybackRecovery(frame){const n=frame?.closest('.video')?.querySelector('.video-play-error');if(n)n.remove();}
-function doramaxShowPlaybackRecovery(frame,message='O vídeo demorou para iniciar. Você pode tentar novamente ou voltar ao catálogo.'){
- const box=frame?.closest('.video')?.querySelector('.player');if(!box)return;
- doramaxClearPremiereNotice(frame);doramaxClearPlaybackRecovery(frame);
- const panel=document.createElement('div');panel.className='video-play-error';
- const text=document.createElement('p');text.textContent=message;
- const retry=document.createElement('button');retry.type='button';retry.textContent='TENTAR NOVAMENTE';
- retry.addEventListener('click',()=>doramaxRetryPlayback(frame));
- const back=document.createElement('button');back.type='button';back.textContent='VOLTAR AO CATÁLOGO';back.addEventListener('click',returnToCatalog);
- panel.append(text,retry,back);box.appendChild(panel);
-}
-function doramaxRetryPlayback(frame){
- if(!frame||activeFrame!==frame)return;
- doramaxClearPlaybackRecovery(frame);doramaxClearPremiereNotice(frame);
- doramaxClearStartTimeout(frame);doramaxStartRetries.delete(frame);
- const id=videoId(frame),player=players.get(frame);
- if(!id||!player)return;
- try{
-  if(typeof player.loadVideoById==='function')player.loadVideoById({videoId:id,suggestedQuality:'large'});
-  else if(typeof player.seekTo==='function')player.seekTo(0,true);
-  player.playVideo?.();
-  doramaxWatchStartTimeout(frame);
-  showPlayerControls(frame.closest('.video'));
- }catch(error){doramaxLog('youtube_manual_retry_error',{videoId:id,message:String(error)});doramaxShowPlaybackRecovery(frame,'Não foi possível reiniciar o player. Tente novamente ou volte ao catálogo.');}
-}
 function doramaxWatchStartTimeout(frame){
  if(!frame||doramaxStartTimeouts.has(frame))return;
  const timer=setTimeout(()=>{
@@ -418,10 +393,10 @@ function doramaxWatchStartTimeout(frame){
    },1500);
    return;
   }
-  doramaxShowPlaybackRecovery(frame,'O YouTube não iniciou este vídeo após a tentativa automática. Confira sua conexão, tente novamente ou volte ao catálogo.');
-  doramaxLog('youtube_player_start_timeout',{videoId:id||null,timeoutMs:15000,playerState:state,retries,...doramaxCurrentState()});
-  doramaxSendDiagnostic('youtube_player_start_timeout',frame,408,{player_state:state,iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState,timeout_ms:15000});
- },15000);
+  doramaxShowPremiereNotice(frame);
+  doramaxLog('youtube_player_start_timeout',{videoId:id||null,timeoutMs:9000,playerState:state,retries,...doramaxCurrentState()});
+  doramaxSendDiagnostic('youtube_player_start_timeout',frame,408,{player_state:state,iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState,timeout_ms:9000});
+ },9000);
  doramaxStartTimeouts.set(frame,timer);
 }
 function doramaxSendDiagnostic(event,frame,errorCode=null,details=null){
@@ -983,22 +958,14 @@ function ensurePlayer(frame){
      doramaxStartRetries.delete(frame);
      doramaxLog('youtube_player_error',{videoId:videoId(frame)||null,errorCode:code,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
      doramaxSendDiagnostic('youtube_player_error',frame,code,{iframe_connected:!!frame?.isConnected,iframe_src:frame?.getAttribute('src')||'',network_online:navigator.onLine,visibility_state:document.visibilityState});
-     const messages={2:'O identificador deste vídeo é inválido.',5:'O player HTML5 do YouTube falhou ao iniciar. Verifique a conexão.',100:'Este vídeo foi removido, ficou privado ou não está disponível no YouTube.',101:'O responsável pelo vídeo não permite reprodução dentro de outros aplicativos.',150:'O responsável pelo vídeo bloqueou a reprodução incorporada. Abra este vídeo diretamente no YouTube.',153:'O YouTube não conseguiu validar a origem da reprodução.'};
-     const errorMessage=(messages[code]||'O YouTube não conseguiu reproduzir este vídeo.')+' (código '+code+')';
-     doramaxClearPlaybackRecovery(frame);
      const playerBox=frame.closest('.video')?.querySelector('.player');
-     if(playerBox){
+     if(playerBox&&!playerBox.querySelector('.video-play-error')){
       const panel=document.createElement('div');panel.className='video-play-error';
-      const message=document.createElement('p');message.textContent=errorMessage;
-      if(code===150||code===101){
-       const youtube=document.createElement('button');youtube.type='button';youtube.textContent='ASSISTIR NO YOUTUBE';
-       youtube.addEventListener('click',()=>{try{window.DoramaxAndroid?.openYoutubeVideo?.(videoId(frame));}catch(error){doramaxLog('open_youtube_error',{message:String(error)});}});
-       panel.append(message,youtube);
-      }else{
-       const retry=document.createElement('button');retry.type='button';retry.textContent='TENTAR NOVAMENTE';retry.addEventListener('click',()=>doramaxRetryPlayback(frame));panel.append(message,retry);
-      }
+      const message=document.createElement('p');
+      const messages={2:'O identificador deste vídeo é inválido.',5:'O player HTML5 do YouTube falhou ao iniciar. Verifique a conexão.',100:'Este vídeo foi removido, ficou privado ou não está disponível no YouTube.',101:'O responsável pelo vídeo não permite reprodução dentro de outros aplicativos.',150:'O responsável pelo vídeo não permite reprodução dentro de outros aplicativos.',153:'O YouTube não conseguiu validar a origem da reprodução.'};
+      message.textContent=(messages[code]||'O YouTube não conseguiu reproduzir este vídeo.')+' (código '+code+')';
       const back=document.createElement('button');back.type='button';back.textContent='VOLTAR AO CATÁLOGO';back.addEventListener('click',returnToCatalog);
-      panel.append(back);playerBox.appendChild(panel);
+      panel.append(message,back);playerBox.appendChild(panel);
      }
     },
     onStateChange:event=>{
