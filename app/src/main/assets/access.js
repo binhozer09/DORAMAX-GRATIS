@@ -104,8 +104,14 @@
         value.expires_at = Math.floor(Date.now() / 1000) + Number(value.expires_in);
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+      // Supabase includes the user in its saved session; show that local identity
+      // immediately while token and access permissions are revalidated in background.
+      if (value.user && typeof value.user === "object") currentUser = value.user;
     } else {
       localStorage.removeItem(STORAGE_KEY);
+      currentUser = null;
+      isAdmin = false;
+      unlocked = false;
     }
     updateLoggedAs();
   }
