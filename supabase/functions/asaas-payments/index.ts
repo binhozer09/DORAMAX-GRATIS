@@ -40,12 +40,36 @@ async function asaas(path: string, apiKey: string, init: RequestInit = {}) {
   return data;
 }
 
-async function issueAccess(admin: ReturnType<typeof createClient>, userId: string) {
+async function issueAccess(admin: any, userId: string) {
   const { error } = await admin.from("access_grants").upsert(
     { user_id: userId, is_unlocked: true, updated_at: new Date().toISOString() },
     { onConflict: "user_id" },
   );
   if (error) throw error;
+}
+
+async function ensureWebhook(apiKey: string, token: string, email: string) {
+  if (token.length < 32 || token.length > 255 || /\\s/.test(token)) {
+    throw new Error("ASAAS_WEBHOOK_TOKEN precisa ter entre 32 e 255 caracteres e não conter espaços.");
+  }
+  const webhookUrl = Deno.env.get("SUPABASE_URL") + "/functions/v1/asaas-webhook";
+  const current = await asaas("/webhooks", apiKey);
+  const rows = Array.isArray(current?.data) ? current.data : [];
+  if (rows.some((item: any) => item.url === webhookUrl && item.enabled === true)) return;
+  await asaas("/webhooks", apiKey, {
+    method: "POST",
+    body: JSON.stringify({
+      name: "DORAMAX - Confirmação de pagamentos",
+      url: webhookUrl,
+      email,
+      enabled: true,
+      interrupted: false,
+      apiVersion: 3,
+      authToken: token,
+      sendType: "SEQUENTIALLY",
+      events: ["PAYMENT_RECEIVED"],
+    }),
+  });
 }
 
 Deno.serve(async (req: Request) => {
@@ -75,6 +99,11 @@ Deno.serve(async (req: Request) => {
     if (grant?.is_unlocked === true) return json({ unlocked: true });
 
     if (action === "create") {
+      const webhookToken = Deno.env.get("ASAAS_WEBHOOK_TOKEN");
+      if (webhookToken) {
+        try { await ensureWebhook(apiKey, webhookToken, user.email || ""); }
+        catch (webhookError) { console.error("Não foi possível registrar o webhook Asaas; a consulta automática continuará ativa:", webhookError); }
+      }
       const { data: pending, error: pendingError } = await admin
         .from("doramax_payments")
         .select("asaas_payment_id,pix_payload,pix_encoded_image,invoice_url,status")
@@ -146,7 +175,7 @@ Deno.serve(async (req: Request) => {
           verified.billingType !== "PIX") {
         return json({ error: "Os dados da cobrança não correspondem a esta conta." }, 403);
       }
-      const paid = ["CONFIRMED", "RECEIVED"].includes(String(verified.status));
+      const paid = String(verified.status) === "RECEIVED";
       const nextStatus = String(verified.status || row.status);
       const { error: updateError } = await admin.from("doramax_payments")
         .update({ status: nextStatus, paid_at: paid ? new Date().toISOString() : null, updated_at: new Date().toISOString() })
