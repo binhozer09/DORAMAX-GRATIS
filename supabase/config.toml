@@ -2,3 +2,9 @@ project_id = "qbwsaahlkovrejwliefv"
 
 [functions.sync-videos]
 verify_jwt = true
+
+[functions.asaas-payments]
+verify_jwt = true
+
+[functions.asaas-webhook]
+verify_jwt = false
