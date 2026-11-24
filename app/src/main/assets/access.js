@@ -138,9 +138,6 @@
     const style = document.createElement("style");
     style.textContent = `
       .dm-cover{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.94);text-align:center}
-      .dm-payment-gate{position:fixed!important;inset:0!important;z-index:2147483646!important;display:none;align-items:center;justify-content:center;padding:24px;background:#08090c!important;isolation:isolate;}
-      .dm-payment-gate button{width:min(100%,360px);min-height:58px;border:0;border-radius:14px;padding:16px 20px;background:#159b60;color:#fff;font-size:17px;font-weight:900;letter-spacing:.2px;box-shadow:0 8px 28px #0009;}
-      .dm-payment-gate button:disabled{opacity:.7;}
       .dm-cover-card{width:min(100%,340px);padding:26px 22px;border:1px solid #ffffff24;border-radius:20px;background:#151515;box-shadow:0 12px 45px #000}
       .dm-cover h2,.dm-modal h2{font-size:23px;margin:0 0 10px}
       .dm-cover p,.dm-modal p{font-size:14px;line-height:1.5;color:#ddd;margin:0 0 18px}
@@ -344,21 +341,29 @@
     if (card.querySelector(".dm-cover")) return;
     const cover = document.createElement("div");
     cover.className = "dm-cover";
+    const isPaymentCard = index === 3;
     cover.innerHTML = `
       <div class="dm-cover-card">
-        <h2>Continue assistindo</h2>
-        <p>Os 3 primeiros vídeos são grátis. Para liberar os demais, faça seu cadastro e pague R$ 5,00 uma única vez.</p>
-        <button class="dm-btn" type="button">CRIAR CONTA / ENTRAR</button>
-        <button class="dm-btn green dm-pay-button" type="button" style="display:none">LIBERAR ACESSO — R$ 5,00</button>
-        <p class="dm-small dm-pay-hint">Entre na sua conta para pagar R$ 5,00 via Pix.</p>
-        <p class="dm-small">Pagamento único. O acesso completo será liberado automaticamente após a confirmação do Pix.</p>
+        <h2>${isPaymentCard ? "Continue assistindo" : "Conteúdo exclusivo"}</h2>
+        <p>${isPaymentCard ? "Os 3 primeiros vídeos são grátis. Para liberar todos os vídeos, entre na sua conta e pague R$ 5,00 uma única vez." : "Este vídeo faz parte do acesso completo. A opção para liberar fica no 4º vídeo."}</p>
+        <button class="dm-btn dm-access-button" type="button">${isPaymentCard ? "CRIAR CONTA / ENTRAR" : "IR AO 4º VÍDEO"}</button>
+        ${isPaymentCard ? '<button class="dm-btn green dm-pay-button" type="button" style="display:none">LIBERAR ACESSO — R$ 5,00</button><p class="dm-small dm-pay-hint">Entre na sua conta para pagar R$ 5,00 via Pix.</p><p class="dm-small">Pagamento único. O acesso completo será liberado automaticamente após a confirmação do Pix.</p>' : ''}
       </div>`;
-    cover.querySelector(".dm-btn").onclick = () => openModal(session && currentUser ? "login" : "signup");
+    const accessButton = cover.querySelector(".dm-access-button");
     const payButton = cover.querySelector(".dm-pay-button");
     const payHint = cover.querySelector(".dm-pay-hint");
     const isLoggedIn = !!(session && currentUser && currentUser.id);
-    payButton.style.display = isLoggedIn ? "block" : "none";
-    payHint.style.display = isLoggedIn ? "none" : "block";
+    if (isPaymentCard) {
+      accessButton.style.display = isLoggedIn ? "none" : "block";
+      accessButton.onclick = () => openModal(session && currentUser ? "login" : "signup");
+      if (payButton) payButton.style.display = isLoggedIn ? "block" : "none";
+      if (payHint) payHint.style.display = isLoggedIn ? "none" : "block";
+    } else {
+      accessButton.onclick = () => {
+        const paymentCard = cards[3];
+        paymentCard?.scrollIntoView({ behavior: "auto", block: "start" });
+      };
+    }
     payButton.onclick = async () => {
       if (!session || !currentUser || !currentUser.id) {
         openModal("login");
@@ -395,26 +400,6 @@
     card.appendChild(cover);
   }
 
-  function updatePaymentGateOverlay() {
-    let gate = document.getElementById("dmPaymentGate");
-    if (!gate) {
-      gate = document.createElement("div");
-      gate.id = "dmPaymentGate";
-      gate.className = "dm-payment-gate";
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = "LIBERAR ACESSO — R$ 5,00";
-      button.addEventListener("click", () => {
-        const paymentButton = document.querySelector("#feed .dm-pay-button");
-        if (paymentButton) paymentButton.click();
-      });
-      gate.appendChild(button);
-      document.body.appendChild(gate);
-    }
-    const shouldBlock = !!(session && currentUser && currentUser.id && !unlocked && !isAdmin);
-    gate.style.display = shouldBlock ? "flex" : "none";
-    document.body.style.overflow = shouldBlock ? "hidden" : "";
-  }
 
   function updateGate() {
     cards = [...document.querySelectorAll("#feed .video")];
@@ -434,7 +419,6 @@
         }
       }
     });
-    updatePaymentGateOverlay();
   }
   window.doramaxRefreshAccessGate = function () { updateGate(); };
 
