@@ -405,7 +405,7 @@
     cards = [...document.querySelectorAll("#feed .video")];
     cards.forEach((card, index) => {
       const existing = card.querySelector(".dm-cover");
-      // Regra fixa: somente os três primeiros vídeos são gratuitos.\n      // Do quarto em diante, tudo fica bloqueado até pagamento confirmado ou acesso administrativo.\n      if (index < 3 || unlocked || isAdmin) {
+      // Regra fixa: somente os três primeiros vídeos são gratuitos.\n      // Do quarto em diante, tudo fica bloqueado até pagamento confirmado ou acesso administrativo.\n      if (index < 3 || unlocked) {
         if (existing) existing.remove();
       } else {
         makeCover(card, index);
@@ -523,7 +523,7 @@
       const adminRows = results[0];
       const grantRows = results[1];
       isAdmin = Array.isArray(adminRows) && adminRows.length > 0;
-      unlocked = isAdmin || !!(Array.isArray(grantRows) && grantRows[0] && grantRows[0].is_unlocked === true);
+      unlocked = !!(Array.isArray(grantRows) && grantRows[0] && grantRows[0].is_unlocked === true);
       updateGate();
       updateSupportPrompt(); document.getElementById("dmLogout").style.display = "block";
       document.getElementById("dmStatus").textContent = unlocked
