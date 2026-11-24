@@ -7,7 +7,7 @@
   if (window.__doramaxAccessLoaded) return;
   window.__doramaxAccessLoaded = true;
   window.__doramaxAccessSource = "local";
-  window.__doramaxAccessVersion = "2026.11.24-payment-layer-fix";
+  window.__doramaxAccessVersion = "2026.11.24-payment-only-gate";
 
   const SUPABASE_URL = "https://qbwsaahlkovrejwliefv.supabase.co";
   const SUPABASE_KEY = "sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK";
@@ -138,6 +138,9 @@
     const style = document.createElement("style");
     style.textContent = `
       .dm-cover{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.94);text-align:center}
+      .dm-payment-gate{position:fixed!important;inset:0!important;z-index:2147483646!important;display:none;align-items:center;justify-content:center;padding:24px;background:#08090c!important;isolation:isolate;}
+      .dm-payment-gate button{width:min(100%,360px);min-height:58px;border:0;border-radius:14px;padding:16px 20px;background:#159b60;color:#fff;font-size:17px;font-weight:900;letter-spacing:.2px;box-shadow:0 8px 28px #0009;}
+      .dm-payment-gate button:disabled{opacity:.7;}
       .dm-cover-card{width:min(100%,340px);padding:26px 22px;border:1px solid #ffffff24;border-radius:20px;background:#151515;box-shadow:0 12px 45px #000}
       .dm-cover h2,.dm-modal h2{font-size:23px;margin:0 0 10px}
       .dm-cover p,.dm-modal p{font-size:14px;line-height:1.5;color:#ddd;margin:0 0 18px}
@@ -392,6 +395,27 @@
     card.appendChild(cover);
   }
 
+  function updatePaymentGateOverlay() {
+    let gate = document.getElementById("dmPaymentGate");
+    if (!gate) {
+      gate = document.createElement("div");
+      gate.id = "dmPaymentGate";
+      gate.className = "dm-payment-gate";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = "LIBERAR ACESSO — R$ 5,00";
+      button.addEventListener("click", () => {
+        const paymentButton = document.querySelector("#feed .dm-pay-button");
+        if (paymentButton) paymentButton.click();
+      });
+      gate.appendChild(button);
+      document.body.appendChild(gate);
+    }
+    const shouldBlock = !!(session && currentUser && currentUser.id && !unlocked && !isAdmin);
+    gate.style.display = shouldBlock ? "flex" : "none";
+    document.body.style.overflow = shouldBlock ? "hidden" : "";
+  }
+
   function updateGate() {
     cards = [...document.querySelectorAll("#feed .video")];
     cards.forEach((card, index) => {
@@ -410,6 +434,7 @@
         }
       }
     });
+    updatePaymentGateOverlay();
   }
   window.doramaxRefreshAccessGate = function () { updateGate(); };
 
