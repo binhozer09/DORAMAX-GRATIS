@@ -364,7 +364,7 @@
         paymentCard?.scrollIntoView({ behavior: "auto", block: "start" });
       };
     }
-    payButton.onclick = async () => {
+    if (payButton) payButton.onclick = async () => {
       if (!session || !currentUser || !currentUser.id) {
         openModal("login");
         return;
@@ -405,7 +405,7 @@
     cards = [...document.querySelectorAll("#feed .video")];
     cards.forEach((card, index) => {
       const existing = card.querySelector(".dm-cover");
-      if (card.dataset.freePreview === "true" || unlocked || isAdmin) {
+      // Regra fixa: somente os três primeiros vídeos são gratuitos.\n      // Do quarto em diante, tudo fica bloqueado até pagamento confirmado ou acesso administrativo.\n      if (index < 3 || unlocked || isAdmin) {
         if (existing) existing.remove();
       } else {
         makeCover(card, index);
