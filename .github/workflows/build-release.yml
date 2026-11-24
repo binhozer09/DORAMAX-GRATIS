@@ -82,7 +82,7 @@ jobs:
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           "$APKSIGNER" verify --verbose "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='91' versionName='5.54'"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='92' versionName='5.55'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -96,22 +96,22 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 91,
-              "versionName": "5.54",
+              "versionCode": 92,
+              "versionName": "5.55",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Botão de pagamento Pix de R$ 5 posicionado no 4º vídeo, sem bloquear a tela inteira; pagamento único com liberação automática após confirmação; melhorias na resposta dos toques e no progresso de Continuar Assistindo."
+              "releaseNotes": "Botão de pagamento Pix de R$ 5 posicionado no 4º vídeo, sem bloquear a tela inteira; pagamento único com liberação automática após confirmação; bloqueio obrigatório dos vídeos após o terceiro até a confirmação do pagamento."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + chr(10))
           PY
-          echo "tag=doramax-v5.54" >> "$GITHUB_OUTPUT"
+          echo "tag=doramax-v5.55" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.manifest.outputs.tag }}
-          name: DORAMAX-GRATIS 5.54
+          name: DORAMAX-GRATIS 5.55
           target_commitish: main
           generate_release_notes: true
           files: |
