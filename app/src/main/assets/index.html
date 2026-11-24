@@ -36,7 +36,6 @@ body.player-open .topbar,body.player-open .donate,body.player-open .video .info,
 .top-label{font-size:12px;font-weight:700;background:#0008;padding:7px 11px;border-radius:20px}.top-actions{display:flex;align-items:center;gap:8px;pointer-events:auto}.admin-entry{border:1px solid #ffffff66;border-radius:18px;padding:7px 8px;background:#0009;color:#fff;font-size:10px;font-weight:800;letter-spacing:.2px}.top-actions{gap:5px}
 .donate{position:fixed;z-index:22;top:calc(42px + var(--safe-top));left:14px;right:auto;bottom:auto;width:auto;height:auto;padding:6px 9px;border-radius:14px;background:#071b12;color:#baffd7;text-decoration:none;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;letter-spacing:.3px;box-shadow:0 0 5px #16f58b88,0 0 12px #16f58b66,inset 0 0 5px #16f58b44;border:1px solid #48ff9b;pointer-events:auto;-webkit-tap-highlight-color:transparent;animation:donateNeon 2.2s ease-in-out infinite}
     @keyframes donateNeon{0%,100%{opacity:1;text-shadow:0 0 4px #8dffc0,0 0 8px #16f58b;box-shadow:0 0 5px #16f58b88,0 0 12px #16f58b66,inset 0 0 5px #16f58b44}50%{opacity:.62;text-shadow:0 0 2px #8dffc088;box-shadow:0 0 2px #16f58b44,0 0 5px #16f58b33,inset 0 0 2px #16f58b22}}
-    .donate:active{transform:scale(.94)}
     @media(prefers-reduced-motion:reduce){.donate{animation:none}}
 .info{position:absolute;z-index:5;left:14px;right:76px;bottom:calc(22px + var(--safe-bottom));padding:42px 0 8px;background:linear-gradient(transparent,#0009 28%,#000c);pointer-events:none}
 .info{opacity:1;transition:opacity .18s ease}
@@ -62,7 +61,6 @@ body.player-playing:not(.player-controls-visible) .topbar,body.player-playing:no
 .catalog-card{min-width:0;padding:0;border:0;background:transparent;color:#fff;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .catalog-poster-wrap{position:relative;display:block;width:100%;aspect-ratio:2/3;overflow:hidden;border-radius:9px;background:linear-gradient(145deg,#202b3b,#111722);box-shadow:0 5px 16px #0008}
 .catalog-poster{display:block;width:100%;height:100%;object-fit:cover;transition:transform .22s ease}
-.catalog-card:active .catalog-poster{transform:scale(1.035)}
 .catalog-play{position:absolute;right:9px;bottom:9px;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#ff3048;color:#fff;font-size:15px;box-shadow:0 2px 12px #0009}
 .catalog-title{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:8px 1px 0;font-size:13px;line-height:1.35;font-weight:700;color:#e7ebf2}
 .catalog-empty{grid-column:1/-1;padding:35px 12px;text-align:center;color:#aab4c3;font-size:13px}
