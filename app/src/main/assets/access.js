@@ -421,6 +421,12 @@
     });
   }
   window.doramaxRefreshAccessGate = function () { updateGate(); };
+  // Autoriza reprodução apenas dos três cartões gratuitos ou após confirmação do pagamento.
+  window.doramaxCanPlayCard = function (card) {
+    if (unlocked) return true;
+    const index = cards.indexOf(card);
+    return index >= 0 && index < 3;
+  };
 
   function applyRemoteSettings(settings) {
     const appConfig = settings.app_config || {};
