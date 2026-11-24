@@ -64,7 +64,7 @@
 
   const feed = document.getElementById("feed");
   let cards = [...document.querySelectorAll("#feed .video")];
-  if (!feed || cards.length < 3) return;
+  if (!feed) return;
 
 
   let session = null;
@@ -424,9 +424,23 @@
   // Autoriza reprodução apenas dos três cartões gratuitos ou após confirmação do pagamento.
   window.doramaxCanPlayCard = function (card) {
     if (unlocked) return true;
+    // Recalcula a posição real no feed, inclusive quando o catálogo carrega vídeos depois.
+    cards = [...document.querySelectorAll("#feed .video")];
     const index = cards.indexOf(card);
     return index >= 0 && index < 3;
   };
+
+  // O catálogo é carregado de forma dinâmica. Reaplica o bloqueio sempre que novos
+  // cartões entram no feed, sem depender de login ou da ordem de carregamento inicial.
+  const gateObserver = new MutationObserver((records) => {
+    const addedVideo = records.some(record =>
+      [...record.addedNodes].some(node =>
+        node.nodeType === 1 && (node.matches?.("#feed .video, .video") || node.querySelector?.(".video"))
+      )
+    );
+    if (addedVideo) updateGate();
+  });
+  gateObserver.observe(feed, { childList: true, subtree: true });
 
   function applyRemoteSettings(settings) {
     const appConfig = settings.app_config || {};
