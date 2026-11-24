@@ -252,6 +252,90 @@
     document.getElementById("dmError").textContent = message || "";
   }
 
+  let accessPaymentPoller = null;
+  let activePaymentId = null;
+
+  function showPixPayment(payment) {
+    openModal("login");
+    const modal = document.querySelector("#dmModal .dm-modal");
+    let box = document.getElementById("dmPixPaymentBox");
+    if (!box) {
+      box = document.createElement("section");
+      box.id = "dmPixPaymentBox";
+      box.className = "dm-payment-box";
+      const status = document.getElementById("dmStatus");
+      status.insertAdjacentElement("afterend", box);
+    }
+    box.replaceChildren();
+    const title = document.createElement("h3");
+    title.textContent = "Pague R$ 5,00 via Pix";
+    const note = document.createElement("p");
+    note.textContent = "Depois que o banco confirmar o pagamento, o acesso completo será liberado automaticamente.";
+    box.append(title, note);
+    if (payment.encodedImage) {
+      const img = document.createElement("img");
+      img.alt = "QR Code Pix de pagamento";
+      img.src = "data:image/png;base64," + payment.encodedImage;
+      img.style.cssText = "display:block;width:min(220px,100%);height:auto;margin:12px auto;background:#fff;padding:8px;border-radius:8px";
+      box.appendChild(img);
+    }
+    if (payment.pixPayload) {
+      const label = document.createElement("p");
+      label.textContent = "Pix copia e cola:";
+      const code = document.createElement("textarea");
+      code.readOnly = true;
+      code.value = payment.pixPayload;
+      code.style.cssText = "width:100%;min-height:76px;box-sizing:border-box;padding:9px;border-radius:8px;background:#090909;color:#fff;border:1px solid #555;overflow-wrap:anywhere";
+      const copy = document.createElement("button");
+      copy.type = "button";
+      copy.className = "dm-btn secondary";
+      copy.textContent = "COPIAR PIX";
+      copy.onclick = async () => {
+        try { await navigator.clipboard.writeText(payment.pixPayload); copy.textContent = "PIX COPIADO"; }
+        catch (_) { code.select(); document.execCommand("copy"); copy.textContent = "PIX COPIADO"; }
+      };
+      box.append(label, code, copy);
+    }
+    const status = document.createElement("p");
+    status.id = "dmPixStatus";
+    status.className = "dm-payment-count";
+    status.textContent = "Aguardando confirmação do pagamento...";
+    box.appendChild(status);
+    activePaymentId = payment.paymentId;
+    if (accessPaymentPoller) clearInterval(accessPaymentPoller);
+    accessPaymentPoller = setInterval(checkPixPayment, 5000);
+    checkPixPayment();
+    document.getElementById("dmStatus").textContent = "Pix gerado. Conclua o pagamento para liberar seu acesso.";
+  }
+
+  async function checkPixPayment() {
+    if (!activePaymentId || !session?.access_token) return;
+    try {
+      await refreshSessionIfNeeded();
+      const response = await fetch(SUPABASE_URL + "/functions/v1/asaas-payments", {
+        method: "POST",
+        headers: { ...apiHeaders(session.access_token) },
+        body: JSON.stringify({ action: "status", paymentId: activePaymentId })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Falha ao consultar pagamento.");
+      if (result.unlocked === true) {
+        clearInterval(accessPaymentPoller);
+        accessPaymentPoller = null;
+        activePaymentId = null;
+        unlocked = true;
+        updateGate();
+        updateLoggedAs();
+        const status = document.getElementById("dmPixStatus");
+        if (status) status.textContent = "PAGAMENTO CONFIRMADO! Acesso completo liberado.";
+        document.getElementById("dmStatus").textContent = "Acesso liberado. Aproveite todos os vídeos!";
+      }
+    } catch (error) {
+      const status = document.getElementById("dmPixStatus");
+      if (status) status.textContent = error.message || "Aguardando confirmação...";
+    }
+  }
+
   function makeCover(card, index) {
     if (card.querySelector(".dm-cover")) return;
     const cover = document.createElement("div");
@@ -262,8 +346,8 @@
         <p>Os 3 primeiros vídeos são grátis. Para liberar os demais, faça seu cadastro e pague R$ 5,00 uma única vez.</p>
         <button class="dm-btn" type="button">CRIAR CONTA / ENTRAR</button>
         <button class="dm-btn green dm-pay-button" type="button" style="display:none">LIBERAR ACESSO — R$ 5,00</button>
-        <p class="dm-small dm-pay-hint">Entre na sua conta para solicitar a liberação do acesso pelo suporte.</p>
-        <p class="dm-small">Toque em LIBERAR ACESSO para conversar com o suporte e combinar a liberação.</p>
+        <p class="dm-small dm-pay-hint">Entre na sua conta para pagar R$ 5,00 via Pix.</p>
+        <p class="dm-small">Pagamento único. O acesso completo será liberado automaticamente após a confirmação do Pix.</p>
       </div>`;
     cover.querySelector(".dm-btn").onclick = () => openModal(session && currentUser ? "login" : "signup");
     const payButton = cover.querySelector(".dm-pay-button");
@@ -276,11 +360,31 @@
         openModal("login");
         return;
       }
-      await openSupportPanel();
-      const input = document.getElementById("dmSupportInput");
-      if (input) {
-        input.value = "Olá! Quero liberar meu acesso ao DORAMAX. Gostaria de combinar a liberação de R$ 5,00.";
-        input.focus();
+      payButton.disabled = true;
+      const originalText = payButton.textContent;
+      payButton.textContent = "GERANDO PIX...";
+      try {
+        await refreshSessionIfNeeded();
+        const response = await fetch(SUPABASE_URL + "/functions/v1/asaas-payments", {
+          method: "POST",
+          headers: { ...apiHeaders(session.access_token) },
+          body: JSON.stringify({ action: "create" })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || "Não foi possível gerar o Pix.");
+        if (result.unlocked) {
+          unlocked = true;
+          updateGate();
+          updateLoggedAs();
+          return;
+        }
+        showPixPayment(result);
+      } catch (error) {
+        setError(error.message || "Erro ao gerar cobrança Pix.");
+        openModal("login");
+      } finally {
+        payButton.disabled = false;
+        payButton.textContent = originalText;
       }
     };
     card.style.position = "relative";
