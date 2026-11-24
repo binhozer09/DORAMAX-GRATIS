@@ -25,7 +25,7 @@ Deno.serve(async (req: Request) => {
     const event = String(payload?.event || "");
     const paymentId = String(payload?.payment?.id || "");
     if (!paymentId) return Response.json({ received: true, ignored: true });
-    if (!["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"].includes(event)) {
+    if (event !== "PAYMENT_RECEIVED") {
       return Response.json({ received: true, ignored: true });
     }
 
@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
     if (rowError) throw rowError;
     if (!row) return Response.json({ received: true, ignored: true });
     if (verified.externalReference !== row.user_id || Number(verified.value) !== 5 ||
-        verified.billingType !== "PIX" || !["CONFIRMED", "RECEIVED"].includes(String(verified.status))) {
+        verified.billingType !== "PIX" || String(verified.status) !== "RECEIVED") {
       return new Response("Payment validation failed", { status: 400 });
     }
 
