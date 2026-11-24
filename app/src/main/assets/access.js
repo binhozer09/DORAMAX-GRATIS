@@ -202,7 +202,7 @@
         <button class="dm-btn secondary" id="dmLogout" type="button" style="display:none">Sair da conta</button>
         <div class="dm-error" id="dmError" role="status"></div>
         <div class="dm-status" id="dmStatus"></div>
-        <p class="dm-small">O pagamento é conferido manualmente. Use o mesmo e-mail cadastrado no aplicativo.</p>
+        <p class="dm-small">O pagamento é confirmado automaticamente pelo Asaas. Use sua conta cadastrada no aplicativo.</p>
       </section>`;
     document.body.appendChild(backdrop);
     document.getElementById("dmClose").onclick = closeModal;
@@ -518,7 +518,7 @@
       updateSupportPrompt(); document.getElementById("dmLogout").style.display = "block";
       document.getElementById("dmStatus").textContent = unlocked
         ? "Acesso liberado. Aproveite todos os vídeos!"
-        : "Conta conectada. Acesso aguardando liberação.";
+        : "Conta conectada. Para liberar o acesso completo, pague R$ 5,00 via Pix.";
       if (document.getElementById("dmSupportPanel")?.style.display === "flex") openSupportPanel();
     } catch (error) {
       // Keep the authenticated session so the user can see the real permission/API error.
@@ -554,14 +554,14 @@
             authMode = "login";
             updateAuthMode();
             document.getElementById("dmEmail").value = email;
-            document.getElementById("dmStatus").textContent = "Conta criada! Sua solicitação está aguardando aprovação do administrador. Se o acesso ainda não foi liberado, os vídeos pagos continuarão bloqueados.";
+            document.getElementById("dmStatus").textContent = "Conta criada! Entre na sua conta e toque em LIBERAR ACESSO — R$ 5,00 para gerar o Pix. O acesso será liberado automaticamente após o recebimento.";
             setError("");
           }
         } else {
           authMode = "login";
           updateAuthMode();
           document.getElementById("dmEmail").value = email;
-          document.getElementById("dmStatus").textContent = "Cadastro recebido pelo Supabase. Se a confirmação por e-mail estiver ativada, abra o e-mail de confirmação e depois entre com esta conta. Após confirmar, sua conta ficará aguardando aprovação do administrador.";
+          document.getElementById("dmStatus").textContent = "Cadastro recebido. Se a confirmação por e-mail estiver ativada, confirme seu e-mail e entre na conta. Depois, toque em LIBERAR ACESSO — R$ 5,00 para pagar via Pix e liberar o acesso automaticamente.";
           setError("");
         }
       } else {
