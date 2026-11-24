@@ -516,7 +516,7 @@ class MainActivity : AppCompatActivity() {
         // DORAMAX GRÁTIS production AdMob App ID.
         private const val ADMOB_APP_ID = "ca-app-pub-2488297391470541~6107052736"
         // DORAMAX GRÁTIS production banner ad unit.
-        private const val BANNER_AD_UNIT_ID = "ca-app-pub-2488297391470541/5145324854"
+        private const val BANNER_AD_UNIT_ID = "ca-app-pub-2488297391470541/6110171134"
         private const val RELEASE_API = "https://api.github.com/repos/binhozer09/DORAMAX-GRATIS/releases/latest"
         private const val APK_ASSET_NAME = "DORAMAX-GRATIS.apk"
         private const val MANIFEST_ASSET_NAME = "update.json"
