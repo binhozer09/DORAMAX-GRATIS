@@ -510,7 +510,7 @@ function playCatalogVideo(id){
  if(!target)target=ensureVideoCardLoaded(id);
  if(!target){console.warn('[DORAMAX] Vídeo não encontrado no catálogo:',id);return;}
  // A tela de catálogo não pode contornar a regra aplicada ao feed.
- if(window.doramaxCanPlayCard&&!window.doramaxCanPlayCard(target)){
+ if(typeof window.doramaxCanPlayCard!=='function'||!window.doramaxCanPlayCard(target)){
   const gateCard=cards[3];
   if(gateCard){
    openPlayerMode();
