@@ -690,6 +690,9 @@
   }
 
   async function logout() {
+    if (accessPaymentPoller) clearInterval(accessPaymentPoller);
+    accessPaymentPoller = null;
+    activePaymentId = null;
     try {
       if (session && session.access_token) {
         await api("/auth/v1/logout", { method: "POST" }, session.access_token);
