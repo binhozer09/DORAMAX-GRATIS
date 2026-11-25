@@ -37,8 +37,11 @@ import com.google.android.libraries.ads.mobile.sdk.banner.AdSize
 import com.google.android.libraries.ads.mobile.sdk.banner.BannerAd
 import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdRequest
 import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
+import com.google.android.libraries.ads.mobile.sdk.common.AdRequest
 import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
+import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAd
+import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAdEventCallback
 
 class MainActivity : AppCompatActivity() {
 
@@ -47,6 +50,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var assetLoader: WebViewAssetLoader
     private lateinit var adContainer: FrameLayout
     private var bannerAdView: AdView? = null
+    private var interstitialAd: InterstitialAd? = null
+    @Volatile private var initialPageLoaded = false
     @Volatile private var isCatalogVisible = true
     @Volatile private var bannerAdLoaded = false
     @Volatile private var bannerLoadInProgress = false
@@ -540,6 +545,9 @@ class MainActivity : AppCompatActivity() {
         private const val ADMOB_APP_ID = "ca-app-pub-2488297391470541~6107052736"
         // DORAMAX GRÁTIS production banner ad unit.
         private const val BANNER_AD_UNIT_ID = "ca-app-pub-2488297391470541/6110171134"
+        // One production interstitial shown at most once per app process launch.
+        private const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-2488297391470541/7114056223"
+        @Volatile private var startupInterstitialShownThisProcess = false
         private const val RELEASE_API = "https://api.github.com/repos/binhozer09/DORAMAX-GRATIS/releases/latest"
         private const val APK_ASSET_NAME = "DORAMAX-GRATIS.apk"
         private const val MANIFEST_ASSET_NAME = "update.json"
@@ -649,6 +657,14 @@ class MainActivity : AppCompatActivity() {
         }
         siteWeb.addJavascriptInterface(UpdateBridge(), "DoramaxAndroid")
         siteWeb.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                if (!initialPageLoaded) {
+                    initialPageLoaded = true
+                    maybeShowStartupInterstitial()
+                }
+            }
+
             override fun shouldInterceptRequest(
                 view: WebView,
                 request: WebResourceRequest
@@ -735,7 +751,10 @@ class MainActivity : AppCompatActivity() {
                     ) {
                         Log.i(TAG, "GMA Next-Gen initialization callback completed")
                         runOnUiThread {
-                            if (!isFinishing && !isDestroyed) loadBannerAd()
+                            if (!isFinishing && !isDestroyed) {
+                                loadBannerAd()
+                                loadStartupInterstitial()
+                            }
                         }
                     }
                 } catch (error: Exception) {
@@ -748,6 +767,72 @@ class MainActivity : AppCompatActivity() {
         } catch (error: Exception) {
             Log.e(TAG, "Could not start AdMob initialization thread", error)
             showAdStatus("Não foi possível iniciar o AdMob: " + (error.message ?: error.javaClass.simpleName))
+        }
+    }
+
+    // Load once after SDK initialization. A failed/no-fill request is not retried
+    // during this app launch, so the startup placement can never repeat.
+    private fun loadStartupInterstitial() {
+        if (isFinishing || isDestroyed || interstitialAd != null ||
+            startupInterstitialShownThisProcess) return
+
+        Log.i(TAG, "Loading startup interstitial")
+        try {
+            InterstitialAd.load(
+                AdRequest.Builder(INTERSTITIAL_AD_UNIT_ID).build(),
+                object : AdLoadCallback<InterstitialAd> {
+                    override fun onAdLoaded(ad: InterstitialAd) {
+                        Log.i(TAG, "Startup interstitial loaded")
+                        runOnUiThread {
+                            if (isFinishing || isDestroyed || startupInterstitialShownThisProcess) {
+                                interstitialAd = null
+                                return@runOnUiThread
+                            }
+                            interstitialAd = ad
+                            maybeShowStartupInterstitial()
+                        }
+                    }
+
+                    override fun onAdFailedToLoad(adError: LoadAdError) {
+                        Log.w(TAG, "Startup interstitial failed to load: ${adError.code} ${adError.message}")
+                        interstitialAd = null
+                    }
+                }
+            )
+        } catch (error: Exception) {
+            Log.e(TAG, "Could not request startup interstitial", error)
+            interstitialAd = null
+        }
+    }
+
+    // Wait until both the first app page and the ad are ready. This avoids
+    // covering a blank/loading screen while still showing only once per launch.
+    private fun maybeShowStartupInterstitial() {
+        if (!initialPageLoaded || isFinishing || isDestroyed ||
+            startupInterstitialShownThisProcess) return
+
+        val ad = interstitialAd ?: return
+        startupInterstitialShownThisProcess = true
+        interstitialAd = null
+
+        ad.adEventCallback = object : InterstitialAdEventCallback {
+            override fun onAdShowedFullScreenContent() {
+                Log.i(TAG, "Startup interstitial displayed")
+            }
+
+            override fun onAdDismissedFullScreenContent() {
+                Log.i(TAG, "Startup interstitial dismissed")
+            }
+
+            override fun onAdFailedToShowFullScreenContent(fullScreenContentError: com.google.android.libraries.ads.mobile.sdk.common.FullScreenContentError) {
+                Log.e(TAG, "Startup interstitial failed to show: ${fullScreenContentError.message}")
+            }
+        }
+
+        try {
+            ad.show(this)
+        } catch (error: Exception) {
+            Log.e(TAG, "Could not show startup interstitial", error)
         }
     }
 
