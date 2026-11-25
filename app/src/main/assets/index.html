@@ -822,6 +822,13 @@ const updateCancel=document.getElementById('updateCancel');
 let availableAppUpdate=null;
 let updateCheckBusy=false;
 function closeUpdatePanel(){updatePanel.classList.remove('open');updatePanel.setAttribute('aria-hidden','true');}
+function installedVersionLabel(){
+ const name=window.DoramaxAndroid?.getVersionName?.();
+ if(name)return name;
+ const code=window.DoramaxAndroid?.getVersionCode?.();
+ const knownVersions={99:'5.62',100:'5.63'};
+ return knownVersions[code]||(code?'código '+code:'instalada');
+}
 window.doramaxUpdateProgress=function(percent,message){
  const box=document.getElementById('updateProgressBox');
  const fill=document.getElementById('updateProgressFill');
@@ -856,7 +863,7 @@ let updateDownloaded=false;
 function openUpdatePanel(){
  updateConfirm.disabled=false;updateCancel.disabled=false;
  updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');
- const currentVersion=window.DoramaxAndroid?.getVersionName?.()||'instalada';
+ const currentVersion=installedVersionLabel();
  if(availableAppUpdate){
   updateMessage.textContent=updateDownloaded?'Versão '+availableAppUpdate.latestVersionName+' baixada.':'Nova versão '+availableAppUpdate.latestVersionName+' disponível.';
   updateConfirm.hidden=false;updateConfirm.textContent=updateDownloaded?'Instalar agora':'Baixar atualização';
@@ -889,7 +896,7 @@ window.doramaxReceiveUpdate=function(raw){
  availableAppUpdate=update;
  updateDownloaded=!!(availableAppUpdate&&window.DoramaxAndroid?.hasDownloadedUpdate?.());
  updateDot.hidden=!availableAppUpdate;accountMenuUpdateDot.hidden=!availableAppUpdate;accountMenuNotificationDot.hidden=!availableAppUpdate;
- accountMenuUpdateText.textContent=availableAppUpdate?'Nova versão '+(availableAppUpdate.latestVersionName||'disponível'):'Verificar nova versão';
+ accountMenuUpdateText.textContent=availableAppUpdate?'Nova versão '+(availableAppUpdate.latestVersionName||'disponível'):'Versão atual: '+installedVersionLabel();
  accountMenuNotificationText.textContent=availableAppUpdate?'Há uma atualização esperando por você':'Nenhuma novidade por enquanto';
  const showResult=!!window.__doramaxShowUpdateResult;
  if(error){
