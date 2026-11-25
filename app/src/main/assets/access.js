@@ -337,70 +337,57 @@
     }
   }
 
+  async function requestPixPayment(button) {
+    if (!session || !currentUser || !currentUser.id) { openModal("signup"); return; }
+    if (button.disabled) return;
+    button.disabled = true;
+    const originalText = button.textContent;
+    button.textContent = "GERANDO PIX...";
+    try {
+      await refreshSessionIfNeeded();
+      const response = await fetch(SUPABASE_URL + "/functions/v1/asaas-payments", {
+        method: "POST",
+        headers: { ...apiHeaders(session.access_token) },
+        body: JSON.stringify({ action: "create" })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Não foi possível gerar o Pix.");
+      if (result.unlocked === true) {
+        unlocked = true;
+        updateGate();
+        updateLoggedAs();
+        return;
+      }
+      showPixPayment(result);
+    } catch (error) {
+      setError(error.message || "Erro ao gerar cobrança Pix.");
+      openModal("login");
+    } finally {
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
+
   function makeCover(card, index) {
     if (card.querySelector(".dm-cover")) return;
     const cover = document.createElement("div");
     cover.className = "dm-cover";
-    const isPaymentCard = index === 3;
-    cover.innerHTML = `
-      <div class="dm-cover-card">
-        <h2>${isPaymentCard ? "Continue assistindo" : "Conteúdo exclusivo"}</h2>
-        <p>${isPaymentCard ? "Os 3 primeiros vídeos são grátis. Para liberar todos os vídeos, entre na sua conta e pague R$ 5,00 uma única vez." : "Este vídeo faz parte do acesso completo. A opção para liberar fica no 4º vídeo."}</p>
-        <button class="dm-btn dm-access-button" type="button">${isPaymentCard ? "CRIAR CONTA / ENTRAR" : "IR AO 4º VÍDEO"}</button>
-        ${isPaymentCard ? '<button class="dm-btn green dm-pay-button" type="button" style="display:none">LIBERAR ACESSO — R$ 5,00</button><p class="dm-small dm-pay-hint">Entre na sua conta para pagar R$ 5,00 via Pix.</p><p class="dm-small">Pagamento único. O acesso completo será liberado automaticamente após a confirmação do Pix.</p>' : ''}
-      </div>`;
-    const accessButton = cover.querySelector(".dm-access-button");
-    const payButton = cover.querySelector(".dm-pay-button");
-    const payHint = cover.querySelector(".dm-pay-hint");
-    const isLoggedIn = !!(session && currentUser && currentUser.id);
-    if (isPaymentCard) {
-      accessButton.style.display = isLoggedIn ? "none" : "block";
-      accessButton.onclick = () => openModal(session && currentUser ? "login" : "signup");
-      if (payButton) payButton.style.display = isLoggedIn ? "block" : "none";
-      if (payHint) payHint.style.display = isLoggedIn ? "none" : "block";
-    } else {
-      accessButton.onclick = () => {
-        const paymentCard = cards[3];
-        paymentCard?.scrollIntoView({ behavior: "auto", block: "start" });
-      };
-    }
-    if (payButton) payButton.onclick = async () => {
+    cover.setAttribute("aria-label", "Vídeo bloqueado. Libere o acesso completo.");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "dm-btn dm-pay-button";
+    button.textContent = "LIBERAR TODOS OS VÍDEOS — R$ 5,00";
+    button.addEventListener("click", () => {
       if (!session || !currentUser || !currentUser.id) {
-        openModal("login");
+        openModal("signup");
         return;
       }
-      payButton.disabled = true;
-      const originalText = payButton.textContent;
-      payButton.textContent = "GERANDO PIX...";
-      try {
-        await refreshSessionIfNeeded();
-        const response = await fetch(SUPABASE_URL + "/functions/v1/asaas-payments", {
-          method: "POST",
-          headers: { ...apiHeaders(session.access_token) },
-          body: JSON.stringify({ action: "create" })
-        });
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(result.error || "Não foi possível gerar o Pix.");
-        if (result.unlocked) {
-          unlocked = true;
-          updateGate();
-          updateLoggedAs();
-          return;
-        }
-        showPixPayment(result);
-      } catch (error) {
-        setError(error.message || "Erro ao gerar cobrança Pix.");
-        openModal("login");
-      } finally {
-        payButton.disabled = false;
-        payButton.textContent = originalText;
-      }
-    };
+      requestPixPayment(button);
+    });
+    cover.appendChild(button);
     card.style.position = "relative";
     card.appendChild(cover);
   }
-
-
   function updateGate() {
     cards = [...document.querySelectorAll("#feed .video")];
     cards.forEach((card, index) => {
@@ -420,7 +407,7 @@
       }
     });
   }
-  window.doramaxRefreshAccessGate = function () { updateGate(); };
+  window.doramaxCanPlayCard = function (card) {\n    cards = [...document.querySelectorAll("#feed .video")];\n    const index = cards.indexOf(card);\n    return index >= 0 && (index < 3 || unlocked || isAdmin);\n  };\n  window.doramaxRefreshAccessGate = function () { updateGate(); };
 
   function applyRemoteSettings(settings) {
     const appConfig = settings.app_config || {};
