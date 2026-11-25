@@ -137,9 +137,6 @@
   function addStyles() {
     const style = document.createElement("style");
     style.textContent = `
-      .dm-cover{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.24);text-align:center;pointer-events:auto}
-      .dm-cover .dm-pay-button{width:min(100%,340px);margin:0;padding:17px 18px;border:1px solid #ffffff55;border-radius:14px;background:linear-gradient(135deg,#18a866,#087344);color:#fff;font-size:15px;font-weight:900;line-height:1.3;box-shadow:0 6px 26px #000b,0 0 0 3px #16c77a33}
-      .dm-pay-button:disabled{opacity:.7}
       .dm-btn{display:block;width:100%;border:0;border-radius:12px;padding:14px 16px;margin:9px 0;background:#e62e49;color:#fff;font-size:15px;font-weight:800}
       .dm-btn.secondary{background:#292929;border:1px solid #555}
       .dm-btn.green{background:#159b60}
@@ -367,46 +364,16 @@
     }
   }
 
-  function makeCover(card, index) {
-    if (card.querySelector(".dm-cover")) return;
-    const cover = document.createElement("div");
-    cover.className = "dm-cover";
-    cover.setAttribute("aria-label", "Vídeo bloqueado. Libere o acesso completo.");
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "dm-btn dm-pay-button";
-    button.textContent = "LIBERAR TODOS OS VÍDEOS — R$ 5,00";
-    button.addEventListener("click", () => {
-      if (!session || !currentUser || !currentUser.id) {
-        openModal("signup");
-        return;
-      }
-      requestPixPayment(button);
-    });
-    cover.appendChild(button);
-    card.style.position = "relative";
-    card.appendChild(cover);
-  }
+  // Botão/overlay removido para não interceptar nem bloquear o player.
+  // As funções de cobrança Asaas/Supabase continuam preservadas neste arquivo.
   function updateGate() {
     cards = [...document.querySelectorAll("#feed .video")];
-    cards.forEach((card, index) => {
-      const existing = card.querySelector(".dm-cover");
-      // Regra fixa: somente os três primeiros vídeos são gratuitos.\n      // Do quarto em diante, tudo fica bloqueado até pagamento confirmado ou acesso administrativo.\n      if (index < 3 || unlocked || isAdmin) {
-        if (existing) existing.remove();
-      } else {
-        makeCover(card, index);
-        const cover = card.querySelector(".dm-cover");
-        if (cover) {
-          const loggedIn = !!(session && currentUser && currentUser.id);
-          const payButton = cover.querySelector(".dm-pay-button");
-          const payHint = cover.querySelector(".dm-pay-hint");
-          if (payButton) payButton.style.display = loggedIn ? "block" : "none";
-          if (payHint) payHint.style.display = loggedIn ? "none" : "block";
-        }
-      }
-    });
+    cards.forEach((card) => card.querySelector(".dm-cover")?.remove());
   }
-  window.doramaxCanPlayCard = function (card) {\n    cards = [...document.querySelectorAll("#feed .video")];\n    const index = cards.indexOf(card);\n    return index >= 0 && (index < 3 || unlocked || isAdmin);\n  };\n  window.doramaxRefreshAccessGate = function () { updateGate(); };
+  window.doramaxCanPlayCard = function (card) {
+    return !!card && document.querySelector("#feed")?.contains(card);
+  };
+  window.doramaxRefreshAccessGate = function () { updateGate(); };
 
   function applyRemoteSettings(settings) {
     const appConfig = settings.app_config || {};
