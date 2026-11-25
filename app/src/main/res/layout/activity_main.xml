@@ -12,4 +12,13 @@
         android:layout_weight="1"
         android:background="#090B10" />
 
+    <FrameLayout
+        android:id="@+id/adViewContainer"
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:visibility="visible"
+        android:foregroundGravity="center"
+        android:gravity="center"
+        android:background="#090B10" />
+
 </LinearLayout>
