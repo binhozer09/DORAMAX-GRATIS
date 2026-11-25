@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
 }
 
 val releaseStorePath = System.getenv("CM_KEYSTORE_PATH")
@@ -73,4 +74,6 @@ dependencies {
     implementation("androidx.viewpager2:viewpager2:1.1.0")
     implementation("androidx.webkit:webkit:1.12.1")
     implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.6.0")
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
 }
