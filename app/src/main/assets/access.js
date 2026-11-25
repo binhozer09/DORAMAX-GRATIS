@@ -7,7 +7,7 @@
   if (window.__doramaxAccessLoaded) return;
   window.__doramaxAccessLoaded = true;
   window.__doramaxAccessSource = "local";
-  window.__doramaxAccessVersion = "2026.11.24-asaas-production-payment-v5.64";
+  window.__doramaxAccessVersion = "2026.11.24-asaas-session-checkout-fix-v5.65";
 
   const SUPABASE_URL = "https://qbwsaahlkovrejwliefv.supabase.co";
   const SUPABASE_KEY = "sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK";
@@ -127,11 +127,29 @@
     if (!session || !session.refresh_token) return;
     const expiresAt = Number(session.expires_at || 0);
     if (expiresAt && expiresAt > Math.floor(Date.now() / 1000) + 60) return;
-    const refreshed = await api("/auth/v1/token?grant_type=refresh_token", {
-      method: "POST",
-      body: JSON.stringify({ refresh_token: session.refresh_token })
-    });
-    saveSession(refreshed);
+    try {
+      const refreshed = await api("/auth/v1/token?grant_type=refresh_token", {
+        method: "POST",
+        body: JSON.stringify({ refresh_token: session.refresh_token })
+      });
+      if (!refreshed || !refreshed.access_token || !refreshed.refresh_token) {
+        throw new Error("O Supabase não retornou uma nova sessão válida.");
+      }
+      saveSession(refreshed);
+    } catch (error) {
+      const message = String(error?.message || error || "");
+      if (/invalid refresh token|refresh_token_not_found|refresh token not found/i.test(message)) {
+        saveSession(null);
+        if (accessPaymentPoller) {
+          clearInterval(accessPaymentPoller);
+          accessPaymentPoller = null;
+        }
+        activePaymentId = null;
+        updateGate();
+        throw new Error("Sua sessão expirou. Entre novamente com seu e-mail e senha para continuar o pagamento.");
+      }
+      throw error;
+    }
   }
 
   function addStyles() {
@@ -380,6 +398,19 @@
         return;
       }
       showPixPayment(result);
+      // Abre o checkout externo assim que a cobrança PIX é criada.
+      if (result.invoiceUrl) {
+        if (window.DoramaxAndroid?.openPaymentCheckout) {
+          window.DoramaxAndroid.openPaymentCheckout(String(result.invoiceUrl));
+        } else {
+          const checkoutUrl = String(result.invoiceUrl);
+          if (/^https:\/\/(?:www\.)?asaas\.com\//i.test(checkoutUrl)) {
+            window.location.href = checkoutUrl;
+          }
+        }
+      } else {
+        setError("A cobrança foi criada, mas o Asaas não retornou o link do checkout. Use o Pix copia e cola exibido na tela.");
+      }
     } catch (error) {
       openModal("login");
       setError(error.message || "Erro ao gerar cobrança Pix.");
