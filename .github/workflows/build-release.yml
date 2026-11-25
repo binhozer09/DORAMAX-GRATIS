@@ -101,7 +101,6 @@ jobs:
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
-              "releaseNotes": "Botão de pagamento Pix de R$ 5 posicionado no 4º vídeo, sem bloquear a tela inteira; pagamento único com liberação automática após confirmação; bloqueio obrigatório dos vídeos após o terceiro até a confirmação do pagamento."
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + chr(10))
           PY
