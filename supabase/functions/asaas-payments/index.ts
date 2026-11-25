@@ -20,7 +20,7 @@ function serviceKey() {
   throw new Error("Chave administrativa do Supabase não configurada.");
 }
 
-const ASAAS_BASE = Deno.env.get("ASAAS_BASE_URL") || "https://api.asaas.com/v3";
+const ASAAS_BASE = "https://api.asaas.com/v3";
 async function asaas(path: string, apiKey: string, init: RequestInit = {}) {
   const response = await fetch(ASAAS_BASE + path, {
     ...init,
