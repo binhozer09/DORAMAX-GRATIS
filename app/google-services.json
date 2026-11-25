@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "157636573569",
+    "project_id": "doramax-gratis-9b63a",
+    "storage_bucket": "doramax-gratis-9b63a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:157636573569:android:d9117c5ddb21e33c8d9080",
+        "android_client_info": {
+          "package_name": "com.meuplayer.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAi4bn34yOLiGHwV6eEn7wIAcgpzpL1hh0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
