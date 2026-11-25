@@ -705,13 +705,13 @@ class MainActivity : AppCompatActivity() {
                 } catch (error: Exception) {
                     Log.e(TAG, "AdMob initialization failed on background thread", error)
                     runOnUiThread {
-                        showAdStatus("Falha ao iniciar o AdMob: " + (error.message ?: error.javaClass.simpleName))
+                        Log.e(TAG, "Falha ao iniciar o AdMob", error)
                     }
                 }
             }, "DORAMAX-AdMob-Init").start()
         } catch (error: Exception) {
             Log.e(TAG, "Could not start AdMob initialization thread", error)
-            showAdStatus("Não foi possível iniciar o AdMob: " + (error.message ?: error.javaClass.simpleName))
+            Log.e(TAG, "Não foi possível iniciar o AdMob", error)
         }
     }
 
