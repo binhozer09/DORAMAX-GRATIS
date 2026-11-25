@@ -282,6 +282,25 @@
       img.style.cssText = "display:block;width:min(220px,100%);height:auto;margin:12px auto;background:#fff;padding:8px;border-radius:8px";
       box.appendChild(img);
     }
+    if (payment.invoiceUrl) {
+      const checkout = document.createElement("button");
+      checkout.type = "button";
+      checkout.className = "dm-btn green";
+      checkout.textContent = "ABRIR CHECKOUT PARA PAGAR R$ 5,00";
+      checkout.onclick = () => {
+        if (window.DoramaxAndroid?.openPaymentCheckout) {
+          window.DoramaxAndroid.openPaymentCheckout(String(payment.invoiceUrl));
+        } else {
+          window.open(String(payment.invoiceUrl), "_blank", "noopener");
+        }
+      };
+      box.appendChild(checkout);
+    } else {
+      const checkoutNote = document.createElement("p");
+      checkoutNote.className = "dm-payment-empty";
+      checkoutNote.textContent = "Checkout indisponível nesta cobrança. Você pode pagar pelo Pix abaixo.";
+      box.appendChild(checkoutNote);
+    }
     if (payment.pixPayload) {
       const label = document.createElement("p");
       label.textContent = "Pix copia e cola:";
@@ -362,8 +381,8 @@
       }
       showPixPayment(result);
     } catch (error) {
-      setError(error.message || "Erro ao gerar cobrança Pix.");
       openModal("login");
+      setError(error.message || "Erro ao gerar cobrança Pix.");
     } finally {
       button.disabled = false;
       button.textContent = originalText;
