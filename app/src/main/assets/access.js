@@ -7,7 +7,7 @@
   if (window.__doramaxAccessLoaded) return;
   window.__doramaxAccessLoaded = true;
   window.__doramaxAccessSource = "local";
-  window.__doramaxAccessVersion = "2026.11.24-payment-only-gate";
+  window.__doramaxAccessVersion = "2026.11.24-asaas-production-payment-v5.64";
 
   const SUPABASE_URL = "https://qbwsaahlkovrejwliefv.supabase.co";
   const SUPABASE_KEY = "sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK";
