@@ -20,7 +20,7 @@ function serviceKey() {
   throw new Error("Chave administrativa do Supabase não configurada.");
 }
 
-const ASAAS_BASE = "https://api-sandbox.asaas.com/v3";
+const ASAAS_BASE = Deno.env.get("ASAAS_BASE_URL") || "https://api.asaas.com/v3";
 async function asaas(path: string, apiKey: string, init: RequestInit = {}) {
   const response = await fetch(ASAAS_BASE + path, {
     ...init,
@@ -111,14 +111,23 @@ Deno.serve(async (req: Request) => {
         .order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (pendingError) throw pendingError;
       if (pending) {
-        const qr = await asaas("/payments/" + encodeURIComponent(pending.asaas_payment_id) + "/pixQrCode", apiKey);
-        return json({
-          paymentId: pending.asaas_payment_id,
-          pixPayload: qr.payload || pending.pix_payload,
-          encodedImage: qr.encodedImage || pending.pix_encoded_image,
-          invoiceUrl: pending.invoice_url,
-          unlocked: false,
-        });
+        try {
+          const paymentPath = "/payments/" + encodeURIComponent(pending.asaas_payment_id);
+          const [qr, existingPayment] = await Promise.all([
+            asaas(paymentPath + "/pixQrCode", apiKey),
+            asaas(paymentPath, apiKey),
+          ]);
+          return json({
+            paymentId: pending.asaas_payment_id,
+            pixPayload: qr.payload || pending.pix_payload,
+            encodedImage: qr.encodedImage || pending.pix_encoded_image,
+            invoiceUrl: pending.invoice_url || existingPayment.invoiceUrl || null,
+            unlocked: false,
+          });
+        } catch (pendingError) {
+          // A pending row created in the old sandbox cannot be reused with a live key.
+          console.warn("Cobrança pendente anterior não localizada no ambiente Asaas atual; será criada uma nova.", pendingError);
+        }
       }
 
       const email = user.email || "";
