@@ -461,6 +461,30 @@ const backCatalogBtn=document.getElementById('backCatalogBtn');
 function catalogPosterUrl(id,quality='maxresdefault'){
  return 'https://i.ytimg.com/vi/'+encodeURIComponent(id)+'/'+quality+'.jpg';
 }
+let catalogRenderItems=[];
+let catalogRenderIndex=0;
+let catalogRenderObserver=null;
+let catalogRenderSentinel=null;
+const CATALOG_GRID_BATCH_SIZE=12;
+function buildCatalogCard(video,index){
+ const card=document.createElement('button');card.type='button';card.className='catalog-card';card.setAttribute('aria-label','Assistir '+(video.title||'vídeo'));
+ const wrap=document.createElement('span');wrap.className='catalog-poster-wrap';
+ const img=document.createElement('img');img.className='catalog-poster';img.loading=index<4?'eager':'lazy';img.decoding='async';img.setAttribute('fetchpriority',index<4?'high':'auto');img.alt='Capa de '+(video.title||'vídeo');img.src=catalogPosterUrl(video.id);
+ img.onerror=function(){if(!this.dataset.fallback){this.dataset.fallback='1';this.src=catalogPosterUrl(video.id,'hqdefault');}else{this.style.opacity='0';}};
+ const play=document.createElement('span');play.className='catalog-play';play.textContent='▶';wrap.append(img,play);
+ const title=document.createElement('span');title.className='catalog-title';title.textContent=video.title||'Vídeo sem título';
+ card.append(wrap,title);card.addEventListener('click',()=>playCatalogVideo(video.id));return card;
+}
+function appendCatalogGridBatch(){
+ if(!catalogGrid||catalogRenderIndex>=catalogRenderItems.length){
+  catalogRenderObserver?.disconnect();catalogRenderSentinel?.remove();catalogRenderSentinel=null;return;
+ }
+ const end=Math.min(catalogRenderIndex+CATALOG_GRID_BATCH_SIZE,catalogRenderItems.length);
+ const fragment=document.createDocumentFragment();
+ for(;catalogRenderIndex<end;catalogRenderIndex++)fragment.appendChild(buildCatalogCard(catalogRenderItems[catalogRenderIndex],catalogRenderIndex));
+ if(catalogRenderSentinel)catalogGrid.insertBefore(fragment,catalogRenderSentinel);else catalogGrid.appendChild(fragment);
+ if(catalogRenderIndex>=catalogRenderItems.length){catalogRenderObserver?.disconnect();catalogRenderSentinel?.remove();catalogRenderSentinel=null;}
+}
 function renderCatalog(){
  if(!catalogGrid)return;
  const fallback=[...feed.querySelectorAll('.video')].map(card=>({id:videoId(card.querySelector('iframe')),title:card.querySelector('.title')?.textContent?.trim()||'Vídeo'})).filter(item=>item.id);
@@ -472,20 +496,28 @@ function renderCatalog(){
  const remoteWithoutFree=remoteCatalogVideos.filter(item=>!freePreviews.some(free=>free.id===item.id));
  const source=remoteCatalogVideos.length?[...freePreviews,...remoteWithoutFree]:fallback;
  const seen=new Set();
- const list=source.filter(item=>item.id&&!seen.has(item.id)&&(seen.add(item.id),true));
- catalogGrid.innerHTML='';
- if(!list.length){catalogGrid.innerHTML='<div class="catalog-empty">Não foi possível carregar o catálogo. Verifique sua conexão e tente novamente.</div>';return;}
+ catalogRenderItems=source.filter(item=>item.id&&!seen.has(item.id)&&(seen.add(item.id),true));
+ catalogRenderIndex=0;
+ catalogRenderObserver?.disconnect();catalogRenderObserver=null;
+ catalogRenderSentinel?.remove();catalogRenderSentinel=null;
+ catalogGrid.replaceChildren();
+ if(!catalogRenderItems.length){catalogGrid.innerHTML='<div class="catalog-empty">Não foi possível carregar o catálogo. Verifique sua conexão e tente novamente.</div>';return;}
+ // O botão de pagamento/doação permanece fora do grid e visível desde a abertura.
+ const firstEnd=Math.min(CATALOG_GRID_BATCH_SIZE,catalogRenderItems.length);
  const fragment=document.createDocumentFragment();
- list.forEach((video,index)=>{
-  const card=document.createElement('button');card.type='button';card.className='catalog-card';card.setAttribute('aria-label','Assistir '+(video.title||'vídeo'));
-  const wrap=document.createElement('span');wrap.className='catalog-poster-wrap';
-  const img=document.createElement('img');img.className='catalog-poster';img.loading=index<4?'eager':'lazy';img.decoding='async';img.setAttribute('fetchpriority',index<4?'high':'auto');img.alt='Capa de '+(video.title||'vídeo');img.src=catalogPosterUrl(video.id);
-  img.onerror=function(){if(!this.dataset.fallback){this.dataset.fallback='1';this.src=catalogPosterUrl(video.id,'hqdefault');}else{this.style.opacity='0';}};
-  const play=document.createElement('span');play.className='catalog-play';play.textContent='▶';wrap.append(img,play);
-  const title=document.createElement('span');title.className='catalog-title';title.textContent=video.title||'Vídeo sem título';
-  card.append(wrap,title);card.addEventListener('click',()=>playCatalogVideo(video.id));fragment.appendChild(card);
- });
+ for(;catalogRenderIndex<firstEnd;catalogRenderIndex++)fragment.appendChild(buildCatalogCard(catalogRenderItems[catalogRenderIndex],catalogRenderIndex));
  catalogGrid.appendChild(fragment);
+ if(catalogRenderIndex<catalogRenderItems.length){
+  catalogRenderSentinel=document.createElement('div');
+  catalogRenderSentinel.className='catalog-load-sentinel';
+  catalogRenderSentinel.setAttribute('aria-hidden','true');
+  catalogRenderSentinel.style.cssText='grid-column:1/-1;height:2px;width:100%;pointer-events:none;';
+  catalogGrid.appendChild(catalogRenderSentinel);
+  catalogRenderObserver=new IntersectionObserver(entries=>{
+   if(entries.some(entry=>entry.isIntersecting))appendCatalogGridBatch();
+  },{root:document.getElementById('catalogScreen'),rootMargin:'700px 0px',threshold:0});
+  catalogRenderObserver.observe(catalogRenderSentinel);
+ }
 }
 function openPlayerMode(){
   document.body.classList.add('player-open');
