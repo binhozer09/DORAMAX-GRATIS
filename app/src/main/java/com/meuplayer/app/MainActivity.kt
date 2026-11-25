@@ -1,6 +1,8 @@
 package com.meuplayer.app
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -30,6 +32,10 @@ import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import androidx.webkit.WebViewAssetLoader
 import com.google.android.libraries.ads.mobile.sdk.MobileAds
+import com.google.android.libraries.ads.mobile.sdk.banner.AdView
+import com.google.android.libraries.ads.mobile.sdk.banner.AdSize
+import com.google.android.libraries.ads.mobile.sdk.banner.BannerAd
+import com.google.android.libraries.ads.mobile.sdk.banner.BannerAdRequest
 import com.google.android.libraries.ads.mobile.sdk.common.AdLoadCallback
 import com.google.android.libraries.ads.mobile.sdk.common.AdRequest
 import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
@@ -42,8 +48,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var siteWeb: WebView
     private lateinit var thumbnailCache: ThumbnailDiskCache
     private lateinit var assetLoader: WebViewAssetLoader
+    private lateinit var adContainer: FrameLayout
+    private var bannerAdView: AdView? = null
     private var interstitialAd: InterstitialAd? = null
     @Volatile private var initialPageLoaded = false
+    @Volatile private var isCatalogVisible = true
+    @Volatile private var bannerAdLoaded = false
+    @Volatile private var bannerLoadInProgress = false
+    private var adStatusView: android.widget.TextView? = null
+    private val bannerRetryHandler = Handler(Looper.getMainLooper())
+    private var bannerLoadAttempts = 0
+    private val bannerRetryRunnable = Runnable {
+        if (!isFinishing && !isDestroyed && !bannerAdLoaded && !bannerLoadInProgress) loadBannerAd()
+    }
     private val updateInProgress = AtomicBoolean(false)
     private var pendingFileChooser: ValueCallback<Array<Uri>>? = null
     private var fullscreenCustomView: android.view.View? = null
@@ -76,6 +93,19 @@ class MainActivity : AppCompatActivity() {
                 } else if (!enabled && playerImmersiveMode) {
                     playerImmersiveMode = false
                     decor.systemUiVisibility = playerPreviousSystemUiVisibility
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun setCatalogAdsVisible(visible: Boolean) {
+            isCatalogVisible = visible
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                adContainer.visibility = if (visible) {
+                    android.view.View.VISIBLE
+                } else {
+                    android.view.View.GONE
                 }
             }
         }
@@ -513,6 +543,8 @@ class MainActivity : AppCompatActivity() {
         private const val TAG = "DORAMAX_ADS"
         // DORAMAX GRÁTIS production AdMob App ID.
         private const val ADMOB_APP_ID = "ca-app-pub-2488297391470541~6107052736"
+        // DORAMAX GRÁTIS production banner ad unit.
+        private const val BANNER_AD_UNIT_ID = "ca-app-pub-2488297391470541/6110171134"
         // One production interstitial shown at most once per app process launch.
         private const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-2488297391470541/7114056223"
         @Volatile private var startupInterstitialShownThisProcess = false
@@ -534,6 +566,7 @@ class MainActivity : AppCompatActivity() {
         // Desativa o efeito elástico/brilho de overscroll nativo do WebView.
         siteWeb.overScrollMode = android.view.View.OVER_SCROLL_NEVER
         thumbnailCache = ThumbnailDiskCache(this)
+        adContainer = findViewById(R.id.adViewContainer)
 
         siteWeb.settings.apply {
             javaScriptEnabled = true
@@ -684,8 +717,29 @@ class MainActivity : AppCompatActivity() {
         initializeAds()
     }
 
+    // Exibe o motivo real da falha dentro da área do banner, sem esconder o catálogo.
+    private fun showAdStatus(message: String) {
+        if (!::adContainer.isInitialized || isFinishing || isDestroyed) return
+        // Never destroy an AdView while its network request may still be active.
+        if (!bannerLoadInProgress) bannerAdView?.visibility = android.view.View.GONE
+        adStatusView?.let { previousStatus -> (previousStatus.parent as? ViewGroup)?.removeView(previousStatus) }
+        val statusView = android.widget.TextView(this).apply {
+            text = message
+            setTextColor(android.graphics.Color.WHITE)
+            textSize = 10f
+            gravity = android.view.Gravity.CENTER
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            setPadding(8, 0, 8, 0)
+        }
+        adStatusView = statusView
+        adContainer.addView(statusView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+    }
+
     private fun initializeAds() {
         if (isFinishing || isDestroyed) return
+        showAdStatus("Conectando ao Google AdMob...")
         try {
             // O GMA Next-Gen exige que a inicialização seja feita fora da thread principal.
             Thread({
@@ -698,6 +752,7 @@ class MainActivity : AppCompatActivity() {
                         Log.i(TAG, "GMA Next-Gen initialization callback completed")
                         runOnUiThread {
                             if (!isFinishing && !isDestroyed) {
+                                loadBannerAd()
                                 loadStartupInterstitial()
                             }
                         }
@@ -778,6 +833,75 @@ class MainActivity : AppCompatActivity() {
             ad.show(this)
         } catch (error: Exception) {
             Log.e(TAG, "Could not show startup interstitial", error)
+        }
+    }
+
+    private fun loadBannerAd() {
+        if (isFinishing || isDestroyed || bannerAdLoaded || bannerLoadInProgress) {
+            Log.d(TAG, "Skipping banner load: finishing=$isFinishing destroyed=$isDestroyed loaded=$bannerAdLoaded loading=$bannerLoadInProgress")
+            return
+        }
+        bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
+        bannerLoadAttempts++
+        bannerLoadInProgress = true
+        Log.i(TAG, "Loading production banner (attempt $bannerLoadAttempts)")
+        bannerAdLoaded = false
+
+        // Destroy the previous view only after its request callback has completed.
+        bannerAdView?.let { previousAdView ->
+            (previousAdView.parent as? ViewGroup)?.removeView(previousAdView)
+            previousAdView.destroy()
+        }
+        bannerAdView = null
+        adStatusView?.let { previousStatus -> (previousStatus.parent as? ViewGroup)?.removeView(previousStatus) }
+        adStatusView = null
+        adContainer.removeAllViews()
+        adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+
+        val adView = AdView(this)
+        bannerAdView = adView
+        val request = BannerAdRequest.Builder(BANNER_AD_UNIT_ID, AdSize.BANNER).build()
+        adContainer.addView(adView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+
+        try {
+            adView.loadAd(request, object : AdLoadCallback<BannerAd> {
+                override fun onAdLoaded(ad: BannerAd) {
+                    Log.d(TAG, "DORAMAX production banner loaded successfully")
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed && bannerAdView === adView) {
+                            bannerLoadInProgress = false
+                            bannerAdLoaded = true
+                            bannerLoadAttempts = 0
+                            bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
+                            adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+                        }
+                    }
+                }
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    val diagnostic = "Código: ${adError.code}\nMensagem: ${adError.message}\nDetalhes: $adError"
+                    Log.e(TAG, "DORAMAX banner failed to load: $diagnostic")
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed && bannerAdView === adView) {
+                            bannerLoadInProgress = false
+                            bannerAdLoaded = false
+                            showAdStatus("Anúncio não carregou (${adError.code}): ${adError.message}")
+                            if (bannerLoadAttempts < 5) {
+                                val retryDelayMs = 10_000L * bannerLoadAttempts
+                                Log.w(TAG, "Scheduling banner retry in ${retryDelayMs}ms")
+                                bannerRetryHandler.postDelayed(bannerRetryRunnable, retryDelayMs)
+                            } else {
+                                Log.e(TAG, "Banner retry limit reached; waiting for next app launch")
+                            }
+                        }
+                    }
+                }
+            })
+        } catch (error: Exception) {
+            Log.e(TAG, "DORAMAX banner load threw an exception", error)
+            bannerLoadInProgress = false
+            bannerAdLoaded = false
+            showAdStatus("Falha ao solicitar anúncio: ${error.message ?: error.javaClass.simpleName}")
+            if (bannerLoadAttempts < 5) bannerRetryHandler.postDelayed(bannerRetryRunnable, 10_000L * bannerLoadAttempts)
         }
     }
 
@@ -881,8 +1005,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
+        bannerLoadInProgress = false
         pendingFileChooser?.onReceiveValue(null)
         pendingFileChooser = null
+        bannerAdView?.let { adView ->
+            (adView.parent as? ViewGroup)?.removeView(adView)
+            adView.destroy()
+        }
+        bannerAdView = null
         siteWeb.destroy()
         super.onDestroy()
     }
