@@ -115,7 +115,7 @@ class MainActivity : AppCompatActivity() {
         fun openPaymentCheckout(address: String) {
             val uri = runCatching { Uri.parse(address) }.getOrNull()
             val host = uri?.host.orEmpty().lowercase()
-            if (uri == null || uri.scheme != "https" || host !in setOf("asaas.com", "www.asaas.com")) {
+            if (uri == null || uri.scheme != "https" || !(host == "asaas.com" || host.endsWith(".asaas.com"))) {
                 runOnUiThread {
                     Toast.makeText(this@MainActivity, "Endereço de checkout inválido.", Toast.LENGTH_LONG).show()
                 }
@@ -672,8 +672,20 @@ class MainActivity : AppCompatActivity() {
 
                 if (!request.isForMainFrame) return false
 
-                // Keep the payment page inside this WebView. Block any other
-                // external site/app outside DORAMAX.
+                // Open the official Asaas checkout in the external browser.
+                // Accept the root domain and all official Asaas subdomains.
+                if (host == "asaas.com" || host.endsWith(".asaas.com")) {
+                    return try {
+                        startActivity(Intent(Intent.ACTION_VIEW, request.url))
+                        true
+                    } catch (error: Exception) {
+                        Log.e(TAG, "Não foi possível abrir o checkout Asaas pelo navegador", error)
+                        Toast.makeText(this@MainActivity, "Não foi possível abrir o checkout. Verifique se há um navegador instalado.", Toast.LENGTH_LONG).show()
+                        true
+                    }
+                }
+
+                // Keep the app's local content and supported PicPay pages inside the WebView.
                 if (host == "appassets.androidplatform.net" ||
                     host == "picpay.com" || host.endsWith(".picpay.com")) {
                     return false
