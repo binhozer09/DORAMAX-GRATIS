@@ -555,6 +555,8 @@ class MainActivity : AppCompatActivity() {
             .build()
 
         siteWeb = findViewById(R.id.siteWeb)
+        // Desativa o efeito elástico/brilho de overscroll nativo do WebView.
+        siteWeb.overScrollMode = android.view.View.OVER_SCROLL_NEVER
         thumbnailCache = ThumbnailDiskCache(this)
         adContainer = findViewById(R.id.adViewContainer)
 
