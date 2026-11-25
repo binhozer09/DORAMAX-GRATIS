@@ -187,7 +187,6 @@ class MainActivity : AppCompatActivity() {
                         result.put("apkUrl", apkUrl)
                         result.put("apkSha256", expectedSha)
                         result.put("apkSizeBytes", expectedSize)
-                        result.put("releaseNotes", manifest.optString("releaseNotes", "Atualização do DORAMAX-GRATIS."))
                     }
                 }
             } catch (error: Exception) {
