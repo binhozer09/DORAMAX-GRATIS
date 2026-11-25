@@ -510,30 +510,45 @@ function playCatalogVideo(id){
  let target=findVideoCard(id);
  if(!target)target=ensureVideoCardLoaded(id);
  if(!target){console.warn('[DORAMAX] Vídeo não encontrado no catálogo:',id);return;}
- // A tela de catálogo não pode contornar a regra aplicada ao feed.
+ // Verifica o acesso antes de abrir a tela do player: um vídeo bloqueado
+ // nunca deve deixar o usuário preso em uma tela preta.
  if(typeof window.doramaxCanPlayCard!=='function'||!window.doramaxCanPlayCard(target)){
   const gateCard=cards[3];
   if(gateCard){
    openPlayerMode();
-   showPlayerControls(gateCard);
-   requestAnimationFrame(()=>{gateCard.scrollIntoView({behavior:'auto',block:'start'});activeFrame=null;});
+   requestAnimationFrame(()=>{
+    feed.scrollTop=gateCard.offsetTop;
+    activeFrame=null;
+    showPlayerControls(gateCard);
+   });
   }
   return;
  }
+ const frame=target.querySelector('iframe');
+ if(!frame){console.warn('[DORAMAX] Player não encontrado para o vídeo:',id);return;}
+ const saved=history.find(item=>item.id===id);
+ if(saved&&Number(saved.seconds)>0)pendingSeek.set(id,Number(saved.seconds));
+ activeFrame=frame;
  openPlayerMode();
- showPlayerControls(target);
  requestAnimationFrame(()=>{
-  target.scrollIntoView({behavior:'auto',block:'start'});
-  const frame=target.querySelector('iframe');
-  const saved=history.find(item=>item.id===id);
-  if(saved&&Number(saved.seconds)>0)pendingSeek.set(id,Number(saved.seconds));
-  activeFrame=frame;
+  // O feed fica fixo e overflow:hidden no modo player. scrollIntoView()
+  // pode rolar a janela externa sem posicionar o cartão dentro do feed.
+  // Ajustar o scrollTop do próprio feed garante que o iframe escolhido
+  // ocupe a tela antes de ativar o YouTube.
+  feed.scrollTop=target.offsetTop;
+  showPlayerControls(target);
   activateFrame(frame);
+  if(typeof window.doramaxCanPlayCard!=='function'||!window.doramaxCanPlayCard(target)){
+   doramaxLog('player_activation_denied',{videoId:id});
+   returnToCatalog();
+   return;
+  }
   ensurePlayer(frame);
   const player=players.get(frame);
   if(saved&&player&&typeof player.seekTo==='function'){
    try{player.seekTo(Number(saved.seconds),true);pendingSeek.delete(id);}catch(_){}
   }
+  doramaxLog('catalog_player_requested',{videoId:id,feedScrollTop:feed.scrollTop,cardOffset:target.offsetTop});
  });
 }
 if(backCatalogBtn)backCatalogBtn.addEventListener('click',returnToCatalog);
@@ -1024,7 +1039,27 @@ function ensurePlayer(frame){
   players.set(frame,player);
  }catch(error){console.warn('Não foi possível iniciar controle de retomada',error);}
 }
-window.onYouTubeIframeAPIReady=function(){cards.forEach(card=>{const rect=card.getBoundingClientRect();if(rect.top<innerHeight&&rect.bottom>0){const frame=card.querySelector('iframe');if(!frame)return;activateFrame(frame);ensurePlayer(frame);}});};
+window.onYouTubeIframeAPIReady=function(){
+ // Se o usuário abriu um vídeo antes de a API terminar de carregar,
+ // inicializa primeiro exatamente o iframe selecionado.
+ if(activeFrame){
+  const activeCard=activeFrame.closest('.video');
+  if(activeCard&&typeof window.doramaxCanPlayCard==='function'&&window.doramaxCanPlayCard(activeCard)){
+   activateFrame(activeFrame);
+   ensurePlayer(activeFrame);
+  }
+ }
+ cards.forEach(card=>{
+  const rect=card.getBoundingClientRect();
+  if(rect.top<innerHeight&&rect.bottom>0){
+   const frame=card.querySelector('iframe');
+   if(!frame)return;
+   if(typeof window.doramaxCanPlayCard!=='function'||!window.doramaxCanPlayCard(card))return;
+   activateFrame(frame);
+   ensurePlayer(frame);
+  }
+ });
+};
 const apiScript=document.createElement('script');apiScript.src='https://www.youtube.com/iframe_api';apiScript.async=true;document.head.appendChild(apiScript);
 
 function resumeVideo(item){
