@@ -138,7 +138,7 @@
     const style = document.createElement("style");
     style.textContent = `
       .dm-cover{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(0,0,0,.24);text-align:center;pointer-events:auto}
-      .dm-pay-button{width:min(100%,340px);margin:0;padding:17px 18px;border:1px solid #ffffff55;border-radius:14px;background:linear-gradient(135deg,#18a866,#087344);color:#fff;font-size:15px;font-weight:900;line-height:1.3;box-shadow:0 6px 26px #000b,0 0 0 3px #16c77a33}
+      .dm-cover .dm-pay-button{width:min(100%,340px);margin:0;padding:17px 18px;border:1px solid #ffffff55;border-radius:14px;background:linear-gradient(135deg,#18a866,#087344);color:#fff;font-size:15px;font-weight:900;line-height:1.3;box-shadow:0 6px 26px #000b,0 0 0 3px #16c77a33}
       .dm-pay-button:disabled{opacity:.7}
       .dm-btn{display:block;width:100%;border:0;border-radius:12px;padding:14px 16px;margin:9px 0;background:#e62e49;color:#fff;font-size:15px;font-weight:800}
       .dm-btn.secondary{background:#292929;border:1px solid #555}
