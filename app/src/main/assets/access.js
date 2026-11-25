@@ -178,7 +178,7 @@
       .dm-cover-button:disabled{opacity:.65}
 
       .dm-support-launcher{position:fixed;right:18px;bottom:calc(22px + var(--safe-bottom,0px));z-index:950;width:58px;height:58px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#ff5268,#df1738);color:#fff;font-size:25px;box-shadow:0 8px 26px #0009,0 0 0 4px #ff52682b;cursor:pointer;-webkit-tap-highlight-color:transparent}
-      .dm-support-launcher:active{transform:scale(.94)}
+      .dm-support-launcher:active{transform:none!important;filter:none!important;opacity:1!important}
       .dm-support-unread{position:absolute;top:1px;right:1px;width:12px;height:12px;border:2px solid #fff;border-radius:50%;background:#ff1f3d;box-shadow:0 1px 7px #000b;display:none;pointer-events:none}
       .dm-support-launcher.has-unread .dm-support-unread{display:block}
       .dm-support-prompt{position:fixed;right:86px;bottom:calc(34px + var(--safe-bottom,0px));z-index:949;max-width:170px;padding:8px 11px;border:1px solid #ff7184;border-radius:12px;background:#191116;color:#fff;font-size:11px;font-weight:900;line-height:1.25;text-align:center;box-shadow:0 5px 18px #0009;cursor:pointer}
