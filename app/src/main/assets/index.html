@@ -342,6 +342,7 @@ body.player-open.player-controls-visible #customSeekBar{display:block;pointer-ev
 
 
 </main>
+<script src="./access.js"></script>
 <script>
 // Solicita ao Android/WebView que preserve os dados locais do app entre aberturas.
 try{if(navigator.storage&&typeof navigator.storage.persist==='function')navigator.storage.persist().catch(()=>{});}catch(_){}
@@ -861,9 +862,9 @@ function openUpdatePanel(){
  updateConfirm.disabled=false;updateCancel.disabled=false;
  updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');
  if(availableAppUpdate){
-  updateMessage.textContent=updateDownloaded?'A versão '+availableAppUpdate.latestVersionName+' já foi baixada e está pronta para instalar.':'Nova versão '+availableAppUpdate.latestVersionName+' disponível. '+(availableAppUpdate.releaseNotes||'Atualize para receber as melhorias mais recentes.');
+  updateMessage.textContent=updateDownloaded?'Versão '+availableAppUpdate.latestVersionName+' pronta para instalar.':'Versão '+availableAppUpdate.latestVersionName+' disponível.';
   updateConfirm.hidden=false;updateConfirm.textContent=updateDownloaded?'Instalar agora':'Baixar atualização';
-  updateStatus.textContent=updateDownloaded?'Versão que será instalada: '+availableAppUpdate.latestVersionName+' (código '+availableAppUpdate.latestVersionCode+'). O APK já está salvo neste aparelho.':'Sua versão instalada: código '+(window.DoramaxAndroid?.getVersionCode?.()??'atual')+' • Versão que será instalada: '+availableAppUpdate.latestVersionName+' (código '+availableAppUpdate.latestVersionCode+').';
+  updateStatus.textContent=updateDownloaded?'Versão '+availableAppUpdate.latestVersionName+' baixada.':'Nova versão: '+availableAppUpdate.latestVersionName;
  }else{
   updateMessage.textContent='Você está usando a versão mais recente do DORAMAX.';
   updateConfirm.hidden=true;updateStatus.textContent='Verificação concluída.';
@@ -958,7 +959,7 @@ function ensurePlayer(frame){
      const card=frame.closest('.video');
      const isActiveCard=!!card&&card===activeFrame?.closest('.video');
      doramaxLog('youtube_player_ready',{videoId:videoId(frame)||null,isActiveCard,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
-     if(card&&activeFrame===frame&&(isActiveCard||(card.getBoundingClientRect().top<innerHeight*0.65&&card.getBoundingClientRect().bottom>innerHeight*0.35))){
+     if(card&&typeof window.doramaxCanPlayCard==='function'&&window.doramaxCanPlayCard(card)&&activeFrame===frame&&(isActiveCard||(card.getBoundingClientRect().top<innerHeight*0.65&&card.getBoundingClientRect().bottom>innerHeight*0.35))){
       doramaxWatchStartTimeout(frame);
       try{event.target.playVideo();}catch(error){doramaxLog('youtube_play_on_ready_error',{message:String(error)});}
      }else{
@@ -1050,7 +1051,7 @@ function resumeVideo(item){
 function activateFrame(frame){
  if(!frame)return;
  const card=frame.closest('.video');
- if(window.doramaxCanPlayCard&&!window.doramaxCanPlayCard(card))return;
+ if(typeof window.doramaxCanPlayCard!=='function'||!window.doramaxCanPlayCard(card))return;
  const current=frame.getAttribute('src')||'';
  if(frame.dataset.src&&(!current||current==='about:blank')){
   frame.loading='eager';
@@ -1134,7 +1135,7 @@ const observer=new IntersectionObserver(entries=>{
    pauseOthers(frame);
    ensurePlayer(frame);
    const activePlayer=players.get(frame);
-   if(activePlayer&&typeof activePlayer.playVideo==='function'){
+   if(activePlayer&&typeof activePlayer.playVideo==='function'&&typeof window.doramaxCanPlayCard==='function'&&window.doramaxCanPlayCard(card)){
     try{activePlayer.playVideo();}catch(_){}
    }
    if(info&&!info.classList.contains('is-fading')&&!fadeTimers.has(card)){
@@ -1286,7 +1287,6 @@ window.addEventListener('pagehide',()=>{
  });
 });
 </script>
-<script src="./access.js"></script>
 <script>
 (() => {
  const button = document.getElementById('pixDonateButton');
