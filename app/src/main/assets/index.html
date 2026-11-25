@@ -856,13 +856,14 @@ let updateDownloaded=false;
 function openUpdatePanel(){
  updateConfirm.disabled=false;updateCancel.disabled=false;
  updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');
+ const currentVersion=window.DoramaxAndroid?.getVersionName?.()||'instalada';
  if(availableAppUpdate){
-  updateMessage.textContent=updateDownloaded?'A versão '+availableAppUpdate.latestVersionName+' já foi baixada e está pronta para instalar.':'Nova versão '+availableAppUpdate.latestVersionName+' disponível. '+(availableAppUpdate.releaseNotes||'Atualize para receber as melhorias mais recentes.');
+  updateMessage.textContent=updateDownloaded?'Versão '+availableAppUpdate.latestVersionName+' baixada.':'Nova versão '+availableAppUpdate.latestVersionName+' disponível.';
   updateConfirm.hidden=false;updateConfirm.textContent=updateDownloaded?'Instalar agora':'Baixar atualização';
-  updateStatus.textContent=updateDownloaded?'Versão que será instalada: '+availableAppUpdate.latestVersionName+' (código '+availableAppUpdate.latestVersionCode+'). O APK já está salvo neste aparelho.':'Sua versão instalada: código '+(window.DoramaxAndroid?.getVersionCode?.()??'atual')+' • Versão que será instalada: '+availableAppUpdate.latestVersionName+' (código '+availableAppUpdate.latestVersionCode+').';
+  updateStatus.textContent=updateDownloaded?'Versão atual: '+currentVersion+' • Atualização: '+availableAppUpdate.latestVersionName+' (pronta para instalar).':'Versão atual: '+currentVersion+' • Nova versão: '+availableAppUpdate.latestVersionName+'.';
  }else{
   updateMessage.textContent='Você está usando a versão mais recente do DORAMAX.';
-  updateConfirm.hidden=true;updateStatus.textContent='Verificação concluída.';
+  updateConfirm.hidden=true;updateStatus.textContent='Versão atual: '+currentVersion+'.';
  }
 }
 function checkAppUpdate(showResult=false){
