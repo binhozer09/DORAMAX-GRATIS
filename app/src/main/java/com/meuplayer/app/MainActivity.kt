@@ -109,6 +109,29 @@ class MainActivity : AppCompatActivity() {
         fun getVersionCode(): Int = BuildConfig.VERSION_CODE
 
         @JavascriptInterface
+        fun getVersionName(): String = BuildConfig.VERSION_NAME
+
+        @JavascriptInterface
+        fun openPaymentCheckout(address: String) {
+            val uri = runCatching { Uri.parse(address) }.getOrNull()
+            val host = uri?.host.orEmpty().lowercase()
+            if (uri == null || uri.scheme != "https" || host !in setOf("asaas.com", "www.asaas.com")) {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "Endereço de checkout inválido.", Toast.LENGTH_LONG).show()
+                }
+                return
+            }
+            runOnUiThread {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, uri))
+                } catch (error: Exception) {
+                    Log.e(TAG, "Não foi possível abrir o checkout Asaas", error)
+                    Toast.makeText(this@MainActivity, "Não foi possível abrir o checkout. Use o Pix copia e cola.", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun checkForUpdates() {
             checkLatestGitHubRelease()
         }
@@ -187,7 +210,7 @@ class MainActivity : AppCompatActivity() {
                         result.put("apkUrl", apkUrl)
                         result.put("apkSha256", expectedSha)
                         result.put("apkSizeBytes", expectedSize)
-                        result.put("releaseNotes", manifest.optString("releaseNotes", "Atualização do DORAMAX-GRATIS."))
+
                     }
                 }
             } catch (error: Exception) {
