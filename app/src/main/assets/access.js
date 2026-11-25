@@ -152,6 +152,12 @@
       .dm-user button{border:0;border-radius:9px;padding:10px 12px;background:#159b60;color:#fff;font-size:11px;font-weight:800;white-space:normal;min-width:150px}.dm-user{align-items:flex-start}.dm-user span{flex:1;overflow-wrap:anywhere}
       .dm-user button.lock{background:#b52b3f}
       .dm-status{font-size:12px;color:#bbb;margin:8px 0}
+      .dm-cover{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:26px;background:rgba(0,0,0,.94);color:#fff;text-align:center;pointer-events:auto}
+      .dm-cover-content{width:min(100%,360px);display:flex;flex-direction:column;align-items:center;gap:14px}
+      .dm-cover-title{margin:0;font-size:clamp(23px,6vw,32px);font-weight:900;line-height:1.15}
+      .dm-cover-description{margin:0;color:#eee;font-size:15px;line-height:1.5}
+      .dm-cover-button{width:100%;max-width:340px;min-height:58px;border:0;border-radius:14px;padding:14px 18px;background:#159b60;color:#fff;font-size:16px;font-weight:900;line-height:1.25;box-shadow:0 6px 22px #0009;cursor:pointer}
+      .dm-cover-button:disabled{opacity:.65}
 
       .dm-support-launcher{position:fixed;right:18px;bottom:calc(22px + var(--safe-bottom,0px));z-index:950;width:58px;height:58px;border:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(145deg,#ff5268,#df1738);color:#fff;font-size:25px;box-shadow:0 8px 26px #0009,0 0 0 4px #ff52682b;cursor:pointer;-webkit-tap-highlight-color:transparent}
       .dm-support-launcher:active{transform:scale(.94)}
@@ -364,12 +370,49 @@
     }
   }
 
-  // Botão/overlay removido para não interceptar nem bloquear o player.
-  // As funções de cobrança Asaas/Supabase continuam preservadas neste arquivo.
+  // Camada visual sobre o player a partir do quarto vídeo.
+  // Não existe bloqueio de reprodução por JavaScript; os controles do YouTube são preservados.
+  function createGateCover(card) {
+    const player = card.querySelector(".player");
+    if (!player) return;
+    const cover = document.createElement("div");
+    cover.className = "dm-cover";
+    cover.setAttribute("role", "dialog");
+    cover.setAttribute("aria-label", "Acesso aos vídeos");
+    const content = document.createElement("div");
+    content.className = "dm-cover-content";
+    const title = document.createElement("h2");
+    title.className = "dm-cover-title";
+    const description = document.createElement("p");
+    description.className = "dm-cover-description";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "dm-cover-button";
+    if (!session || !currentUser) {
+      title.textContent = "CRIE SUA CONTA PARA CONTINUAR";
+      description.textContent = "Os três primeiros vídeos são grátis. Crie sua conta para continuar assistindo.";
+      button.textContent = "CRIAR CONTA / ENTRAR";
+      button.addEventListener("click", () => openModal("signup"));
+    } else {
+      title.textContent = "LIBERE TODOS OS VÍDEOS";
+      description.textContent = "Pague uma única vez e tenha acesso completo ao DORAMAX.";
+      button.textContent = "PAGUE UMA ÚNICA VEZ — R$ 5,00";
+      button.addEventListener("click", () => requestPixPayment(button));
+    }
+    content.append(title, description, button);
+    cover.appendChild(content);
+    player.appendChild(cover);
+  }
+
   function updateGate() {
     cards = [...document.querySelectorAll("#feed .video")];
-    cards.forEach((card) => card.querySelector(".dm-cover")?.remove());
+    cards.forEach((card, index) => {
+      card.querySelector(".dm-cover")?.remove();
+      if (index < 3 || unlocked || isAdmin) return;
+      createGateCover(card);
+    });
   }
+  // O player continua autorizado a reproduzir; a camada visual apenas cobre sua área.
   window.doramaxCanPlayCard = function (card) {
     return !!card && document.querySelector("#feed")?.contains(card);
   };
@@ -514,10 +557,8 @@
           saveSession(result);
           const checked = await loadAccess();
           if (checked && !isAdmin) {
-            authMode = "login";
-            updateAuthMode();
-            document.getElementById("dmEmail").value = email;
-            document.getElementById("dmStatus").textContent = "Conta criada! Entre na sua conta e toque em LIBERAR ACESSO — R$ 5,00 para gerar o Pix. O acesso será liberado automaticamente após o recebimento.";
+            closeModal();
+            updateGate();
             setError("");
           }
         } else {
@@ -536,12 +577,9 @@
         const accessChecked = await loadAccess();
         if (!accessChecked) {
           // loadAccess already displayed the precise verification error.
-        } else if (unlocked) {
-          closeModal();
         } else {
           closeModal();
-          openModal("login");
-          document.getElementById("dmStatus").textContent = "Conta conectada. Seu acesso completo ainda aguarda aprovação do administrador.";
+          updateGate();
         }
       }
     } catch (error) {
