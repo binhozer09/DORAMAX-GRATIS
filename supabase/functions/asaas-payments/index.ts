@@ -49,27 +49,32 @@ async function issueAccess(admin: any, userId: string) {
 }
 
 async function ensureWebhook(apiKey: string, token: string, email: string) {
-  if (token.length < 32 || token.length > 255 || /\\s/.test(token)) {
+  if (token.length < 32 || token.length > 255 || /\s/.test(token)) {
     throw new Error("ASAAS_WEBHOOK_TOKEN precisa ter entre 32 e 255 caracteres e não conter espaços.");
   }
   const webhookUrl = Deno.env.get("SUPABASE_URL") + "/functions/v1/asaas-webhook";
   const current = await asaas("/webhooks", apiKey);
   const rows = Array.isArray(current?.data) ? current.data : [];
-  if (rows.some((item: any) => item.url === webhookUrl && item.enabled === true)) return;
-  await asaas("/webhooks", apiKey, {
-    method: "POST",
-    body: JSON.stringify({
-      name: "DORAMAX - Confirmação de pagamentos",
-      url: webhookUrl,
-      email,
-      enabled: true,
-      interrupted: false,
-      apiVersion: 3,
-      authToken: token,
-      sendType: "SEQUENTIALLY",
-      events: ["PAYMENT_RECEIVED"],
-    }),
-  });
+  const existing = rows.find((item: any) => item.url === webhookUrl);
+  const config = {
+    name: "DORAMAX - Confirmação de pagamentos",
+    url: webhookUrl,
+    email,
+    enabled: true,
+    interrupted: false,
+    apiVersion: 3,
+    authToken: token,
+    sendType: "SEQUENTIALLY",
+    events: ["PAYMENT_RECEIVED", "CHECKOUT_PAID"],
+  };
+  if (existing?.id) {
+    await asaas("/webhooks/" + encodeURIComponent(existing.id), apiKey, {
+      method: "PUT",
+      body: JSON.stringify(config),
+    });
+    return;
+  }
+  await asaas("/webhooks", apiKey, { method: "POST", body: JSON.stringify(config) });
 }
 
 Deno.serve(async (req: Request) => {
@@ -102,96 +107,90 @@ Deno.serve(async (req: Request) => {
       const webhookToken = Deno.env.get("ASAAS_WEBHOOK_TOKEN");
       if (webhookToken) {
         try { await ensureWebhook(apiKey, webhookToken, user.email || ""); }
-        catch (webhookError) { console.error("Não foi possível registrar o webhook Asaas; a consulta automática continuará ativa:", webhookError); }
-      }
-      const { data: pending, error: pendingError } = await admin
-        .from("doramax_payments")
-        .select("asaas_payment_id,pix_payload,pix_encoded_image,invoice_url,status")
-        .eq("user_id", user.id).eq("status", "PENDING")
-        .order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (pendingError) throw pendingError;
-      if (pending) {
-        try {
-          const paymentPath = "/payments/" + encodeURIComponent(pending.asaas_payment_id);
-          const [qr, existingPayment] = await Promise.all([
-            asaas(paymentPath + "/pixQrCode", apiKey),
-            asaas(paymentPath, apiKey),
-          ]);
-          return json({
-            paymentId: pending.asaas_payment_id,
-            pixPayload: qr.payload || pending.pix_payload,
-            encodedImage: qr.encodedImage || pending.pix_encoded_image,
-            invoiceUrl: pending.invoice_url || existingPayment.invoiceUrl || null,
-            unlocked: false,
-          });
-        } catch (pendingError) {
-          // A pending row created in the old sandbox cannot be reused with a live key.
-          console.warn("Cobrança pendente anterior não localizada no ambiente Asaas atual; será criada uma nova.", pendingError);
-        }
+        catch (webhookError) { console.error("Não foi possível atualizar o webhook Asaas:", webhookError); }
       }
 
-      const email = user.email || "";
-      const metadata = user.user_metadata || {};
-      const customerName = String(metadata.full_name || metadata.name || metadata.nome || email.split("@")[0] || "Cliente DORAMAX").slice(0, 100);
-      const customer = await asaas("/customers", apiKey, {
-        method: "POST",
-        body: JSON.stringify({ name: customerName, email, notificationDisabled: true, externalReference: user.id }),
-      });
-      const dueDate = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      const payment = await asaas("/payments", apiKey, {
+      // Reaproveita um Checkout pendente ainda dentro da validade, sem solicitar CPF no aplicativo.
+      const { data: pending, error: pendingError } = await admin
+        .from("doramax_payments")
+        .select("asaas_payment_id,status,created_at")
+        .eq("user_id", user.id).eq("status", "PENDING")
+        .order("created_at", { ascending: false }).limit(5);
+      if (pendingError) throw pendingError;
+      const pendingCheckout = (pending || []).find((row: any) =>
+        /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(String(row.asaas_payment_id || ""))
+      );
+      if (pendingCheckout) {
+        const checkoutUrl = "https://asaas.com/checkoutSession/show?id=" +
+          encodeURIComponent(pendingCheckout.asaas_payment_id);
+        return json({ paymentId: pendingCheckout.asaas_payment_id, checkoutUrl, invoiceUrl: checkoutUrl, unlocked: false });
+      }
+
+      const checkout = await asaas("/checkouts", apiKey, {
         method: "POST",
         body: JSON.stringify({
-          customer: customer.id,
-          billingType: "PIX",
-          value: 5.00,
-          dueDate,
-          description: "DORAMAX - Acesso completo (pagamento único)",
+          billingTypes: ["PIX"],
+          chargeTypes: ["DETACHED"],
+          minutesToExpire: 60,
           externalReference: user.id,
+          callback: {
+            successUrl: "https://asaas.com",
+            cancelUrl: "https://asaas.com",
+            expiredUrl: "https://asaas.com",
+          },
+          items: [{
+            name: "DORAMAX - Acesso completo",
+            description: "Pagamento único para liberar todos os vídeos",
+            quantity: 1,
+            value: 5.00,
+          }],
         }),
       });
-      const qr = await asaas("/payments/" + encodeURIComponent(payment.id) + "/pixQrCode", apiKey);
+      if (!checkout?.id) throw new Error("O Asaas não retornou o identificador do Checkout.");
+      const checkoutUrl = checkout.link ||
+        ("https://asaas.com/checkoutSession/show?id=" + encodeURIComponent(checkout.id));
       const { error: insertError } = await admin.from("doramax_payments").insert({
         user_id: user.id,
-        asaas_payment_id: payment.id,
+        asaas_payment_id: checkout.id,
         amount: 5.00,
-        status: payment.status || "PENDING",
-        pix_payload: qr.payload || null,
-        pix_encoded_image: qr.encodedImage || null,
-        invoice_url: payment.invoiceUrl || null,
+        status: "PENDING",
+        invoice_url: checkoutUrl,
       });
       if (insertError) throw insertError;
       return json({
-        paymentId: payment.id,
-        pixPayload: qr.payload,
-        encodedImage: qr.encodedImage,
-        invoiceUrl: payment.invoiceUrl || null,
-        expirationDate: qr.expirationDate || null,
+        paymentId: checkout.id,
+        checkoutUrl,
+        invoiceUrl: checkoutUrl,
         unlocked: false,
       });
     }
 
     if (action === "status") {
       const paymentId = String(body?.paymentId || "");
-      if (!paymentId || paymentId.length > 100) return json({ error: "Cobrança inválida." }, 400);
+      if (!paymentId || paymentId.length > 100) return json({ error: "Checkout inválido." }, 400);
       const { data: row, error: rowError } = await admin.from("doramax_payments")
         .select("id,user_id,asaas_payment_id,amount,status")
         .eq("asaas_payment_id", paymentId).eq("user_id", user.id).maybeSingle();
       if (rowError) throw rowError;
-      if (!row) return json({ error: "Cobrança não encontrada para esta conta." }, 404);
+      if (!row) return json({ error: "Checkout não encontrado para esta conta." }, 404);
 
-      const verified = await asaas("/payments/" + encodeURIComponent(paymentId), apiKey);
-      if (verified.externalReference !== user.id || Number(verified.value) !== 5 ||
-          verified.billingType !== "PIX") {
-        return json({ error: "Os dados da cobrança não correspondem a esta conta." }, 403);
+      // Confirmação real: consulta as cobranças vinculadas ao Checkout e valida valor, conta e status.
+      const payments = await asaas("/payments?checkoutSession=" + encodeURIComponent(paymentId) + "&limit=100", apiKey);
+      const paidPayment = (Array.isArray(payments?.data) ? payments.data : []).find((item: any) =>
+        item.externalReference === user.id &&
+        Number(item.value) === 5 &&
+        item.billingType === "PIX" &&
+        String(item.status) === "RECEIVED"
+      );
+      if (paidPayment) {
+        const now = new Date().toISOString();
+        const { error: updateError } = await admin.from("doramax_payments")
+          .update({ status: "RECEIVED", paid_at: now, updated_at: now }).eq("id", row.id);
+        if (updateError) throw updateError;
+        await issueAccess(admin, user.id);
+        return json({ unlocked: true, status: "RECEIVED" });
       }
-      const paid = String(verified.status) === "RECEIVED";
-      const nextStatus = String(verified.status || row.status);
-      const { error: updateError } = await admin.from("doramax_payments")
-        .update({ status: nextStatus, paid_at: paid ? new Date().toISOString() : null, updated_at: new Date().toISOString() })
-        .eq("id", row.id);
-      if (updateError) throw updateError;
-      if (paid) await issueAccess(admin, user.id);
-      return json({ unlocked: paid, status: nextStatus });
+      return json({ unlocked: false, status: row.status || "PENDING" });
     }
 
     return json({ error: "Ação inválida." }, 400);
