@@ -7,7 +7,7 @@
   if (window.__doramaxAccessLoaded) return;
   window.__doramaxAccessLoaded = true;
   window.__doramaxAccessSource = "local";
-  window.__doramaxAccessVersion = "2026.11.24-asaas-session-checkout-fix-v5.65";
+  window.__doramaxAccessVersion = "2026.11.24-asaas-hosted-checkout-v5.66";
 
   const SUPABASE_URL = "https://qbwsaahlkovrejwliefv.supabase.co";
   const SUPABASE_KEY = "sb_publishable_IUeH0RsYhkHpsBflAPo1WQ_1VVPbsAK";
@@ -278,74 +278,44 @@
 
   function showPixPayment(payment) {
     openModal("login");
-    const modal = document.querySelector("#dmModal .dm-modal");
     let box = document.getElementById("dmPixPaymentBox");
     if (!box) {
       box = document.createElement("section");
       box.id = "dmPixPaymentBox";
       box.className = "dm-payment-box";
-      const status = document.getElementById("dmStatus");
-      status.insertAdjacentElement("afterend", box);
+      document.getElementById("dmStatus").insertAdjacentElement("afterend", box);
     }
     box.replaceChildren();
     const title = document.createElement("h3");
-    title.textContent = "Pague R$ 5,00 via Pix";
+    title.textContent = "Checkout seguro do Asaas";
     const note = document.createElement("p");
-    note.textContent = "Depois que o banco confirmar o pagamento, o acesso completo será liberado automaticamente.";
+    note.textContent = "Finalize o pagamento de R$ 5,00 na página do Asaas. O CPF e os demais dados serão solicitados diretamente no checkout, fora do aplicativo.";
     box.append(title, note);
-    if (payment.encodedImage) {
-      const img = document.createElement("img");
-      img.alt = "QR Code Pix de pagamento";
-      img.src = "data:image/png;base64," + payment.encodedImage;
-      img.style.cssText = "display:block;width:min(220px,100%);height:auto;margin:12px auto;background:#fff;padding:8px;border-radius:8px";
-      box.appendChild(img);
-    }
-    if (payment.invoiceUrl) {
+    const checkoutUrl = String(payment.checkoutUrl || payment.invoiceUrl || "");
+    if (checkoutUrl) {
       const checkout = document.createElement("button");
       checkout.type = "button";
       checkout.className = "dm-btn green";
-      checkout.textContent = "ABRIR CHECKOUT PARA PAGAR R$ 5,00";
+      checkout.textContent = "ABRIR CHECKOUT DO ASAAS";
       checkout.onclick = () => {
         if (window.DoramaxAndroid?.openPaymentCheckout) {
-          window.DoramaxAndroid.openPaymentCheckout(String(payment.invoiceUrl));
+          window.DoramaxAndroid.openPaymentCheckout(checkoutUrl);
         } else {
-          window.open(String(payment.invoiceUrl), "_blank", "noopener");
+          window.location.href = checkoutUrl;
         }
       };
       box.appendChild(checkout);
-    } else {
-      const checkoutNote = document.createElement("p");
-      checkoutNote.className = "dm-payment-empty";
-      checkoutNote.textContent = "Checkout indisponível nesta cobrança. Você pode pagar pelo Pix abaixo.";
-      box.appendChild(checkoutNote);
-    }
-    if (payment.pixPayload) {
-      const label = document.createElement("p");
-      label.textContent = "Pix copia e cola:";
-      const code = document.createElement("textarea");
-      code.readOnly = true;
-      code.value = payment.pixPayload;
-      code.style.cssText = "width:100%;min-height:76px;box-sizing:border-box;padding:9px;border-radius:8px;background:#090909;color:#fff;border:1px solid #555;overflow-wrap:anywhere";
-      const copy = document.createElement("button");
-      copy.type = "button";
-      copy.className = "dm-btn secondary";
-      copy.textContent = "COPIAR PIX";
-      copy.onclick = async () => {
-        try { await navigator.clipboard.writeText(payment.pixPayload); copy.textContent = "PIX COPIADO"; }
-        catch (_) { code.select(); document.execCommand("copy"); copy.textContent = "PIX COPIADO"; }
-      };
-      box.append(label, code, copy);
     }
     const status = document.createElement("p");
     status.id = "dmPixStatus";
     status.className = "dm-payment-count";
-    status.textContent = "Aguardando confirmação do pagamento...";
+    status.textContent = "Aguardando confirmação do pagamento no Asaas...";
     box.appendChild(status);
     activePaymentId = payment.paymentId;
     if (accessPaymentPoller) clearInterval(accessPaymentPoller);
     accessPaymentPoller = setInterval(checkPixPayment, 5000);
     checkPixPayment();
-    document.getElementById("dmStatus").textContent = "Pix gerado. Conclua o pagamento para liberar seu acesso.";
+    document.getElementById("dmStatus").textContent = "Checkout criado. Conclua o pagamento na página do Asaas.";
   }
 
   async function checkPixPayment() {
@@ -381,7 +351,7 @@
     if (button.disabled) return;
     button.disabled = true;
     const originalText = button.textContent;
-    button.textContent = "GERANDO PIX...";
+    button.textContent = "ABRINDO CHECKOUT...";
     try {
       await refreshSessionIfNeeded();
       const response = await fetch(SUPABASE_URL + "/functions/v1/asaas-payments", {
@@ -390,35 +360,36 @@
         body: JSON.stringify({ action: "create" })
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || "Não foi possível gerar o Pix.");
+      if (!response.ok) throw new Error(result.error || "Não foi possível abrir o checkout do Asaas.");
       if (result.unlocked === true) {
         unlocked = true;
         updateGate();
         updateLoggedAs();
         return;
       }
+      const checkoutUrl = String(result.checkoutUrl || result.invoiceUrl || "");
+      if (!checkoutUrl) throw new Error("O Asaas não retornou o link do checkout.");
       showPixPayment(result);
-      // Abre o checkout externo assim que a cobrança PIX é criada.
-      if (result.invoiceUrl) {
-        if (window.DoramaxAndroid?.openPaymentCheckout) {
-          window.DoramaxAndroid.openPaymentCheckout(String(result.invoiceUrl));
-        } else {
-          const checkoutUrl = String(result.invoiceUrl);
-          if (/^https:\/\/(?:www\.)?asaas\.com\//i.test(checkoutUrl)) {
-            window.location.href = checkoutUrl;
-          }
-        }
+      if (window.DoramaxAndroid?.openPaymentCheckout) {
+        window.DoramaxAndroid.openPaymentCheckout(checkoutUrl);
       } else {
-        setError("A cobrança foi criada, mas o Asaas não retornou o link do checkout. Use o Pix copia e cola exibido na tela.");
+        window.location.href = checkoutUrl;
       }
     } catch (error) {
       openModal("login");
-      setError(error.message || "Erro ao gerar cobrança Pix.");
+      setError(error.message || "Erro ao criar checkout.");
     } finally {
       button.disabled = false;
       button.textContent = originalText;
     }
   }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && activePaymentId) checkPixPayment();
+  });
+  window.addEventListener("focus", () => {
+    if (activePaymentId) checkPixPayment();
+  });
 
   // Camada visual sobre o player a partir do quarto vídeo.
   // Não existe bloqueio de reprodução por JavaScript; os controles do YouTube são preservados.
