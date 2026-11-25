@@ -21,7 +21,7 @@ android {
         applicationId = "com.meuplayer.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 91
+        versionCode = 96
         versionName = "5.54"
     }
 
