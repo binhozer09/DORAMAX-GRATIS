@@ -509,6 +509,12 @@ function playCatalogVideo(id){
  let target=findVideoCard(id);
  if(!target)target=ensureVideoCardLoaded(id);
  if(!target){console.warn('[DORAMAX] Vídeo não encontrado no catálogo:',id);return;}
+ if(typeof window.doramaxCanPlayCard!=='function'||!window.doramaxCanPlayCard(target)){
+  openPlayerMode();
+  showPlayerControls(target);
+  requestAnimationFrame(()=>target.scrollIntoView({behavior:'auto',block:'start'}));
+  return;
+ }
  openPlayerMode();
  showPlayerControls(target);
  requestAnimationFrame(()=>{
@@ -1104,6 +1110,12 @@ const observer=new IntersectionObserver(entries=>{
   // Ignorar essa saída evita que o observer pause o vídeo durante a expansão.
   if(false){activeFrame=frame;return;}
   if(entry.isIntersecting&&entry.intersectionRatio>=0.65){
+   if(typeof window.doramaxCanPlayCard==='function'&&!window.doramaxCanPlayCard(card)){
+    pauseFrame(frame);
+    if(activeFrame===frame)activeFrame=null;
+    doramaxClearStartTimeout(frame);
+    return;
+   }
    if(activeFrame!==frame)doramaxLog('observer_selected_video',{previousVideoId:videoId(activeFrame)||null,newVideoId:videoId(frame)||null,intersectionRatio:Number(entry.intersectionRatio.toFixed(3)),...doramaxCurrentState()});
    activeFrame=frame;
    doramaxWatchStartTimeout(frame);
