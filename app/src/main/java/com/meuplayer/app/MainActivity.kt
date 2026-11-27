@@ -859,7 +859,7 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             if (!isFinishing && !isDestroyed) {
                                 loadBannerAd()
-                                loadPlayerTopBannerAd()
+                                loadPlayerTopVideoAd()
                                 loadStartupInterstitial()
                             }
                         }
