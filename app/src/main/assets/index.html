@@ -97,7 +97,7 @@ body.player-open.player-controls-visible #customSeekBar{display:block;pointer-ev
  <div id="historyList" class="history-list"></div>
 </div>
 <button class="donate" id="pixDonateButton" type="button" aria-label="Doar via PIX para apoiar o DORAMAX" title="Doar via PIX">DOAR</button>
-<section id="catalogScreen" class="catalog-screen" aria-label="Catálogo de filmes e séries"><div id="catalogRefreshIndicator" class="catalog-refresh-indicator" aria-live="polite"><span class="catalog-refresh-spinner" aria-hidden="true"></span><span>Atualizando catálogo...</span></div><header class="catalog-heading"><h1>Escolha seu dorama favorito</h1><button id="catalogRefreshButton" class="catalog-refresh-button" type="button" hidden>↻ Atualizar catálogo</button></header><div id="catalogGrid" class="catalog-grid"><div class="catalog-empty">Carregando catálogo...</div></div></section>
+<section id="catalogScreen" class="catalog-screen" aria-label="Catálogo de filmes e séries"><div id="catalogRefreshIndicator" class="catalog-refresh-indicator" aria-live="polite"><span class="catalog-refresh-spinner" aria-hidden="true"></span><span>Atualizando catálogo...</span></div><header class="catalog-heading"><h1>Escolha seu dorama favorito</h1><button id="catalogRefreshButton" class="catalog-refresh-button" type="button">↻ Atualizar catálogo</button></header><div id="catalogGrid" class="catalog-grid"><div class="catalog-empty">Carregando catálogo...</div></div></section>
 <main id="feed" class="feed" aria-label="Reprodutor de vídeos">
 <section class="video" data-free-preview="true">
  <div class="player"><iframe data-src="https://www.youtube.com/embed/LccxdtzPvcU?playsinline=1&rel=0&controls=1&fs=0&disablekb=0&iv_load_policy=3&cc_load_policy=0&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
@@ -524,7 +524,7 @@ function renderCatalog(){
  }
 }
 function shufflePaidCatalog(){
- if(catalogRefreshing||catalogRenderItems.length<=3||!catalogCanShuffle)return;
+ if(catalogRefreshing||catalogRenderItems.length<=3)return;
  catalogRefreshing=true;
  const indicator=document.getElementById('catalogRefreshIndicator');
  indicator?.classList.add('active');
@@ -547,7 +547,7 @@ function shufflePaidCatalog(){
   catalogRefreshing=false;
  },550);
 }
-let catalogCanShuffle=false;
+let catalogCanShuffle=true;
 const catalogRefreshButton=document.getElementById('catalogRefreshButton');
 document.addEventListener('doramax:account-state',event=>{
  const state=event.detail||{};
