@@ -541,6 +541,7 @@
       const grantRows = results[1];
       isAdmin = Array.isArray(adminRows) && adminRows.length > 0;
       unlocked = isAdmin || !!(Array.isArray(grantRows) && grantRows[0] && grantRows[0].is_unlocked === true);
+      updateLoggedAs(); // Propaga o acesso já confirmado para o botão de atualizar catálogo.
       updateGate();
       updateSupportPrompt(); document.getElementById("dmLogout").style.display = "block";
       document.getElementById("dmStatus").textContent = unlocked
@@ -551,6 +552,7 @@
       // Keep the authenticated session so the user can see the real permission/API error.
       isAdmin = false;
       unlocked = false;
+      updateLoggedAs();
       updateGate();
       document.getElementById("dmStatus").textContent = "Não foi possível verificar as permissões: " + (error.message || "erro desconhecido");
       setError("Login realizado, mas a verificação do painel ADM falhou: " + (error.message || "erro desconhecido"));
