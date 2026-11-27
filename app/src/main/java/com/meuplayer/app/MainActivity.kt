@@ -43,6 +43,7 @@ import com.google.android.libraries.ads.mobile.sdk.initialization.Initialization
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAd
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAdEventCallback
 import com.google.android.libraries.ads.mobile.sdk.common.VideoOptions
+import com.google.android.libraries.ads.mobile.sdk.common.VideoController
 import com.google.android.libraries.ads.mobile.sdk.nativead.MediaView
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
@@ -743,7 +744,10 @@ class MainActivity : AppCompatActivity() {
         playerTopAdLoadInProgress = true
 
         // O vídeo começa sem áudio para não disputar o foco de áudio com o dorama.
-        val videoOptions = VideoOptions.Builder().setStartMuted(true).build()
+        val videoOptions = VideoOptions.Builder()
+            .setStartMuted(true)
+            .setCustomControlsRequested(true)
+            .build()
         val request = NativeAdRequest.Builder(
             PLAYER_VIDEO_AD_UNIT_ID,
             listOf(NativeAd.NativeAdType.NATIVE)
@@ -770,6 +774,24 @@ class MainActivity : AppCompatActivity() {
                             playerTopNativeAdLoaded = false
                             nativeAd.destroy()
                             return@runOnUiThread
+                        }
+
+                        // Solicita controles personalizados e reinicia o mesmo criativo ao terminar.
+                        // O Google só habilita play() para inventários autorizados; se não habilitar,
+                        // o SDK mantém o comportamento nativo e esta chamada não interfere.
+                        mediaContent.videoController?.let { videoController ->
+                            videoController.setVideoLifecycleCallbacks(
+                                object : VideoController.VideoLifecycleCallbacks() {
+                                    override fun onVideoEnd() {
+                                        if (videoController.isCustomControlsEnabled) {
+                                            Log.i(TAG, "DORAMAX Ad 2 terminou; solicitando autoplay")
+                                            videoController.play()
+                                        } else {
+                                            Log.w(TAG, "DORAMAX Ad 2: autoplay indisponível para este inventário")
+                                        }
+                                    }
+                                }
+                            )
                         }
 
                         // Quando o AdMob entrega vídeo, ele roda no MediaView sem áudio.
