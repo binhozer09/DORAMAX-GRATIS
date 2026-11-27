@@ -43,6 +43,7 @@ import com.google.android.libraries.ads.mobile.sdk.initialization.Initialization
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAd
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAdEventCallback
 import com.google.android.libraries.ads.mobile.sdk.common.VideoOptions
+import com.google.android.libraries.ads.mobile.sdk.common.VideoController
 import com.google.android.libraries.ads.mobile.sdk.nativead.MediaView
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
@@ -761,6 +762,34 @@ class MainActivity : AppCompatActivity() {
                             nativeAd.destroy()
                             return@runOnUiThread
                         }
+
+                        val mediaContent = nativeAd.mediaContent
+                        if (mediaContent == null || !mediaContent.hasVideoContent()) {
+                            // Não exibe criativo estático: o espaço do Anúncio 2 é reservado para vídeo.
+                            Log.i(TAG, "DORAMAX player ad skipped: creative has no video")
+                            playerTopAdLoadInProgress = false
+                            playerTopNativeAdLoaded = false
+                            nativeAd.destroy()
+                            return@runOnUiThread
+                        }
+
+                        // Registra o ciclo real do vídeo para confirmar início, reprodução, pausa e fim.
+                        mediaContent.videoController.setVideoLifecycleCallbacks(
+                            object : VideoController.VideoLifecycleCallbacks() {
+                                override fun onVideoStart() {
+                                    Log.i(TAG, "DORAMAX Ad 2 video started alongside player")
+                                }
+                                override fun onVideoPlay() {
+                                    Log.i(TAG, "DORAMAX Ad 2 video playing")
+                                }
+                                override fun onVideoPause() {
+                                    Log.w(TAG, "DORAMAX Ad 2 video paused by SDK")
+                                }
+                                override fun onVideoEnd() {
+                                    Log.i(TAG, "DORAMAX Ad 2 video ended")
+                                }
+                            }
+                        )
 
                         val density = resources.displayMetrics.density
                         fun dp(value: Int) = (value * density).toInt()
