@@ -528,6 +528,7 @@ function shufflePaidCatalog(){
  catalogRefreshing=true;
  const indicator=document.getElementById('catalogRefreshIndicator');
  indicator?.classList.add('active');
+ // Mantém os três vídeos gratuitos no topo e embaralha somente a ordem dos demais.
  const freeItems=catalogRenderItems.slice(0,3);
  const paid=catalogRenderItems.slice(3);
  for(let i=paid.length-1;i>0;i--){
@@ -536,16 +537,19 @@ function shufflePaidCatalog(){
  }
  if(paid.length>1&&paid.every((item,index)=>item.id===catalogRenderItems[index+3]?.id))paid.push(paid.shift());
  catalogRenderItems=[...freeItems,...paid];
- catalogRenderObserver?.disconnect();catalogRenderObserver=null;
- catalogRenderSentinel?.remove();catalogRenderSentinel=null;
- const fixedFreeCards=freeItems.map((item,index)=>catalogCardNodes.get(item.id)||buildCatalogCard(item,index));
- catalogGrid.replaceChildren(...fixedFreeCards);
- catalogRenderIndex=3;
- appendCatalogGridBatch();
+ // Reordena apenas os cards que já estão renderizados. Não limpa o grid,
+ // não reinicia a paginação e não consulta o Supabase novamente.
+ const fragment=document.createDocumentFragment();
+ for(const item of catalogRenderItems){
+  const card=catalogCardNodes.get(item.id);
+  if(card?.isConnected)fragment.appendChild(card);
+ }
+ if(catalogRenderSentinel?.isConnected)catalogGrid.insertBefore(fragment,catalogRenderSentinel);
+ else catalogGrid.appendChild(fragment);
  window.setTimeout(()=>{
   indicator?.classList.remove('active');
   catalogRefreshing=false;
- },550);
+ },350);
 }
 let catalogCanShuffle=true;
 const catalogRefreshButton=document.getElementById('catalogRefreshButton');
