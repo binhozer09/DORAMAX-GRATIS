@@ -65,6 +65,7 @@ class MainActivity : AppCompatActivity() {
     @Volatile private var bannerAdLoaded = false
     @Volatile private var bannerLoadInProgress = false
     @Volatile private var playerTopNativeAdLoaded = false
+    @Volatile private var playerTopAdLoadInProgress = false
     private var adStatusView: android.widget.TextView? = null
     private val bannerRetryHandler = Handler(Looper.getMainLooper())
     private var bannerLoadAttempts = 0
@@ -105,6 +106,10 @@ class MainActivity : AppCompatActivity() {
                     decor.systemUiVisibility = playerPreviousSystemUiVisibility
                 }
                 if (::playerTopAdContainer.isInitialized) {
+                    if (enabled && !isCatalogVisible && !playerTopNativeAdLoaded) {
+                        // Solicita o vídeo somente quando o espaço do anúncio já está no player visível.
+                        loadPlayerTopVideoAd()
+                    }
                     playerTopAdContainer.visibility = if (enabled && !isCatalogVisible && playerTopNativeAdLoaded) android.view.View.VISIBLE else android.view.View.GONE
                 }
             }
@@ -733,8 +738,10 @@ class MainActivity : AppCompatActivity() {
     // Anúncio nativo com vídeo, exclusivamente no overlay superior do player.
     // O espaço fixo de 330 x 45 dp não altera nem redimensiona o WebView/player.
     private fun loadPlayerTopVideoAd() {
-        if (isFinishing || isDestroyed || playerTopNativeAd != null) return
+        if (isFinishing || isDestroyed || playerTopNativeAd != null || playerTopAdLoadInProgress) return
+        playerTopAdLoadInProgress = true
 
+        // O vídeo começa sem áudio para não disputar o foco de áudio com o dorama.
         val videoOptions = VideoOptions.Builder().setStartMuted(true).build()
         val request = NativeAdRequest.Builder(
             PLAYER_VIDEO_AD_UNIT_ID,
@@ -749,7 +756,8 @@ class MainActivity : AppCompatActivity() {
             NativeAdLoader.load(request, object : NativeAdLoaderCallback {
                 override fun onNativeAdLoaded(nativeAd: NativeAd) {
                     runOnUiThread {
-                        if (isFinishing || isDestroyed) {
+                        if (isFinishing || isDestroyed || !playerImmersiveMode || isCatalogVisible) {
+                            playerTopAdLoadInProgress = false
                             nativeAd.destroy()
                             return@runOnUiThread
                         }
@@ -800,6 +808,7 @@ class MainActivity : AppCompatActivity() {
                         )
                         playerTopNativeAd?.destroy()
                         playerTopNativeAd = nativeAd
+                        playerTopAdLoadInProgress = false
                         playerTopNativeAdLoaded = true
                         playerTopAdContainer.visibility =
                             if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE
@@ -811,6 +820,7 @@ class MainActivity : AppCompatActivity() {
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     Log.w(TAG, "DORAMAX player native video ad failed: ${adError.code} ${adError.message}")
                     runOnUiThread {
+                        playerTopAdLoadInProgress = false
                         playerTopNativeAdLoaded = false
                         playerTopAdContainer.visibility = android.view.View.GONE
                     }
@@ -818,6 +828,7 @@ class MainActivity : AppCompatActivity() {
             })
         } catch (error: Exception) {
             Log.e(TAG, "Could not request player native video ad", error)
+            playerTopAdLoadInProgress = false
             playerTopNativeAdLoaded = false
             playerTopAdContainer.visibility = android.view.View.GONE
         }
@@ -859,7 +870,7 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             if (!isFinishing && !isDestroyed) {
                                 loadBannerAd()
-                                loadPlayerTopVideoAd()
+                                // O Anúncio 2 é solicitado somente quando o player já estiver visível.
                                 loadStartupInterstitial()
                             }
                         }
