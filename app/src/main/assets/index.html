@@ -535,7 +535,10 @@ function returnToCatalog(){
  saveFeedPosition(true);
  feed.classList.remove('player-mode');
  document.body.classList.remove('player-open');
- try{if(window.DoramaxAndroid?.setCatalogAdsVisible)window.DoramaxAndroid.setCatalogAdsVisible(true);}catch(_){}
+ try{
+  if(window.DoramaxAndroid?.setPlayerImmersive)window.DoramaxAndroid.setPlayerImmersive(false);
+  if(window.DoramaxAndroid?.setCatalogAdsVisible)window.DoramaxAndroid.setCatalogAdsVisible(true);
+ }catch(_){}
 }
 function playCatalogVideo(id){
  let target=findVideoCard(id);
