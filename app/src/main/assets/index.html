@@ -583,7 +583,7 @@ catalogScreen?.addEventListener('touchmove',event=>{
   const label=catalogPullIndicator.querySelector('span:last-child');
   if(label)label.textContent=distance>=catalogPullThreshold?'Solte para atualizar o catálogo':'Puxe para atualizar o catálogo';
  }
- event.preventDefault();
+ if(distance>10)event.preventDefault();
 },{passive:false});
 const finishCatalogPull=()=>{
  const shouldRefresh=catalogPulling&&catalogPullDistance>=catalogPullThreshold&&catalogCanShuffle&&!catalogRefreshing;
