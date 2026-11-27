@@ -42,6 +42,13 @@ import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAd
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAdEventCallback
+import com.google.android.libraries.ads.mobile.sdk.common.VideoOptions
+import com.google.android.libraries.ads.mobile.sdk.nativead.MediaView
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoaderCallback
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdRequest
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdView
 
 class MainActivity : AppCompatActivity() {
 
@@ -51,13 +58,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adContainer: FrameLayout
     private lateinit var playerTopAdContainer: FrameLayout
     private var bannerAdView: AdView? = null
-    private var playerTopBannerAdView: AdView? = null
+    private var playerTopNativeAd: NativeAd? = null
     private var interstitialAd: InterstitialAd? = null
     @Volatile private var initialPageLoaded = false
     @Volatile private var isCatalogVisible = true
     @Volatile private var bannerAdLoaded = false
     @Volatile private var bannerLoadInProgress = false
-    @Volatile private var playerTopBannerLoaded = false
+    @Volatile private var playerTopNativeAdLoaded = false
     private var adStatusView: android.widget.TextView? = null
     private val bannerRetryHandler = Handler(Looper.getMainLooper())
     private var bannerLoadAttempts = 0
@@ -98,7 +105,7 @@ class MainActivity : AppCompatActivity() {
                     decor.systemUiVisibility = playerPreviousSystemUiVisibility
                 }
                 if (::playerTopAdContainer.isInitialized) {
-                    playerTopAdContainer.visibility = if (enabled && !isCatalogVisible && playerTopBannerLoaded) android.view.View.VISIBLE else android.view.View.GONE
+                    playerTopAdContainer.visibility = if (enabled && !isCatalogVisible && playerTopNativeAdLoaded) android.view.View.VISIBLE else android.view.View.GONE
                 }
             }
         }
@@ -545,9 +552,11 @@ class MainActivity : AppCompatActivity() {
         private const val FILE_CHOOSER_REQUEST_CODE = 7401
         private const val TAG = "DORAMAX_ADS"
         // DORAMAX GRÁTIS production AdMob App ID.
-        private const val ADMOB_APP_ID = "ca-app-pub-2488297391470541~6107052736"
-        // DORAMAX GRÁTIS production banner ad unit.
+        private const val ADMOB_APP_ID = "ca-app-pub-2488297391470541~8272798060"
+        // DORAMAX GRÁTIS catalog banner ad unit (kept unchanged).
         private const val BANNER_AD_UNIT_ID = "ca-app-pub-2488297391470541/6110171134"
+        // DORAMAX GRÁTIS native video ad unit used only over the player.
+        private const val PLAYER_VIDEO_AD_UNIT_ID = "ca-app-pub-2488297391470541/8547706179"
         // One production interstitial shown at most once per app process launch.
         private const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-2488297391470541/7114056223"
         @Volatile private var startupInterstitialShownThisProcess = false
@@ -721,55 +730,97 @@ class MainActivity : AppCompatActivity() {
         initializeAds()
     }
 
-    // Segundo banner independente, sobreposto à faixa preta superior do player.
-    // O container é overlay: não altera as dimensões do WebView nem do player.
-    private fun loadPlayerTopBannerAd() {
-        if (isFinishing || isDestroyed || playerTopBannerAdView != null) return
-        val adView = AdView(this)
-        playerTopBannerAdView = adView
-        val request = BannerAdRequest.Builder(BANNER_AD_UNIT_ID, AdSize.BANNER).build()
-        playerTopAdContainer.addView(
-            adView,
-            FrameLayout.LayoutParams(
-                (320 * resources.displayMetrics.density).toInt(),
-                (50 * resources.displayMetrics.density).toInt(),
-                android.view.Gravity.CENTER
-            )
+    // Anúncio nativo com vídeo, exclusivamente no overlay superior do player.
+    // O espaço fixo de 330 x 45 dp não altera nem redimensiona o WebView/player.
+    private fun loadPlayerTopVideoAd() {
+        if (isFinishing || isDestroyed || playerTopNativeAd != null) return
+
+        val videoOptions = VideoOptions.Builder().setStartMuted(true).build()
+        val request = NativeAdRequest.Builder(
+            PLAYER_VIDEO_AD_UNIT_ID,
+            listOf(NativeAd.NativeAdType.NATIVE)
         )
+            .setVideoOptions(videoOptions)
+            .setMediaAspectRatio(NativeAd.NativeMediaAspectRatio.LANDSCAPE)
+            .build()
+
         playerTopAdContainer.visibility = android.view.View.GONE
         try {
-            adView.loadAd(request, object : AdLoadCallback<BannerAd> {
-                override fun onAdLoaded(ad: BannerAd) {
-                    Log.i(TAG, "DORAMAX player top banner loaded successfully")
+            NativeAdLoader.load(request, object : NativeAdLoaderCallback {
+                override fun onNativeAdLoaded(nativeAd: NativeAd) {
                     runOnUiThread {
-                        if (!isFinishing && !isDestroyed && playerTopBannerAdView === adView) {
-                            playerTopBannerLoaded = true
-                            playerTopAdContainer.visibility = if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+                        if (isFinishing || isDestroyed) {
+                            nativeAd.destroy()
+                            return@runOnUiThread
                         }
+
+                        val density = resources.displayMetrics.density
+                        fun dp(value: Int) = (value * density).toInt()
+
+                        val nativeAdView = NativeAdView(this@MainActivity).apply {
+                            layoutParams = FrameLayout.LayoutParams(dp(330), dp(45), android.view.Gravity.CENTER)
+                            clipChildren = true
+                            clipToPadding = true
+                        }
+                        val mediaView = MediaView(this@MainActivity).apply {
+                            layoutParams = FrameLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                            clipChildren = true
+                            clipToPadding = true
+                        }
+                        nativeAdView.addView(mediaView)
+
+                        // Identificação obrigatória do conteúdo patrocinado.
+                        val attribution = android.widget.TextView(this@MainActivity).apply {
+                            text = "Anúncio"
+                            setTextColor(android.graphics.Color.WHITE)
+                            textSize = 8f
+                            setPadding(dp(4), dp(1), dp(4), dp(1))
+                            setBackgroundColor(0x99000000.toInt())
+                            isClickable = false
+                            isFocusable = false
+                        }
+                        nativeAdView.addView(
+                            attribution,
+                            FrameLayout.LayoutParams(
+                                ViewGroup.LayoutParams.WRAP_CONTENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT,
+                                android.view.Gravity.TOP or android.view.Gravity.START
+                            )
+                        )
+
+                        // O SDK vincula e reproduz o vídeo dentro deste MediaView.
+                        nativeAdView.registerNativeAd(nativeAd, mediaView)
+                        playerTopAdContainer.removeAllViews()
+                        playerTopAdContainer.addView(
+                            nativeAdView,
+                            FrameLayout.LayoutParams(dp(330), dp(45), android.view.Gravity.CENTER)
+                        )
+                        playerTopNativeAd?.destroy()
+                        playerTopNativeAd = nativeAd
+                        playerTopNativeAdLoaded = true
+                        playerTopAdContainer.visibility =
+                            if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE
+                            else android.view.View.GONE
+                        Log.i(TAG, "DORAMAX player native video ad loaded")
                     }
                 }
+
                 override fun onAdFailedToLoad(adError: LoadAdError) {
-                    Log.w(TAG, "DORAMAX player top banner failed: ${adError.code} ${adError.message}")
+                    Log.w(TAG, "DORAMAX player native video ad failed: ${adError.code} ${adError.message}")
                     runOnUiThread {
-                        if (playerTopBannerAdView === adView) {
-                            playerTopBannerLoaded = false
-                            playerTopAdContainer.visibility = android.view.View.GONE
-                        }
+                        playerTopNativeAdLoaded = false
+                        playerTopAdContainer.visibility = android.view.View.GONE
                     }
                 }
             })
         } catch (error: Exception) {
-            Log.e(TAG, "Could not request player top banner", error)
-            playerTopAdViewCleanup(adView)
+            Log.e(TAG, "Could not request player native video ad", error)
+            playerTopNativeAdLoaded = false
+            playerTopAdContainer.visibility = android.view.View.GONE
         }
-    }
-
-    private fun playerTopAdViewCleanup(adView: AdView) {
-        (adView.parent as? ViewGroup)?.removeView(adView)
-        adView.destroy()
-        if (playerTopBannerAdView === adView) playerTopBannerAdView = null
-        playerTopBannerLoaded = false
-        playerTopAdContainer.visibility = android.view.View.GONE
     }
 
     // Exibe o motivo real da falha dentro da área do banner, sem esconder o catálogo.
@@ -1070,11 +1121,9 @@ class MainActivity : AppCompatActivity() {
             adView.destroy()
         }
         bannerAdView = null
-        playerTopBannerAdView?.let { adView ->
-            (adView.parent as? ViewGroup)?.removeView(adView)
-            adView.destroy()
-        }
-        playerTopBannerAdView = null
+        playerTopNativeAd?.destroy()
+        playerTopNativeAd = null
+        playerTopAdContainer.removeAllViews()
         siteWeb.destroy()
         super.onDestroy()
     }
