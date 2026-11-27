@@ -43,7 +43,6 @@ import com.google.android.libraries.ads.mobile.sdk.initialization.Initialization
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAd
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAdEventCallback
 import com.google.android.libraries.ads.mobile.sdk.common.VideoOptions
-import com.google.android.libraries.ads.mobile.sdk.common.VideoController
 import com.google.android.libraries.ads.mobile.sdk.nativead.MediaView
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
@@ -776,22 +775,10 @@ class MainActivity : AppCompatActivity() {
                             return@runOnUiThread
                         }
 
-                        // Solicita controles personalizados e reinicia o mesmo criativo ao terminar.
-                        // O Google só habilita play() para inventários autorizados; se não habilitar,
-                        // o SDK mantém o comportamento nativo e esta chamada não interfere.
-                        mediaContent.videoController?.let { videoController ->
-                            videoController.setVideoLifecycleCallbacks(
-                                object : VideoController.VideoLifecycleCallbacks() {
-                                    override fun onVideoEnd() {
-                                        if (videoController.isCustomControlsEnabled) {
-                                            Log.i(TAG, "DORAMAX Ad 2 terminou; solicitando autoplay")
-                                            videoController.play()
-                                        } else {
-                                            Log.w(TAG, "DORAMAX Ad 2: autoplay indisponível para este inventário")
-                                        }
-                                    }
-                                }
-                            )
+                        // O SDK reproduz o vídeo do criativo quando o MediaView fica visível.
+                        // Solicita play() no controlador disponível; anúncios estáticos não entram neste caminho.
+                        if (mediaContent.hasVideoContent) {
+                            mediaContent.videoController?.play()
                         }
 
                         // Quando o AdMob entrega vídeo, ele roda no MediaView sem áudio.
