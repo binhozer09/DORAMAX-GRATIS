@@ -31,7 +31,7 @@
     <FrameLayout
         android:id="@+id/playerTopAdContainer"
         android:layout_width="330dp"
-        android:layout_height="45dp"
+        android:layout_height="50dp"
         android:layout_gravity="top|center_horizontal"
         android:visibility="gone"
         android:gravity="center"

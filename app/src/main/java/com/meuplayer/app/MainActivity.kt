@@ -106,11 +106,8 @@ class MainActivity : AppCompatActivity() {
                     decor.systemUiVisibility = playerPreviousSystemUiVisibility
                 }
                 if (::playerTopAdContainer.isInitialized) {
-                    if (enabled && !isCatalogVisible && !playerTopNativeAdLoaded) {
-                        // Solicita o vídeo somente quando o espaço do anúncio já está no player visível.
-                        loadPlayerTopVideoAd()
-                    }
-                    playerTopAdContainer.visibility = if (enabled && !isCatalogVisible && playerTopNativeAdLoaded) android.view.View.VISIBLE else android.view.View.GONE
+                    // O banner (Anúncio 1) ocupa o espaço do player; o vídeo fica no catálogo.
+                    playerTopAdContainer.visibility = if (enabled && !isCatalogVisible && bannerAdLoaded) android.view.View.VISIBLE else android.view.View.GONE
                 }
             }
         }
@@ -121,7 +118,10 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 adContainer.visibility = if (visible) android.view.View.VISIBLE else android.view.View.GONE
-                if (visible) playerTopAdContainer.visibility = android.view.View.GONE
+                if (visible) {
+                    playerTopAdContainer.visibility = android.view.View.GONE
+                    if (!playerTopNativeAdLoaded && !playerTopAdLoadInProgress) loadPlayerTopVideoAd()
+                }
             }
         }
 
@@ -735,8 +735,8 @@ class MainActivity : AppCompatActivity() {
         initializeAds()
     }
 
-    // Anúncio nativo com vídeo, exclusivamente no overlay superior do player.
-    // O espaço fixo de 330 x 45 dp não altera nem redimensiona o WebView/player.
+    // Anúncio 2 (vídeo nativo) exibido na faixa inferior do catálogo.
+    // O espaço fixo de 330 x 45 dp não altera nem redimensiona o WebView.
     private fun loadPlayerTopVideoAd() {
         if (isFinishing || isDestroyed || playerTopNativeAd != null || playerTopAdLoadInProgress) return
         playerTopAdLoadInProgress = true
@@ -751,12 +751,12 @@ class MainActivity : AppCompatActivity() {
             .setMediaAspectRatio(NativeAd.NativeMediaAspectRatio.LANDSCAPE)
             .build()
 
-        playerTopAdContainer.visibility = android.view.View.GONE
+        adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
         try {
             NativeAdLoader.load(request, object : NativeAdLoaderCallback {
                 override fun onNativeAdLoaded(nativeAd: NativeAd) {
                     runOnUiThread {
-                        if (isFinishing || isDestroyed || !playerImmersiveMode || isCatalogVisible) {
+                        if (isFinishing || isDestroyed || !isCatalogVisible) {
                             playerTopAdLoadInProgress = false
                             nativeAd.destroy()
                             return@runOnUiThread
@@ -801,8 +801,8 @@ class MainActivity : AppCompatActivity() {
 
                         // O SDK vincula e reproduz o vídeo dentro deste MediaView.
                         nativeAdView.registerNativeAd(nativeAd, mediaView)
-                        playerTopAdContainer.removeAllViews()
-                        playerTopAdContainer.addView(
+                        adContainer.removeAllViews()
+                        adContainer.addView(
                             nativeAdView,
                             FrameLayout.LayoutParams(dp(330), dp(45), android.view.Gravity.CENTER)
                         )
@@ -810,9 +810,7 @@ class MainActivity : AppCompatActivity() {
                         playerTopNativeAd = nativeAd
                         playerTopAdLoadInProgress = false
                         playerTopNativeAdLoaded = true
-                        playerTopAdContainer.visibility =
-                            if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE
-                            else android.view.View.GONE
+                        adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
                         Log.i(TAG, "DORAMAX player native video ad loaded")
                     }
                 }
@@ -822,22 +820,21 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread {
                         playerTopAdLoadInProgress = false
                         playerTopNativeAdLoaded = false
-                        playerTopAdContainer.visibility = android.view.View.GONE
+                        adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
                     }
                 }
             })
         } catch (error: Exception) {
-            Log.e(TAG, "Could not request player native video ad", error)
+            Log.e(TAG, "Could not request catalog native video ad", error)
             playerTopAdLoadInProgress = false
             playerTopNativeAdLoaded = false
-            playerTopAdContainer.visibility = android.view.View.GONE
+            adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
         }
     }
 
-    // Exibe o motivo real da falha dentro da área do banner, sem esconder o catálogo.
+    // Exibe o motivo real da falha do banner na área do player, sem interferir no catálogo.
     private fun showAdStatus(message: String) {
-        if (!::adContainer.isInitialized || isFinishing || isDestroyed) return
-        // Never destroy an AdView while its network request may still be active.
+        if (!::playerTopAdContainer.isInitialized || isFinishing || isDestroyed) return
         if (!bannerLoadInProgress) bannerAdView?.visibility = android.view.View.GONE
         adStatusView?.let { previousStatus -> (previousStatus.parent as? ViewGroup)?.removeView(previousStatus) }
         val statusView = android.widget.TextView(this).apply {
@@ -850,8 +847,8 @@ class MainActivity : AppCompatActivity() {
             setPadding(8, 0, 8, 0)
         }
         adStatusView = statusView
-        adContainer.addView(statusView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+        playerTopAdContainer.addView(statusView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        playerTopAdContainer.visibility = if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
     }
 
     private fun initializeAds() {
@@ -869,8 +866,9 @@ class MainActivity : AppCompatActivity() {
                         Log.i(TAG, "GMA Next-Gen initialization callback completed")
                         runOnUiThread {
                             if (!isFinishing && !isDestroyed) {
+                                // Anúncio 2 (vídeo) no catálogo; Anúncio 1 (banner) no player.
+                                loadPlayerTopVideoAd()
                                 loadBannerAd()
-                                // O Anúncio 2 é solicitado somente quando o player já estiver visível.
                                 loadStartupInterstitial()
                             }
                         }
@@ -954,6 +952,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Anúncio 1 (banner) carregado para a faixa superior do player.
     private fun loadBannerAd() {
         if (isFinishing || isDestroyed || bannerAdLoaded || bannerLoadInProgress) {
             Log.d(TAG, "Skipping banner load: finishing=$isFinishing destroyed=$isDestroyed loaded=$bannerAdLoaded loading=$bannerLoadInProgress")
@@ -973,13 +972,13 @@ class MainActivity : AppCompatActivity() {
         bannerAdView = null
         adStatusView?.let { previousStatus -> (previousStatus.parent as? ViewGroup)?.removeView(previousStatus) }
         adStatusView = null
-        adContainer.removeAllViews()
-        adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+        playerTopAdContainer.removeAllViews()
+        playerTopAdContainer.visibility = if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
 
         val adView = AdView(this)
         bannerAdView = adView
         val request = BannerAdRequest.Builder(BANNER_AD_UNIT_ID, AdSize.BANNER).build()
-        adContainer.addView(adView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        playerTopAdContainer.addView(adView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         try {
             adView.loadAd(request, object : AdLoadCallback<BannerAd> {
@@ -991,7 +990,7 @@ class MainActivity : AppCompatActivity() {
                             bannerAdLoaded = true
                             bannerLoadAttempts = 0
                             bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
-                            adContainer.visibility = if (isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+                            playerTopAdContainer.visibility = if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
                         }
                     }
                 }
@@ -1135,6 +1134,7 @@ class MainActivity : AppCompatActivity() {
         playerTopNativeAd?.destroy()
         playerTopNativeAd = null
         playerTopAdContainer.removeAllViews()
+        adContainer.removeAllViews()
         siteWeb.destroy()
         super.onDestroy()
     }
