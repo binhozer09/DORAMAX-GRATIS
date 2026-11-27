@@ -763,17 +763,19 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         val mediaContent = nativeAd.mediaContent
-                        if (mediaContent == null || !mediaContent.hasVideoContent) {
-                            // Não exibe criativo estático: o espaço do Anúncio 2 é reservado para vídeo.
-                            Log.i(TAG, "DORAMAX player ad skipped: creative has no video")
+                        if (mediaContent == null) {
+                            Log.w(TAG, "DORAMAX player ad has no media content")
                             playerTopAdLoadInProgress = false
                             playerTopNativeAdLoaded = false
                             nativeAd.destroy()
                             return@runOnUiThread
                         }
 
-                        // O SDK gerencia a reprodução do vídeo dentro do MediaView.
-                        // O criativo é validado para garantir que seja vídeo, não imagem estática.
+                        // Quando o AdMob entrega vídeo, ele roda no MediaView sem áudio.
+                        // Se entregar imagem/texto, exibimos o criativo normal para não deixar o espaço vazio.
+                        if (!mediaContent.hasVideoContent) {
+                            Log.i(TAG, "DORAMAX player ad fallback: non-video creative")
+                        }
 
                         val density = resources.displayMetrics.density
                         fun dp(value: Int) = (value * density).toInt()
