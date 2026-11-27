@@ -555,6 +555,51 @@ document.addEventListener('doramax:account-state',event=>{
  if(catalogRefreshButton)catalogRefreshButton.hidden=!catalogCanShuffle;
 });
 catalogRefreshButton?.addEventListener('click',shufflePaidCatalog);
+
+// Puxar o catálogo para baixo também atualiza os vídeos pagos.
+// A permissão é a mesma do botão: pagamento ou liberação completa pelo ADM.
+const catalogScreen=document.getElementById('catalogScreen');
+let catalogPullStartY=null;
+let catalogPullDistance=0;
+let catalogPulling=false;
+const catalogPullThreshold=82;
+const catalogPullIndicator=document.getElementById('catalogRefreshIndicator');
+catalogScreen?.addEventListener('touchstart',event=>{
+ if(!catalogCanShuffle||catalogRefreshing||catalogScreen.scrollTop>0||event.touches.length!==1){catalogPullStartY=null;return;}
+ catalogPullStartY=event.touches[0].clientY;
+ catalogPullDistance=0;
+ catalogPulling=false;
+},{passive:true});
+catalogScreen?.addEventListener('touchmove',event=>{
+ if(catalogPullStartY===null||!catalogCanShuffle||catalogRefreshing||event.touches.length!==1)return;
+ const distance=event.touches[0].clientY-catalogPullStartY;
+ if(distance<=0){catalogPullDistance=0;catalogPulling=false;catalogPullIndicator?.classList.remove('active');return;}
+ if(catalogScreen.scrollTop>0)return;
+ catalogPullDistance=distance;
+ catalogPulling=true;
+ if(catalogPullIndicator){
+  catalogPullIndicator.classList.add('active');
+  catalogPullIndicator.style.height=Math.min(64,Math.max(24,distance*.55))+'px';
+  const label=catalogPullIndicator.querySelector('span:last-child');
+  if(label)label.textContent=distance>=catalogPullThreshold?'Solte para atualizar o catálogo':'Puxe para atualizar o catálogo';
+ }
+ event.preventDefault();
+},{passive:false});
+const finishCatalogPull=()=>{
+ const shouldRefresh=catalogPulling&&catalogPullDistance>=catalogPullThreshold&&catalogCanShuffle&&!catalogRefreshing;
+ catalogPullStartY=null;
+ catalogPullDistance=0;
+ catalogPulling=false;
+ if(catalogPullIndicator){
+  catalogPullIndicator.style.height='';
+  const label=catalogPullIndicator.querySelector('span:last-child');
+  if(label)label.textContent='Atualizando catálogo...';
+  if(!shouldRefresh)catalogPullIndicator.classList.remove('active');
+ }
+ if(shouldRefresh)shufflePaidCatalog();
+};
+catalogScreen?.addEventListener('touchend',finishCatalogPull,{passive:true});
+catalogScreen?.addEventListener('touchcancel',finishCatalogPull,{passive:true});
 function openPlayerMode(){
   document.body.classList.add('player-open');
   feed.classList.add('player-mode');
