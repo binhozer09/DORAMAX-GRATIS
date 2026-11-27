@@ -1,4 +1,5 @@
 name: Build and publish DORAMAX-GRATIS APK
+# DORAMAX release workflow
 
 on:
   push:
