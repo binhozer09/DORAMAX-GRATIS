@@ -1,6 +1,17 @@
 name: Validar compilacao Android
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'admin/**'
+      - 'gradle/**'
+      - 'build.gradle*'
+      - 'settings.gradle*'
+      - 'gradle.properties'
+      - 'gradlew'
+      - 'gradlew.bat'
   push:
     branches: [main]
     paths:
