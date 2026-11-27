@@ -110,7 +110,8 @@ class MainActivity : AppCompatActivity() {
                         // Solicita o vídeo somente quando o espaço do anúncio já está no player visível.
                         loadPlayerTopVideoAd()
                     }
-                    playerTopAdContainer.visibility = if (enabled && !isCatalogVisible && playerTopNativeAdLoaded) android.view.View.VISIBLE else android.view.View.GONE
+                    // Faixa reservada permanece visível enquanto o anúncio carrega ou falha.
+                    playerTopAdContainer.visibility = if (enabled && !isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
                 }
             }
         }
@@ -837,7 +838,8 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread {
                         playerTopAdLoadInProgress = false
                         playerTopNativeAdLoaded = false
-                        playerTopAdContainer.visibility = android.view.View.GONE
+                        playerTopAdContainer.visibility =
+                            if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
                     }
                 }
             })
@@ -845,7 +847,8 @@ class MainActivity : AppCompatActivity() {
             Log.e(TAG, "Could not request player native video ad", error)
             playerTopAdLoadInProgress = false
             playerTopNativeAdLoaded = false
-            playerTopAdContainer.visibility = android.view.View.GONE
+            playerTopAdContainer.visibility =
+                if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
         }
     }
 
