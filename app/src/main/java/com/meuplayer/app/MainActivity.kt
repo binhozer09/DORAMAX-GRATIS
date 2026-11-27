@@ -57,6 +57,7 @@ class MainActivity : AppCompatActivity() {
     @Volatile private var isCatalogVisible = true
     @Volatile private var bannerAdLoaded = false
     @Volatile private var bannerLoadInProgress = false
+    @Volatile private var playerTopBannerLoaded = false
     private var adStatusView: android.widget.TextView? = null
     private val bannerRetryHandler = Handler(Looper.getMainLooper())
     private var bannerLoadAttempts = 0
@@ -97,7 +98,7 @@ class MainActivity : AppCompatActivity() {
                     decor.systemUiVisibility = playerPreviousSystemUiVisibility
                 }
                 if (::playerTopAdContainer.isInitialized) {
-                    playerTopAdContainer.visibility = if (enabled && playerTopBannerAdView != null) android.view.View.VISIBLE else android.view.View.GONE
+                    playerTopAdContainer.visibility = if (enabled && !isCatalogVisible && playerTopBannerLoaded) android.view.View.VISIBLE else android.view.View.GONE
                 }
             }
         }
@@ -107,11 +108,8 @@ class MainActivity : AppCompatActivity() {
             isCatalogVisible = visible
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
-                adContainer.visibility = if (visible) {
-                    android.view.View.VISIBLE
-                } else {
-                    android.view.View.GONE
-                }
+                adContainer.visibility = if (visible) android.view.View.VISIBLE else android.view.View.GONE
+                if (visible) playerTopAdContainer.visibility = android.view.View.GONE
             }
         }
 
@@ -732,7 +730,11 @@ class MainActivity : AppCompatActivity() {
         val request = BannerAdRequest.Builder(BANNER_AD_UNIT_ID, AdSize.BANNER).build()
         playerTopAdContainer.addView(
             adView,
-            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.CENTER)
+            FrameLayout.LayoutParams(
+                (320 * resources.displayMetrics.density).toInt(),
+                (50 * resources.displayMetrics.density).toInt(),
+                android.view.Gravity.CENTER
+            )
         )
         playerTopAdContainer.visibility = android.view.View.GONE
         try {
@@ -741,14 +743,18 @@ class MainActivity : AppCompatActivity() {
                     Log.i(TAG, "DORAMAX player top banner loaded successfully")
                     runOnUiThread {
                         if (!isFinishing && !isDestroyed && playerTopBannerAdView === adView) {
-                            playerTopAdContainer.visibility = if (playerImmersiveMode) android.view.View.VISIBLE else android.view.View.GONE
+                            playerTopBannerLoaded = true
+                            playerTopAdContainer.visibility = if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
                         }
                     }
                 }
                 override fun onAdFailedToLoad(adError: LoadAdError) {
                     Log.w(TAG, "DORAMAX player top banner failed: ${adError.code} ${adError.message}")
                     runOnUiThread {
-                        if (playerTopBannerAdView === adView) playerTopAdContainer.visibility = android.view.View.GONE
+                        if (playerTopBannerAdView === adView) {
+                            playerTopBannerLoaded = false
+                            playerTopAdContainer.visibility = android.view.View.GONE
+                        }
                     }
                 }
             })
@@ -762,6 +768,7 @@ class MainActivity : AppCompatActivity() {
         (adView.parent as? ViewGroup)?.removeView(adView)
         adView.destroy()
         if (playerTopBannerAdView === adView) playerTopBannerAdView = null
+        playerTopBannerLoaded = false
         playerTopAdContainer.visibility = android.view.View.GONE
     }
 
