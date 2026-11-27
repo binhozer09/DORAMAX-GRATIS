@@ -49,7 +49,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var thumbnailCache: ThumbnailDiskCache
     private lateinit var assetLoader: WebViewAssetLoader
     private lateinit var adContainer: FrameLayout
+    private lateinit var playerTopAdContainer: FrameLayout
     private var bannerAdView: AdView? = null
+    private var playerTopBannerAdView: AdView? = null
     private var interstitialAd: InterstitialAd? = null
     @Volatile private var initialPageLoaded = false
     @Volatile private var isCatalogVisible = true
@@ -93,6 +95,9 @@ class MainActivity : AppCompatActivity() {
                 } else if (!enabled && playerImmersiveMode) {
                     playerImmersiveMode = false
                     decor.systemUiVisibility = playerPreviousSystemUiVisibility
+                }
+                if (::playerTopAdContainer.isInitialized) {
+                    playerTopAdContainer.visibility = if (enabled && playerTopBannerAdView != null) android.view.View.VISIBLE else android.view.View.GONE
                 }
             }
         }
@@ -567,6 +572,7 @@ class MainActivity : AppCompatActivity() {
         siteWeb.overScrollMode = android.view.View.OVER_SCROLL_NEVER
         thumbnailCache = ThumbnailDiskCache(this)
         adContainer = findViewById(R.id.adViewContainer)
+        playerTopAdContainer = findViewById(R.id.playerTopAdContainer)
 
         siteWeb.settings.apply {
             javaScriptEnabled = true
@@ -717,6 +723,48 @@ class MainActivity : AppCompatActivity() {
         initializeAds()
     }
 
+    // Segundo banner independente, sobreposto à faixa preta superior do player.
+    // O container é overlay: não altera as dimensões do WebView nem do player.
+    private fun loadPlayerTopBannerAd() {
+        if (isFinishing || isDestroyed || playerTopBannerAdView != null) return
+        val adView = AdView(this)
+        playerTopBannerAdView = adView
+        val request = BannerAdRequest.Builder(BANNER_AD_UNIT_ID, AdSize.BANNER).build()
+        playerTopAdContainer.addView(
+            adView,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.CENTER)
+        )
+        playerTopAdContainer.visibility = android.view.View.GONE
+        try {
+            adView.loadAd(request, object : AdLoadCallback<BannerAd> {
+                override fun onAdLoaded(ad: BannerAd) {
+                    Log.i(TAG, "DORAMAX player top banner loaded successfully")
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed && playerTopBannerAdView === adView) {
+                            playerTopAdContainer.visibility = if (playerImmersiveMode) android.view.View.VISIBLE else android.view.View.GONE
+                        }
+                    }
+                }
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    Log.w(TAG, "DORAMAX player top banner failed: ${adError.code} ${adError.message}")
+                    runOnUiThread {
+                        if (playerTopBannerAdView === adView) playerTopAdContainer.visibility = android.view.View.GONE
+                    }
+                }
+            })
+        } catch (error: Exception) {
+            Log.e(TAG, "Could not request player top banner", error)
+            playerTopAdViewCleanup(adView)
+        }
+    }
+
+    private fun playerTopAdViewCleanup(adView: AdView) {
+        (adView.parent as? ViewGroup)?.removeView(adView)
+        adView.destroy()
+        if (playerTopBannerAdView === adView) playerTopBannerAdView = null
+        playerTopAdContainer.visibility = android.view.View.GONE
+    }
+
     // Exibe o motivo real da falha dentro da área do banner, sem esconder o catálogo.
     private fun showAdStatus(message: String) {
         if (!::adContainer.isInitialized || isFinishing || isDestroyed) return
@@ -753,6 +801,7 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             if (!isFinishing && !isDestroyed) {
                                 loadBannerAd()
+                                loadPlayerTopBannerAd()
                                 loadStartupInterstitial()
                             }
                         }
@@ -1014,6 +1063,11 @@ class MainActivity : AppCompatActivity() {
             adView.destroy()
         }
         bannerAdView = null
+        playerTopBannerAdView?.let { adView ->
+            (adView.parent as? ViewGroup)?.removeView(adView)
+            adView.destroy()
+        }
+        playerTopBannerAdView = null
         siteWeb.destroy()
         super.onDestroy()
     }
