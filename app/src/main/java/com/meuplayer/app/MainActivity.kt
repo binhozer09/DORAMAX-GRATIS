@@ -775,11 +775,8 @@ class MainActivity : AppCompatActivity() {
                             return@runOnUiThread
                         }
 
-                        // O SDK reproduz o vídeo do criativo quando o MediaView fica visível.
-                        // Solicita play() no controlador disponível; anúncios estáticos não entram neste caminho.
-                        if (mediaContent.hasVideoContent) {
-                            mediaContent.videoController?.play()
-                        }
+                        // Sem chamada manual a play(): o MediaView mantém o comportamento
+                        // nativo de reprodução automática definido pelo SDK do Google Ads.
 
                         // Quando o AdMob entrega vídeo, ele roda no MediaView sem áudio.
                         // Se entregar imagem/texto, exibimos o criativo normal para não deixar o espaço vazio.
