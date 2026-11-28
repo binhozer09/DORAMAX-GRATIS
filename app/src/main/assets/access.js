@@ -222,7 +222,7 @@
         <button class="dm-btn secondary" id="dmLogout" type="button" style="display:none">Sair da conta</button>
         <div class="dm-error" id="dmError" role="status"></div>
         <div class="dm-status" id="dmStatus"></div>
-        <p class="dm-small" id="dmPaymentInfo">O pagamento é confirmado automaticamente pelo Asaas. Use sua conta cadastrada no aplicativo.</p>
+        <p class="dm-small" id="dmPaymentInfo">Todos os doramas são gratuitos. Os vídeos são liberados por anúncios premiados durante a sessão.</p>
       </section>`;
     // Mantém o modal fora de stacking contexts criados pelo conteúdo do app/WebView.
     (document.documentElement || document.body).appendChild(backdrop);
@@ -240,8 +240,8 @@
     const signup = authMode === "signup";
     document.getElementById("dmModalTitle").textContent = signup ? "Criar conta" : "Entrar no DORAMAX";
     document.getElementById("dmModalDesc").textContent = signup
-      ? "Cadastre seu e-mail e crie uma senha para acompanhar sua liberação."
-      : "Entre com sua conta para consultar seu acesso.";
+      ? "Cadastre seu e-mail e crie uma senha para usar sua conta e o suporte."
+      : "Entre com sua conta para acessar o suporte." ;
     document.getElementById("dmSubmit").textContent = signup ? "Criar conta" : "Entrar";
     document.getElementById("dmSwitch").textContent = signup ? "Já tenho uma conta" : "Criar uma conta";
     document.getElementById("dmPassword").autocomplete = signup ? "new-password" : "current-password";
@@ -258,9 +258,9 @@
     document.getElementById("dmModalTitle").textContent = loggedIn ? "Minha conta" : (mode === "signup" ? "Criar conta" : "Entrar no DORAMAX");
     document.getElementById("dmModalDesc").textContent = loggedIn
       ? "Logado com " + (currentUser.email || "sua conta") + "."
-      : (mode === "signup" ? "Cadastre seu e-mail e crie uma senha para acompanhar sua liberação." : "Entre com sua conta para consultar seu acesso.");
+      : (mode === "signup" ? "Cadastre seu e-mail e crie uma senha para usar sua conta e o suporte." : "Entre com sua conta para acessar o suporte.");
     document.getElementById("dmStatus").textContent = loggedIn
-      ? (unlocked ? "Acesso liberado. Aproveite todos os vídeos!" : "Sua conta está conectada. Acesso aguardando liberação.")
+      ? "Sua conta está conectada ao DORAMAX."
       : "";
     const paymentInfo = document.getElementById("dmPaymentInfo");
     if (paymentInfo) paymentInfo.hidden = !!(unlocked || isAdmin);
@@ -393,35 +393,62 @@
     if (activePaymentId) checkPixPayment();
   });
 
-  // Camada visual sobre o player a partir do quarto vídeo.
-  // Não existe bloqueio de reprodução por JavaScript; os controles do YouTube são preservados.
+  // Os desbloqueios existem apenas na memória desta sessão do aplicativo.
+  // Ao encerrar o processo e abrir novamente, os conjuntos começam vazios.
+  const rewardedUnlockedVideoIds = new Set();
+  const rewardedPendingVideoIds = new Set();
+
+  function getRewardedVideoId(card) {
+    const frame = card && card.querySelector("iframe");
+    if (!frame) return "";
+    if (typeof videoId === "function") return videoId(frame);
+    const source = frame.dataset.src || frame.getAttribute("src") || "";
+    const match = source.match(/youtube\.com\/embed\/([^?&]+)/);
+    return match ? decodeURIComponent(match[1]) : "";
+  }
+
   function createGateCover(card) {
     const player = card.querySelector(".player");
-    if (!player) return;
+    const id = getRewardedVideoId(card);
+    if (!player || !id) return;
     const cover = document.createElement("div");
     cover.className = "dm-cover";
     cover.setAttribute("role", "dialog");
-    cover.setAttribute("aria-label", "Acesso aos vídeos");
+    cover.setAttribute("aria-label", "Anúncio premiado para liberar vídeo");
+
     const content = document.createElement("div");
     content.className = "dm-cover-content";
     const title = document.createElement("h2");
     title.className = "dm-cover-title";
+    title.textContent = "LIBERE ESTE VÍDEO GRÁTIS";
     const description = document.createElement("p");
     description.className = "dm-cover-description";
+    description.textContent = "Assista a um anúncio premiado para liberar este vídeo durante esta sessão.";
     const button = document.createElement("button");
     button.type = "button";
     button.className = "dm-cover-button";
-    if (!session || !currentUser) {
-      title.textContent = "CRIE SUA CONTA PARA CONTINUAR";
-      description.textContent = "Os três primeiros vídeos são grátis. Crie sua conta para continuar assistindo.";
-      button.textContent = "CRIAR CONTA / ENTRAR";
-      button.addEventListener("click", () => openModal("signup"));
-    } else {
-      title.textContent = "LIBERE TODOS OS VÍDEOS";
-      description.textContent = "Pague uma única vez e tenha acesso completo ao DORAMAX.";
-      button.textContent = "PAGUE UMA ÚNICA VEZ — R$ 5,00";
-      button.addEventListener("click", () => requestPixPayment(button));
-    }
+    button.textContent = "ASSISTIR ANÚNCIO E LIBERAR";
+    button.addEventListener("click", () => {
+      if (rewardedPendingVideoIds.has(id) || rewardedUnlockedVideoIds.has(id)) return;
+      const bridge = window.DoramaxAndroid;
+      if (!bridge || typeof bridge.requestRewardedVideo !== "function") {
+        description.textContent = "O anúncio premiado só está disponível no aplicativo Android.";
+        return;
+      }
+      rewardedPendingVideoIds.add(id);
+      button.disabled = true;
+      button.textContent = "CARREGANDO ANÚNCIO...";
+      description.textContent = "Aguarde o anúncio carregar. O vídeo será liberado após a recompensa.";
+      try {
+        bridge.requestRewardedVideo(id);
+      } catch (error) {
+        rewardedPendingVideoIds.delete(id);
+        button.disabled = false;
+        button.textContent = "TENTAR NOVAMENTE";
+        description.textContent = "Não foi possível abrir o anúncio. Tente novamente.";
+      }
+    });
+
     content.append(title, description, button);
     cover.appendChild(content);
     player.appendChild(cover);
@@ -429,17 +456,49 @@
 
   function updateGate() {
     cards = [...document.querySelectorAll("#feed .video")];
-    cards.forEach((card, index) => {
+    cards.forEach(card => {
+      const id = getRewardedVideoId(card);
       card.querySelector(".dm-cover")?.remove();
-      if (index < 3 || unlocked || isAdmin) return;
-      createGateCover(card);
+      if (id && !rewardedUnlockedVideoIds.has(id)) createGateCover(card);
     });
   }
-  // O player continua autorizado a reproduzir; a camada visual apenas cobre sua área.
+
   window.doramaxCanPlayCard = function (card) {
-    return !!card && document.querySelector("#feed")?.contains(card);
+    const id = getRewardedVideoId(card);
+    return !!id && rewardedUnlockedVideoIds.has(id);
   };
-  window.doramaxRefreshAccessGate = function () { updateGate(); };
+  window.doramaxRefreshAccessGate = updateGate;
+  window.doramaxResetRewardSession = function () {
+    rewardedUnlockedVideoIds.clear();
+    rewardedPendingVideoIds.clear();
+    updateGate();
+  };
+
+  // Chamado pelo Android somente depois de o AdMob confirmar a recompensa.
+  window.doramaxRewardResult = function (videoId, earned, message) {
+    const id = String(videoId || "");
+    rewardedPendingVideoIds.delete(id);
+    const card = cards.find(item => getRewardedVideoId(item) === id) ||
+      [...document.querySelectorAll("#feed .video")].find(item => getRewardedVideoId(item) === id);
+    if (earned === true) {
+      rewardedUnlockedVideoIds.add(id);
+      updateGate();
+      if (card && typeof window.doramaxPlayUnlockedCard === "function") {
+        window.doramaxPlayUnlockedCard(card);
+      }
+      return;
+    }
+    const cover = card?.querySelector(".dm-cover");
+    const button = cover?.querySelector(".dm-cover-button");
+    const description = cover?.querySelector(".dm-cover-description");
+    if (button) {
+      button.disabled = false;
+      button.textContent = "TENTAR NOVAMENTE";
+    }
+    if (description) {
+      description.textContent = message || "O vídeo não foi liberado. Assista ao anúncio para receber a recompensa.";
+    }
+  };
 
   function applyRemoteSettings(settings) {
     const appConfig = settings.app_config || {};
@@ -779,7 +838,7 @@
     unreadDot.className = "dm-support-unread";
     unreadDot.setAttribute("aria-hidden", "true");
     launcher.appendChild(unreadDot);
-    const prompt=document.createElement("button"); prompt.id="dmSupportPrompt"; prompt.className="dm-support-prompt"; prompt.type="button"; prompt.textContent="LIBERE AQUI SEU ACESSO  ➜"; prompt.setAttribute("aria-label","Toque aqui para liberar seu acesso");
+    const prompt=document.createElement("button"); prompt.id="dmSupportPrompt"; prompt.className="dm-support-prompt"; prompt.type="button"; prompt.textContent="FALE COM O SUPORTE  ➜"; prompt.setAttribute("aria-label","Toque aqui para falar com o suporte");
     const panel = document.createElement("section");
     panel.id = "dmSupportPanel";
     panel.className = "dm-support-panel";
