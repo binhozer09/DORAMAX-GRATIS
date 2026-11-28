@@ -584,11 +584,7 @@ function shufflePaidCatalog(){
 }
 let catalogCanShuffle=true;
 const catalogRefreshButton=document.getElementById('catalogRefreshButton');
-document.addEventListener('doramax:account-state',event=>{
- const state=event.detail||{};
- catalogCanShuffle=state.unlocked===true||state.isAdmin===true;
- if(catalogRefreshButton)catalogRefreshButton.hidden=!catalogCanShuffle;
-});
+if(catalogRefreshButton)catalogRefreshButton.hidden=false;
 catalogRefreshButton?.addEventListener('click',shufflePaidCatalog);
 
 const catalogSearchButton=document.getElementById('catalogSearchButton');
@@ -1190,13 +1186,18 @@ const apiScript=document.createElement('script');apiScript.src='https://www.yout
 
 function resumeVideo(item){
  hideHistory();
- openPlayerMode();
  let target=findVideoCard(item.id);
  if(!target)target=ensureVideoCardLoaded(item.id);
  if(!target){
   console.warn('[DORAMAX] Vídeo salvo não está disponível no catálogo atual:',item.id);
   return;
  }
+ if(typeof window.doramaxCanPlayCard==='function'&&!window.doramaxCanPlayCard(target)){
+  openPlayerMode();
+  requestAnimationFrame(()=>target.scrollIntoView({behavior:'auto',block:'start'}));
+  return;
+ }
+ openPlayerMode();
  pendingSeek.set(item.id,Math.max(0,Number(item.seconds)||0));
  target.scrollIntoView({behavior:'auto',block:'start'});
  const frame=target.querySelector('iframe');
@@ -1209,6 +1210,22 @@ function resumeVideo(item){
   try{player.seekTo(Math.max(0,Number(item.seconds)||0),true);pendingSeek.delete(item.id);}catch(_){}
  }
 }
+window.doramaxPlayUnlockedCard=function(card){
+ if(!card)return;
+ const frame=card.querySelector('iframe');
+ if(!frame)return;
+ requestAnimationFrame(()=>{
+  card.scrollIntoView({behavior:'auto',block:'start'});
+  activeFrame=frame;
+  doramaxWatchStartTimeout(frame);
+  activateFrame(frame);
+  ensurePlayer(frame);
+  const player=players.get(frame);
+  if(player&&typeof player.playVideo==='function'){
+   try{player.playVideo();}catch(_){}
+  }
+ });
+};
 function activateFrame(frame){
  if(!frame)return;
  const current=frame.getAttribute('src')||'';
