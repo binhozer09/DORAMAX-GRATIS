@@ -42,6 +42,8 @@ import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 import com.google.android.libraries.ads.mobile.sdk.initialization.InitializationConfig
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAd
 import com.google.android.libraries.ads.mobile.sdk.interstitial.InterstitialAdEventCallback
+import com.google.android.libraries.ads.mobile.sdk.rewarded.RewardedAd
+import com.google.android.libraries.ads.mobile.sdk.rewarded.RewardedAdEventCallback
 import com.google.android.libraries.ads.mobile.sdk.common.VideoOptions
 import com.google.android.libraries.ads.mobile.sdk.nativead.MediaView
 import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
@@ -60,6 +62,10 @@ class MainActivity : AppCompatActivity() {
     private var bannerAdView: AdView? = null
     private var playerTopNativeAd: NativeAd? = null
     private var interstitialAd: InterstitialAd? = null
+    private var rewardedAd: RewardedAd? = null
+    @Volatile private var adsInitialized = false
+    private var rewardedLoadInProgress = false
+    private var pendingRewardVideoId: String? = null
     @Volatile private var initialPageLoaded = false
     @Volatile private var isCatalogVisible = true
     @Volatile private var bannerAdLoaded = false
@@ -147,6 +153,25 @@ class MainActivity : AppCompatActivity() {
                 } else if (playerImmersiveMode && playerTopNativeAdLoaded) {
                     schedulePlayerTopAdRefresh()
                 }
+            }
+        }
+
+        @JavascriptInterface
+        fun requestRewardedVideo(videoId: String) {
+            val safeVideoId = videoId.trim()
+            if (!safeVideoId.matches(Regex("^[A-Za-z0-9_-]{6,128}$"))) return
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                if (!adsInitialized) {
+                    notifyRewardedResult(safeVideoId, false, "O AdMob ainda está inicializando. Tente novamente.")
+                    return@runOnUiThread
+                }
+                if (pendingRewardVideoId != null) {
+                    notifyRewardedResult(safeVideoId, false, "Já existe um anúncio em andamento.")
+                    return@runOnUiThread
+                }
+                pendingRewardVideoId = safeVideoId
+                if (rewardedAd != null) showRewardedVideo(safeVideoId) else loadRewardedAd()
             }
         }
 
@@ -582,13 +607,15 @@ class MainActivity : AppCompatActivity() {
         private const val FILE_CHOOSER_REQUEST_CODE = 7401
         private const val TAG = "DORAMAX_ADS"
         // DORAMAX GRÁTIS production AdMob App ID.
-        private const val ADMOB_APP_ID = "ca-app-pub-2488297391470541~8272798060"
+        private const val ADMOB_APP_ID = "ca-app-pub-2488297391470541~6107052736"
         // DORAMAX GRÁTIS catalog banner ad unit (kept unchanged).
         private const val BANNER_AD_UNIT_ID = "ca-app-pub-2488297391470541/6110171134"
         // DORAMAX GRÁTIS native video ad unit used only over the player.
         private const val PLAYER_VIDEO_AD_UNIT_ID = "ca-app-pub-2488297391470541/8547706179"
         // One production interstitial shown at most once per app process launch.
         private const val INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-2488297391470541/7114056223"
+        private const val REWARDED_AD_UNIT_ID = "ca-app-pub-2488297391470541/8758218490"
+        private const val TEST_REWARDED_AD_UNIT_ID = "ca-app-pub-3940256099942544/5224354917"
         @Volatile private var startupInterstitialShownThisProcess = false
         private const val RELEASE_API = "https://api.github.com/repos/binhozer09/DORAMAX-GRATIS/releases/latest"
         private const val APK_ASSET_NAME = "DORAMAX-GRATIS.apk"
@@ -929,7 +956,9 @@ class MainActivity : AppCompatActivity() {
                         Log.i(TAG, "GMA Next-Gen initialization callback completed")
                         runOnUiThread {
                             if (!isFinishing && !isDestroyed) {
+                                adsInitialized = true
                                 loadBannerAd()
+                                loadRewardedAd()
                                 // O Anúncio 2 é solicitado somente quando o player já estiver visível.
                                 loadStartupInterstitial()
                             }
@@ -1011,6 +1040,114 @@ class MainActivity : AppCompatActivity() {
             ad.show(this)
         } catch (error: Exception) {
             Log.e(TAG, "Could not show startup interstitial", error)
+        }
+    }
+
+    private fun notifyRewardedResult(videoId: String, earned: Boolean, message: String) {
+        val script = "window.doramaxRewardResult && window.doramaxRewardResult(" +
+            "${JSONObject.quote(videoId)},${earned},${JSONObject.quote(message)});"
+        runOnUiThread {
+            if (::siteWeb.isInitialized && !isFinishing && !isDestroyed) {
+                siteWeb.evaluateJavascript(script, null)
+            }
+        }
+    }
+
+    // Mantém um anúncio premiado carregado para reduzir a espera após o toque do usuário.
+    private fun loadRewardedAd() {
+        if (!adsInitialized || isFinishing || isDestroyed || rewardedLoadInProgress || rewardedAd != null) return
+        rewardedLoadInProgress = true
+        val unitId = if (BuildConfig.DEBUG) TEST_REWARDED_AD_UNIT_ID else REWARDED_AD_UNIT_ID
+        Log.i(TAG, "Loading rewarded ad")
+        try {
+            RewardedAd.load(
+                AdRequest.Builder(unitId).build(),
+                object : AdLoadCallback<RewardedAd> {
+                    override fun onAdLoaded(ad: RewardedAd) {
+                        runOnUiThread {
+                            rewardedLoadInProgress = false
+                            if (isFinishing || isDestroyed) return@runOnUiThread
+                            rewardedAd = ad
+                            Log.i(TAG, "Rewarded ad loaded")
+                            pendingRewardVideoId?.let { showRewardedVideo(it) }
+                        }
+                    }
+
+                    override fun onAdFailedToLoad(adError: LoadAdError) {
+                        Log.w(TAG, "Rewarded ad failed to load: ${adError.code} ${adError.message}")
+                        runOnUiThread {
+                            rewardedLoadInProgress = false
+                            rewardedAd = null
+                            val pending = pendingRewardVideoId
+                            if (pending != null) {
+                                pendingRewardVideoId = null
+                                notifyRewardedResult(pending, false, "Não foi possível carregar o anúncio. Tente novamente.")
+                            }
+                        }
+                    }
+                }
+            )
+        } catch (error: Exception) {
+            Log.e(TAG, "Could not request rewarded ad", error)
+            rewardedLoadInProgress = false
+            val pending = pendingRewardVideoId
+            if (pending != null) {
+                pendingRewardVideoId = null
+                notifyRewardedResult(pending, false, "Falha ao carregar o anúncio. Tente novamente.")
+            }
+        }
+    }
+
+    private fun showRewardedVideo(videoId: String) {
+        val ad = rewardedAd
+        if (ad == null) {
+            loadRewardedAd()
+            return
+        }
+        rewardedAd = null
+        var rewardEarned = false
+        ad.adEventCallback = object : RewardedAdEventCallback {
+            override fun onAdShowedFullScreenContent() {
+                Log.i(TAG, "Rewarded ad shown for video $videoId")
+            }
+
+            override fun onAdDismissedFullScreenContent() {
+                runOnUiThread {
+                    if (pendingRewardVideoId == videoId) {
+                        pendingRewardVideoId = null
+                        if (rewardEarned) {
+                            notifyRewardedResult(videoId, true, "Vídeo liberado nesta sessão.")
+                        } else {
+                            notifyRewardedResult(videoId, false, "Assista ao anúncio até receber a recompensa para liberar o vídeo.")
+                        }
+                    }
+                    loadRewardedAd()
+                }
+            }
+
+            override fun onAdFailedToShowFullScreenContent(
+                fullScreenContentError: com.google.android.libraries.ads.mobile.sdk.common.FullScreenContentError
+            ) {
+                Log.e(TAG, "Rewarded ad failed to show: ${fullScreenContentError.message}")
+                runOnUiThread {
+                    if (pendingRewardVideoId == videoId) {
+                        pendingRewardVideoId = null
+                        notifyRewardedResult(videoId, false, "Não foi possível exibir o anúncio. Tente novamente.")
+                    }
+                    loadRewardedAd()
+                }
+            }
+        }
+        try {
+            ad.show(this) {
+                rewardEarned = true
+                Log.i(TAG, "Reward earned for video $videoId")
+            }
+        } catch (error: Exception) {
+            Log.e(TAG, "Could not show rewarded ad", error)
+            pendingRewardVideoId = null
+            notifyRewardedResult(videoId, false, "Não foi possível abrir o anúncio. Tente novamente.")
+            loadRewardedAd()
         }
     }
 
