@@ -68,7 +68,20 @@ class MainActivity : AppCompatActivity() {
     @Volatile private var playerTopAdLoadInProgress = false
     private var adStatusView: android.widget.TextView? = null
     private val bannerRetryHandler = Handler(Looper.getMainLooper())
+    private val playerTopAdRefreshHandler = Handler(Looper.getMainLooper())
     private var bannerLoadAttempts = 0
+    private val playerTopAdRefreshRunnable = Runnable {
+        if (!isFinishing && !isDestroyed && playerImmersiveMode && !isCatalogVisible &&
+            playerTopNativeAdLoaded && !playerTopAdLoadInProgress) {
+            Log.i(TAG, "Refreshing DORAMAX Ad 2 after 60 seconds")
+            playerTopAdRefreshHandler.removeCallbacks(playerTopAdRefreshRunnable)
+            playerTopNativeAd?.destroy()
+            playerTopNativeAd = null
+            playerTopNativeAdLoaded = false
+            playerTopAdContainer.removeAllViews()
+            loadPlayerTopVideoAd()
+        }
+    }
     private val bannerRetryRunnable = Runnable {
         if (!isFinishing && !isDestroyed && !bannerAdLoaded && !bannerLoadInProgress) loadBannerAd()
     }
@@ -107,8 +120,13 @@ class MainActivity : AppCompatActivity() {
                 }
                 if (::playerTopAdContainer.isInitialized) {
                     if (enabled && !isCatalogVisible && !playerTopNativeAdLoaded) {
-                        // Solicita o vídeo somente quando o espaço do anúncio já está no player visível.
+                        // Solicita o Anúncio 2 somente quando sua área está visível.
                         loadPlayerTopVideoAd()
+                    }
+                    if (enabled && !isCatalogVisible && playerTopNativeAdLoaded) {
+                        schedulePlayerTopAdRefresh()
+                    } else {
+                        playerTopAdRefreshHandler.removeCallbacks(playerTopAdRefreshRunnable)
                     }
                     // Faixa reservada permanece visível enquanto o anúncio carrega ou falha.
                     playerTopAdContainer.visibility = if (enabled && !isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
@@ -122,7 +140,12 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 adContainer.visibility = if (visible) android.view.View.VISIBLE else android.view.View.GONE
-                if (visible) playerTopAdContainer.visibility = android.view.View.GONE
+                if (visible) {
+                    playerTopAdContainer.visibility = android.view.View.GONE
+                    playerTopAdRefreshHandler.removeCallbacks(playerTopAdRefreshRunnable)
+                } else if (playerImmersiveMode && playerTopNativeAdLoaded) {
+                    schedulePlayerTopAdRefresh()
+                }
             }
         }
 
@@ -834,7 +857,10 @@ class MainActivity : AppCompatActivity() {
                         playerTopAdContainer.visibility =
                             if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE
                             else android.view.View.GONE
-                        Log.i(TAG, "DORAMAX player native video ad loaded")
+                        Log.i(TAG, "DORAMAX Ad 2 loaded")
+                        if (playerImmersiveMode && !isCatalogVisible) {
+                            schedulePlayerTopAdRefresh()
+                        }
                     }
                 }
 
@@ -854,6 +880,16 @@ class MainActivity : AppCompatActivity() {
             playerTopNativeAdLoaded = false
             playerTopAdContainer.visibility =
                 if (playerImmersiveMode && !isCatalogVisible) android.view.View.VISIBLE else android.view.View.GONE
+        }
+    }
+
+    // Atualiza somente o criativo do Anúncio 2, sem recarregar o player do dorama.
+    // O intervalo de 60 segundos segue a recomendação mínima de persistência do AdMob.
+    private fun schedulePlayerTopAdRefresh() {
+        playerTopAdRefreshHandler.removeCallbacks(playerTopAdRefreshRunnable)
+        if (!isFinishing && !isDestroyed && playerImmersiveMode && !isCatalogVisible &&
+            playerTopNativeAdLoaded) {
+            playerTopAdRefreshHandler.postDelayed(playerTopAdRefreshRunnable, 60_000L)
         }
     }
 
@@ -1142,6 +1178,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
+        playerTopAdRefreshHandler.removeCallbacks(playerTopAdRefreshRunnable)
         if (::siteWeb.isInitialized) {
             siteWeb.evaluateJavascript(
                 "window.doramaxSaveActiveProgress && window.doramaxSaveActiveProgress();",
@@ -1156,9 +1193,13 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         cleanupInstalledUpdateIfComplete()
         siteWeb.onResume()
+        if (playerImmersiveMode && !isCatalogVisible && playerTopNativeAdLoaded) {
+            schedulePlayerTopAdRefresh()
+        }
     }
 
     override fun onDestroy() {
+        playerTopAdRefreshHandler.removeCallbacks(playerTopAdRefreshRunnable)
         bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
         bannerLoadInProgress = false
         pendingFileChooser?.onReceiveValue(null)
