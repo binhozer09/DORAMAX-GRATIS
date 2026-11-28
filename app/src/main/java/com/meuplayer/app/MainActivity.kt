@@ -775,11 +775,7 @@ class MainActivity : AppCompatActivity() {
                             return@runOnUiThread
                         }
 
-                        // Restaura o autoplay do Anúncio 2: solicita a reprodução do vídeo
-                        // do criativo quando o MediaView já está pronto e visível.
-                        if (mediaContent.hasVideoContent) {
-                            mediaContent.videoController?.play()
-                        }
+                        // Anúncio 2 sem autoplay: o vídeo segue o comportamento padrão do AdMob.
 
                         // Quando o AdMob entrega vídeo, ele roda no MediaView sem áudio.
                         // Se entregar imagem/texto, exibimos o criativo normal para não deixar o espaço vazio.
