@@ -56,7 +56,7 @@ body.player-playing:not(.player-controls-visible) .topbar,body.player-playing:no
 .history-thumb{width:112px;aspect-ratio:16/9;object-fit:cover;border-radius:7px;background:#333;flex-shrink:0}.history-copy{min-width:0;flex:1}.history-title{font-size:13px;line-height:1.35;font-weight:700;margin-bottom:8px}.history-time{font-size:11px;color:#bbb;margin-bottom:7px}.history-progress{height:4px;background:#555;border-radius:5px;overflow:hidden}.history-progress span{display:block;height:100%;background:var(--accent)}.history-empty{color:#bbb;font-size:14px;text-align:center;padding:35px 12px}
 
 .catalog-screen{display:block;position:fixed;inset:0;z-index:10;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:none;background:#080b12;padding:calc(76px + var(--safe-top)) 14px calc(24px + var(--safe-bottom));}
-.catalog-refresh-indicator{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;color:#cbd5e1;font-size:12px;font-weight:700;opacity:0;transition:height .12s ease,opacity .12s ease}.catalog-refresh-indicator.active{height:48px;opacity:1}.catalog-refresh-spinner{width:17px;height:17px;flex:0 0 17px;border:2px solid #ffffff35;border-top-color:#ff3048;border-radius:50%;animation:catalogRefreshSpin .7s linear infinite}@keyframes catalogRefreshSpin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.catalog-refresh-spinner{animation:none;border-top-color:#ff3048;border-right-color:#ff3048}}.catalog-heading{margin:0 2px 18px}.catalog-heading h1{font-size:22px;line-height:1.2;margin:0 0 6px;font-weight:900;letter-spacing:-.4px}.catalog-heading p{margin:0;color:#9ca8ba;font-size:12px}.catalog-refresh-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;margin-top:10px;padding:10px 14px;border:1px solid #ff3048;border-radius:10px;background:#241018;color:#fff;font-size:12px;font-weight:800}.catalog-refresh-button[hidden]{display:none!important}
+.catalog-refresh-indicator{height:0;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;color:#cbd5e1;font-size:12px;font-weight:700;opacity:0;transition:height .12s ease,opacity .12s ease}.catalog-refresh-indicator.active{height:48px;opacity:1}.catalog-refresh-spinner{width:17px;height:17px;flex:0 0 17px;border:2px solid #ffffff35;border-top-color:#ff3048;border-radius:50%;animation:catalogRefreshSpin .7s linear infinite}@keyframes catalogRefreshSpin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.catalog-refresh-spinner{animation:none;border-top-color:#ff3048;border-right-color:#ff3048}}.catalog-heading{margin:0 2px 18px}.catalog-heading h1{font-size:22px;line-height:1.2;margin:0 0 10px;font-weight:900;letter-spacing:-.4px}.catalog-heading p{margin:0;color:#9ca8ba;font-size:12px}.catalog-toolbar{display:flex;align-items:center;gap:8px}.catalog-refresh-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;margin-top:0;padding:10px 14px;border:1px solid #ff3048;border-radius:10px;background:#241018;color:#fff;font-size:12px;font-weight:800}.catalog-refresh-button[hidden]{display:none!important}.catalog-search-button{display:inline-flex;align-items:center;justify-content:center;width:40px;height:38px;padding:0;border:1px solid #64748b;border-radius:10px;background:#172033;color:#fff;font-size:20px;line-height:1}.catalog-search-button[aria-expanded=true]{border-color:#ff3048;background:#241018}.catalog-search-input{display:block;width:100%;height:42px;margin-top:9px;padding:0 13px;border:1px solid #64748b;border-radius:10px;background:#111827;color:#fff;font-size:14px;outline:none}.catalog-search-input:focus{border-color:#ff3048;box-shadow:0 0 0 2px #ff304833}.catalog-search-input[hidden]{display:none!important}
 .catalog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 13px;align-items:start}
 .catalog-card{min-width:0;padding:0;border:0;background:transparent;color:#fff;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .catalog-poster-wrap{position:relative;display:block;width:100%;aspect-ratio:2/3;overflow:hidden;border-radius:9px;background:linear-gradient(145deg,#202b3b,#111722);box-shadow:0 5px 16px #0008}
@@ -97,7 +97,7 @@ body.player-open.player-controls-visible #customSeekBar{display:block;pointer-ev
  <div id="historyList" class="history-list"></div>
 </div>
 <button class="donate" id="pixDonateButton" type="button" aria-label="Doar via PIX para apoiar o DORAMAX" title="Doar via PIX">DOAR</button>
-<section id="catalogScreen" class="catalog-screen" aria-label="Catálogo de filmes e séries"><div id="catalogRefreshIndicator" class="catalog-refresh-indicator" aria-live="polite"><span class="catalog-refresh-spinner" aria-hidden="true"></span><span>Atualizando catálogo...</span></div><header class="catalog-heading"><h1>Escolha seu dorama favorito</h1><button id="catalogRefreshButton" class="catalog-refresh-button" type="button">↻ Atualizar catálogo</button></header><div id="catalogGrid" class="catalog-grid"><div class="catalog-empty">Carregando catálogo...</div></div></section>
+<section id="catalogScreen" class="catalog-screen" aria-label="Catálogo de filmes e séries"><div id="catalogRefreshIndicator" class="catalog-refresh-indicator" aria-live="polite"><span class="catalog-refresh-spinner" aria-hidden="true"></span><span>Atualizando catálogo...</span></div><header class="catalog-heading"><h1>Escolha seu dorama favorito</h1><div class="catalog-toolbar"><button id="catalogRefreshButton" class="catalog-refresh-button" type="button">↻ Atualizar catálogo</button><button id="catalogSearchButton" class="catalog-search-button" type="button" aria-label="Pesquisar títulos do catálogo" aria-expanded="false">🔍</button></div><input id="catalogSearchInput" class="catalog-search-input" type="search" placeholder="Pesquisar título do dorama..." aria-label="Pesquisar títulos do catálogo" autocomplete="off" hidden></header><div id="catalogGrid" class="catalog-grid"><div class="catalog-empty">Carregando catálogo...</div></div></section>
 <main id="feed" class="feed" aria-label="Reprodutor de vídeos">
 <section class="video" data-free-preview="true">
  <div class="player"><iframe data-src="https://www.youtube.com/embed/LccxdtzPvcU?playsinline=1&rel=0&controls=1&fs=0&disablekb=0&iv_load_policy=3&cc_load_policy=0&modestbranding=1&enablejsapi=1&origin=https%3A%2F%2Fappassets.androidplatform.net" title="Humiliated and paralyzed, the son-in-law activates a system and knocks his uncle down with a slap" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"></iframe></div>
@@ -489,6 +489,7 @@ function loadCatalogPoster(img,id,quality='maxresdefault'){
  }
 }
 let catalogRenderItems=[];
+let catalogDisplayItems=[];
 let catalogRenderIndex=0;
 let catalogRenderObserver=null;
 let catalogRenderSentinel=null;
@@ -507,14 +508,14 @@ function buildCatalogCard(video,index){
  card.append(wrap,title);card.addEventListener('click',()=>playCatalogVideo(video.id));catalogCardNodes.set(video.id,card);return card;
 }
 function appendCatalogGridBatch(){
- if(!catalogGrid||catalogRenderIndex>=catalogRenderItems.length){
+ if(!catalogGrid||catalogRenderIndex>=catalogDisplayItems.length){
   catalogRenderObserver?.disconnect();catalogRenderSentinel?.remove();catalogRenderSentinel=null;return;
  }
- const end=Math.min(catalogRenderIndex+CATALOG_GRID_BATCH_SIZE,catalogRenderItems.length);
+ const end=Math.min(catalogRenderIndex+CATALOG_GRID_BATCH_SIZE,catalogDisplayItems.length);
  const fragment=document.createDocumentFragment();
- for(;catalogRenderIndex<end;catalogRenderIndex++){const video=catalogRenderItems[catalogRenderIndex];const existing=catalogCardNodes.get(video.id);fragment.appendChild(existing||buildCatalogCard(video,catalogRenderIndex));}
+ for(;catalogRenderIndex<end;catalogRenderIndex++){const video=catalogDisplayItems[catalogRenderIndex];const existing=catalogCardNodes.get(video.id);fragment.appendChild(existing||buildCatalogCard(video,catalogRenderIndex));}
  if(catalogRenderSentinel)catalogGrid.insertBefore(fragment,catalogRenderSentinel);else catalogGrid.appendChild(fragment);
- if(catalogRenderIndex>=catalogRenderItems.length){catalogRenderObserver?.disconnect();catalogRenderSentinel?.remove();catalogRenderSentinel=null;}
+ if(catalogRenderIndex>=catalogDisplayItems.length){catalogRenderObserver?.disconnect();catalogRenderSentinel?.remove();catalogRenderSentinel=null;}
 }
 function renderCatalog(){
  if(!catalogGrid)return;
@@ -528,6 +529,7 @@ function renderCatalog(){
  const source=remoteCatalogVideos.length?[...freePreviews,...remoteWithoutFree]:fallback;
  const seen=new Set();
  catalogRenderItems=source.filter(item=>item.id&&!seen.has(item.id)&&(seen.add(item.id),true));
+ catalogDisplayItems=catalogRenderItems;
  catalogRenderIndex=0;
  catalogRenderObserver?.disconnect();catalogRenderObserver=null;
  catalogRenderSentinel?.remove();catalogRenderSentinel=null;
@@ -565,6 +567,7 @@ function shufflePaidCatalog(){
  }
  if(paid.length>1&&paid.every((item,index)=>item.id===catalogRenderItems[index+3]?.id))paid.push(paid.shift());
  catalogRenderItems=[...freeItems,...paid];
+ catalogDisplayItems=catalogSearchInput?.value.trim()?catalogRenderItems.filter(item=>normalizeCatalogSearch(item.title||'').includes(normalizeCatalogSearch(catalogSearchInput.value))):catalogRenderItems;
  // Reordena apenas os cards que já estão renderizados. Não limpa o grid,
  // não reinicia a paginação e não consulta o Supabase novamente.
  const fragment=document.createDocumentFragment();
@@ -587,6 +590,53 @@ document.addEventListener('doramax:account-state',event=>{
  if(catalogRefreshButton)catalogRefreshButton.hidden=!catalogCanShuffle;
 });
 catalogRefreshButton?.addEventListener('click',shufflePaidCatalog);
+
+const catalogSearchButton=document.getElementById('catalogSearchButton');
+const catalogSearchInput=document.getElementById('catalogSearchInput');
+function normalizeCatalogSearch(value){
+ return String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('pt-BR').trim();
+}
+function renderCatalogSearchResults(){
+ if(!catalogGrid)return;
+ const query=normalizeCatalogSearch(catalogSearchInput?.value||'');
+ catalogDisplayItems=query?catalogRenderItems.filter(item=>normalizeCatalogSearch(item.title||'').includes(query)):catalogRenderItems;
+ catalogRenderIndex=0;
+ catalogRenderObserver?.disconnect();catalogRenderObserver=null;
+ catalogRenderSentinel?.remove();catalogRenderSentinel=null;
+ catalogGrid.replaceChildren();
+ if(!catalogDisplayItems.length){
+  const empty=document.createElement('div');empty.className='catalog-empty';
+  empty.textContent=query?'Nenhum dorama encontrado com esse título.':'Nenhum vídeo disponível.';
+  catalogGrid.appendChild(empty);return;
+ }
+ const end=Math.min(CATALOG_GRID_BATCH_SIZE,catalogDisplayItems.length);
+ const fragment=document.createDocumentFragment();
+ for(;catalogRenderIndex<end;catalogRenderIndex++){
+  const video=catalogDisplayItems[catalogRenderIndex];
+  fragment.appendChild(catalogCardNodes.get(video.id)||buildCatalogCard(video,catalogRenderIndex));
+ }
+ catalogGrid.appendChild(fragment);
+ if(catalogRenderIndex<catalogDisplayItems.length){
+  catalogRenderSentinel=document.createElement('div');
+  catalogRenderSentinel.className='catalog-load-sentinel';
+  catalogRenderSentinel.setAttribute('aria-hidden','true');
+  catalogRenderSentinel.style.cssText='grid-column:1/-1;height:2px;width:100%;pointer-events:none;';
+  catalogGrid.appendChild(catalogRenderSentinel);
+  catalogRenderObserver=new IntersectionObserver(entries=>{
+   if(entries.some(entry=>entry.isIntersecting))appendCatalogGridBatch();
+  },{root:document.getElementById('catalogScreen'),rootMargin:'700px 0px',threshold:0});
+  catalogRenderObserver.observe(catalogRenderSentinel);
+ }
+}
+catalogSearchButton?.addEventListener('click',()=>{
+ const opening=catalogSearchInput.hidden;
+ catalogSearchInput.hidden=!opening;
+ catalogSearchButton.setAttribute('aria-expanded',String(opening));
+ if(opening)catalogSearchInput.focus();
+ else{catalogSearchInput.value='';renderCatalogSearchResults();}
+});
+catalogSearchInput?.addEventListener('input',renderCatalogSearchResults);
+
 function openPlayerMode(){
   document.body.classList.add('player-open');
   feed.classList.add('player-mode');
