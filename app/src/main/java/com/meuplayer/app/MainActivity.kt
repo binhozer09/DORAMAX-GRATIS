@@ -1005,8 +1005,19 @@ class MainActivity : AppCompatActivity() {
 
         val adView = AdView(this)
         bannerAdView = adView
-        val request = BannerAdRequest.Builder(BANNER_AD_UNIT_ID, AdSize.BANNER).build()
-        adContainer.addView(adView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        // Banner adaptativo com largura solicitada de 360dp.
+        val bannerWidthDp = 360
+        val bannerSize = AdSize.getLargeAnchoredAdaptiveBannerAdSize(this, bannerWidthDp)
+        val bannerWidthPx = (bannerWidthDp * resources.displayMetrics.density).toInt()
+        val bannerHeightPx = (bannerSize.height * resources.displayMetrics.density).toInt()
+        val containerParams = adContainer.layoutParams
+        containerParams.height = bannerHeightPx
+        adContainer.layoutParams = containerParams
+        val request = BannerAdRequest.Builder(BANNER_AD_UNIT_ID, bannerSize).build()
+        adContainer.addView(
+            adView,
+            FrameLayout.LayoutParams(bannerWidthPx, bannerHeightPx, android.view.Gravity.CENTER)
+        )
 
         try {
             adView.loadAd(request, object : AdLoadCallback<BannerAd> {
