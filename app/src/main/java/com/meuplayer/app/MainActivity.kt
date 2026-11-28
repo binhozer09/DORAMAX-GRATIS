@@ -1337,6 +1337,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        if (isFinishing && ::siteWeb.isInitialized) {
+            runCatching { siteWeb.evaluateJavascript("window.doramaxResetRewardSession && window.doramaxResetRewardSession();", null) }
+        }
         playerTopAdRefreshHandler.removeCallbacks(playerTopAdRefreshRunnable)
         bannerRetryHandler.removeCallbacks(bannerRetryRunnable)
         bannerLoadInProgress = false
