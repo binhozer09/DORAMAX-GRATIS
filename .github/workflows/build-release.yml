@@ -80,9 +80,13 @@ jobs:
           APK="$(find app/build/outputs/apk/release -maxdepth 1 -type f -name '*.apk' | head -n 1)"
           test -n "$APK"
           APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
-          "$APKSIGNER" verify --verbose "$APK"
+          "$APKSIGNER" verify --verbose --min-sdk-version 26 "$APK"
           AAPT="$(find "$ANDROID_HOME/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "package: name='com.meuplayer.app' versionCode='130' versionName='5.93'"
+          test -n "$AAPT" || { echo "Android aapt tool not found"; exit 1; }
+          BADGING="$("$AAPT" dump badging "$APK")"
+          printf '%s\n' "$BADGING" | grep -F "name='com.meuplayer.app'"
+          printf '%s\n' "$BADGING" | grep -F "versionCode='130'"
+          printf '%s\n' "$BADGING" | grep -F "versionName='5.93'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
