@@ -461,6 +461,36 @@ const backCatalogBtn=document.getElementById('backCatalogBtn');
 function catalogPosterUrl(id,quality='maxresdefault'){
  return 'https://i.ytimg.com/vi/'+encodeURIComponent(id)+'/'+quality+'.jpg';
 }
+const POSTER_CACHE_DB='doramax_poster_cache_v1',POSTER_CACHE_STORE='posters';
+let posterCacheDbPromise=null;
+function openPosterCacheDb(){
+ if(!('indexedDB' in window))return Promise.resolve(null);
+ if(!posterCacheDbPromise)posterCacheDbPromise=new Promise(resolve=>{
+  try{const request=indexedDB.open(POSTER_CACHE_DB,1);request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains(POSTER_CACHE_STORE))db.createObjectStore(POSTER_CACHE_STORE);};request.onsuccess=()=>resolve(request.result);request.onerror=()=>resolve(null);}
+  catch(_){resolve(null);}
+ });
+ return posterCacheDbPromise;
+}
+async function readCachedPoster(key){
+ const db=await openPosterCacheDb();if(!db)return null;
+ return new Promise(resolve=>{try{const request=db.transaction(POSTER_CACHE_STORE,'readonly').objectStore(POSTER_CACHE_STORE).get(key);request.onsuccess=()=>resolve(request.result instanceof Blob?request.result:null);request.onerror=()=>resolve(null);}catch(_){resolve(null);}});
+}
+async function writeCachedPoster(key,blob){
+ const db=await openPosterCacheDb();if(!db||!(blob instanceof Blob))return;
+ await new Promise(resolve=>{try{const tx=db.transaction(POSTER_CACHE_STORE,'readwrite');tx.objectStore(POSTER_CACHE_STORE).put(blob,key);tx.oncomplete=tx.onerror=tx.onabort=()=>resolve();}catch(_){resolve();}});
+}
+async function loadCatalogPoster(img,id,quality='maxresdefault'){
+ const key=id+':'+quality,url=catalogPosterUrl(id,quality);
+ try{
+  const cached=await readCachedPoster(key);
+  if(cached&&img.isConnected){const old=img.dataset.posterObjectUrl;if(old)URL.revokeObjectURL(old);const objectUrl=URL.createObjectURL(cached);img.dataset.posterObjectUrl=objectUrl;img.src=objectUrl;return;}
+  const response=await fetch(url,{mode:'cors',credentials:'omit'});
+  if(!response.ok)throw new Error('HTTP '+response.status);
+  const blob=await response.blob();if(!blob.size)throw new Error('Capa vazia');
+  await writeCachedPoster(key,blob);
+  if(img.isConnected){const old=img.dataset.posterObjectUrl;if(old)URL.revokeObjectURL(old);const objectUrl=URL.createObjectURL(blob);img.dataset.posterObjectUrl=objectUrl;img.src=objectUrl;}
+ }catch(_){if(img.isConnected&&!img.dataset.directFallback){img.dataset.directFallback='1';img.src=url;}}
+}
 let catalogRenderItems=[];
 let catalogRenderIndex=0;
 let catalogRenderObserver=null;
@@ -472,8 +502,9 @@ const CATALOG_GRID_BATCH_SIZE=12;
 function buildCatalogCard(video,index){
  const card=document.createElement('button');card.type='button';card.className='catalog-card';card.setAttribute('aria-label','Assistir '+(video.title||'vídeo'));
  const wrap=document.createElement('span');wrap.className='catalog-poster-wrap';
- const img=document.createElement('img');img.className='catalog-poster';img.loading=index<4?'eager':'lazy';img.decoding='async';img.setAttribute('fetchpriority',index<4?'high':'auto');img.alt='Capa de '+(video.title||'vídeo');img.src=catalogPosterUrl(video.id);
- img.onerror=function(){if(!this.dataset.fallback){this.dataset.fallback='1';this.src=catalogPosterUrl(video.id,'hqdefault');}else{this.style.opacity='0';}};
+ const img=document.createElement('img');img.className='catalog-poster';img.loading=index<4?'eager':'lazy';img.decoding='async';img.setAttribute('fetchpriority',index<4?'high':'auto');img.alt='Capa de '+(video.title||'vídeo');
+ loadCatalogPoster(img,video.id).then(()=>{if(img.dataset.directFallback&&img.naturalWidth===0&&!img.dataset.fallback){img.dataset.fallback='1';loadCatalogPoster(img,video.id,'hqdefault');}});
+ img.onerror=function(){if(!this.dataset.fallback){this.dataset.fallback='1';loadCatalogPoster(this,video.id,'hqdefault');}else{this.style.opacity='0';}};
  const play=document.createElement('span');play.className='catalog-play';play.textContent='▶';wrap.append(img,play);
  const title=document.createElement('span');title.className='catalog-title';title.textContent=video.title||'Vídeo sem título';
  card.append(wrap,title);card.addEventListener('click',()=>playCatalogVideo(video.id));catalogCardNodes.set(video.id,card);return card;
@@ -1033,7 +1064,7 @@ function ensurePlayer(frame){
      const id=videoId(frame),seek=pendingSeek.get(id);
      const saved=history.find(item=>item.id===id);
      const resumeAt=Number.isFinite(seek)?seek:(saved?Number(saved.seconds):NaN);
-     if(Number.isFinite(resumeAt)&&resumeAt>0){event.target.seekTo(resumeAt,true);pendingSeek.delete(id);}
+     if(Number.isFinite(resumeAt)&&resumeAt>0){try{event.target.seekTo(resumeAt,true);}catch(_){};}
      const card=frame.closest('.video');
      const isActiveCard=!!card&&card===activeFrame?.closest('.video');
      doramaxLog('youtube_player_ready',{videoId:videoId(frame)||null,isActiveCard,iframeConnected:frame.isConnected,iframeSrc:frame.getAttribute('src')||'',...doramaxCurrentState()});
@@ -1073,6 +1104,11 @@ function ensurePlayer(frame){
       return;
      }
      if(event.data===YT.PlayerState.PLAYING){
+  const resumeId=videoId(frame),resumeSeconds=pendingSeek.get(resumeId);
+  if(Number.isFinite(resumeSeconds)&&resumeSeconds>0){
+   try{event.target.seekTo(resumeSeconds,true);pendingSeek.delete(resumeId);}
+   catch(error){doramaxLog('resume_seek_retry',{videoId:resumeId,seconds:resumeSeconds,message:String(error)});}
+  }
   doramaxClearPremiereNotice(frame);
   doramaxStartRetries.delete(frame);
   doramaxClearStartTimeout(frame);
@@ -1093,7 +1129,7 @@ function ensurePlayer(frame){
       },500);
      }else{
       const pausedCard=frame.closest('.video');if(event.data===YT.PlayerState.PAUSED){keepPlayerControlsVisible(pausedCard);}else if(event.data===YT.PlayerState.ENDED){document.body.classList.remove('player-playing','player-controls-visible');pausedCard?.classList.remove('controls-visible');}
-      try{const current=event.target.getCurrentTime(),duration=event.target.getDuration();upsertProgress(frame.closest('.video'),current,duration);updateSeekBar(frame,current,duration);}catch(_){}
+      try{const current=event.target.getCurrentTime(),duration=event.target.getDuration();upsertProgress(frame.closest('.video'),current,duration);if(event.data===YT.PlayerState.PAUSED)saveHistory(true);updateSeekBar(frame,current,duration);}catch(_){}
       if(progressTimer&&progressFrame===frame){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
      }
     }
@@ -1360,6 +1396,8 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('online', () => loadRemoteVideos());
 
 window.addEventListener('pagehide',()=>{
+ try{window.doramaxSaveActiveProgress?.();}catch(_){}
+ saveHistory(true);
  if(progressTimer){clearInterval(progressTimer);progressTimer=null;progressFrame=null;}
  frames.forEach(frame=>{
   pauseFrame(frame);const player=players.get(frame);
