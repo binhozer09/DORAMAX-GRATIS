@@ -22,8 +22,8 @@ android {
         applicationId = "com.meuplayer.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 127
-        versionName = "5.90"
+        versionCode = 128
+        versionName = "5.88"
     }
 
     signingConfigs {
