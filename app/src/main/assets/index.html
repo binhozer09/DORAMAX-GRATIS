@@ -963,6 +963,7 @@ window.doramaxUpdateProgress=function(percent,message){
  }
 };
 let updateDownloaded=false;
+let promptedUpdateVersionCode=0;
 function openUpdatePanel(){
  updateConfirm.disabled=false;updateCancel.disabled=false;
  updatePanel.classList.add('open');updatePanel.setAttribute('aria-hidden','false');
@@ -1005,6 +1006,12 @@ window.doramaxReceiveUpdate=function(raw){
  if(error){
   updateStatus.textContent='Falha ao verificar: '+error;
   if(showResult){updateMessage.textContent='Não foi possível verificar atualizações.';updateConfirm.hidden=true;updatePanel.classList.add('open');}
+ }else if(availableAppUpdate){
+  const detectedCode=Number(availableAppUpdate.latestVersionCode||0);
+  if(detectedCode>promptedUpdateVersionCode){
+   promptedUpdateVersionCode=detectedCode;
+   openUpdatePanel();
+  }
  }else if(showResult){openUpdatePanel();}
  updateCheckBusy=false;
 };
