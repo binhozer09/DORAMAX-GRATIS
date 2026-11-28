@@ -222,7 +222,7 @@
         <button class="dm-btn secondary" id="dmLogout" type="button" style="display:none">Sair da conta</button>
         <div class="dm-error" id="dmError" role="status"></div>
         <div class="dm-status" id="dmStatus"></div>
-        <p class="dm-small">O pagamento é confirmado automaticamente pelo Asaas. Use sua conta cadastrada no aplicativo.</p>
+        <p class="dm-small" id="dmPaymentInfo">O pagamento é confirmado automaticamente pelo Asaas. Use sua conta cadastrada no aplicativo.</p>
       </section>`;
     // Mantém o modal fora de stacking contexts criados pelo conteúdo do app/WebView.
     (document.documentElement || document.body).appendChild(backdrop);
@@ -262,6 +262,8 @@
     document.getElementById("dmStatus").textContent = loggedIn
       ? (unlocked ? "Acesso liberado. Aproveite todos os vídeos!" : "Sua conta está conectada. Acesso aguardando liberação.")
       : "";
+    const paymentInfo = document.getElementById("dmPaymentInfo");
+    if (paymentInfo) paymentInfo.hidden = !!(unlocked || isAdmin);
     document.getElementById("dmModal").style.display = "flex";
   }
 
@@ -532,30 +534,48 @@
       currentUser = await api("/auth/v1/user", { method: "GET" }, session.access_token);
       updateLoggedAs();
       const uid = currentUser.id;
-      // Busca as permissões em paralelo para reduzir a espera após o login.
-      const results = await Promise.all([
-        api("/rest/v1/admin_users?select=user_id&user_id=eq." + encodeURIComponent(uid), { method: "GET" }, session.access_token),
-        api("/rest/v1/access_grants?select=is_unlocked&user_id=eq." + encodeURIComponent(uid), { method: "GET" }, session.access_token)
+
+      // A liberação feita pelo DORAMAX ADM é gravada em access_grants.
+      // Ela deve continuar válida mesmo se a consulta separada de admin_users falhar.
+      const [grantResult, adminResult] = await Promise.allSettled([
+        api("/rest/v1/access_grants?select=is_unlocked&user_id=eq." + encodeURIComponent(uid), { method: "GET" }, session.access_token),
+        api("/rest/v1/admin_users?select=user_id&user_id=eq." + encodeURIComponent(uid), { method: "GET" }, session.access_token)
       ]);
-      const adminRows = results[0];
-      const grantRows = results[1];
+
+      const grantRows = grantResult.status === "fulfilled" ? grantResult.value : [];
+      const adminRows = adminResult.status === "fulfilled" ? adminResult.value : [];
       isAdmin = Array.isArray(adminRows) && adminRows.length > 0;
-      unlocked = isAdmin || !!(Array.isArray(grantRows) && grantRows[0] && grantRows[0].is_unlocked === true);
-      updateLoggedAs(); // Propaga o acesso já confirmado para o botão de atualizar catálogo.
+      const adminGrant = Array.isArray(grantRows) && grantRows.some(row => row && row.is_unlocked === true);
+      unlocked = isAdmin || adminGrant;
+
+      updateLoggedAs();
       updateGate();
-      updateSupportPrompt(); document.getElementById("dmLogout").style.display = "block";
-      document.getElementById("dmStatus").textContent = unlocked
-        ? "Acesso liberado. Aproveite todos os vídeos!"
-        : "Conta conectada. Para liberar o acesso completo, pague R$ 5,00 via Pix.";
+      updateSupportPrompt();
+      document.getElementById("dmLogout").style.display = "block";
+
+      // Falha isolada na consulta de admin_users não pode revogar nem esconder
+      // uma liberação já confirmada em access_grants.
+      const paymentInfo = document.getElementById("dmPaymentInfo");
+      if (paymentInfo) paymentInfo.hidden = unlocked;
+      if (unlocked) {
+        document.getElementById("dmStatus").textContent = "Acesso liberado. Aproveite todos os vídeos!";
+        setError("");
+      } else if (grantResult.status === "rejected") {
+        document.getElementById("dmStatus").textContent = "Não foi possível confirmar sua liberação agora. Tente novamente quando a conexão voltar.";
+        setError("Falha ao consultar a liberação de acesso: " + (grantResult.reason?.message || "erro desconhecido"));
+      } else {
+        document.getElementById("dmStatus").textContent = "Conta conectada. Para liberar o acesso completo, pague R$ 5,00 via Pix.";
+        setError("");
+      }
       if (document.getElementById("dmSupportPanel")?.style.display === "flex") openSupportPanel();
     } catch (error) {
-      // Keep the authenticated session so the user can see the real permission/API error.
+      // Erro de autenticação/perfil não pode ser confundido com ausência de pagamento.
       isAdmin = false;
       unlocked = false;
       updateLoggedAs();
       updateGate();
-      document.getElementById("dmStatus").textContent = "Não foi possível verificar as permissões: " + (error.message || "erro desconhecido");
-      setError("Login realizado, mas a verificação do painel ADM falhou: " + (error.message || "erro desconhecido"));
+      document.getElementById("dmStatus").textContent = "Não foi possível verificar sua liberação: " + (error.message || "erro desconhecido");
+      setError(error.message || "Não foi possível verificar sua conta.");
       return false;
     }
     return true;
