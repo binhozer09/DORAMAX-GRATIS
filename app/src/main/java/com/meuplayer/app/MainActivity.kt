@@ -143,6 +143,8 @@ class MainActivity : AppCompatActivity() {
                 if (visible) {
                     playerTopAdContainer.visibility = android.view.View.GONE
                     playerTopAdRefreshHandler.removeCallbacks(playerTopAdRefreshRunnable)
+                } else if (playerImmersiveMode && !playerTopNativeAdLoaded) {
+                    loadPlayerTopVideoAd()
                 } else if (playerImmersiveMode && playerTopNativeAdLoaded) {
                     schedulePlayerTopAdRefresh()
                 }
