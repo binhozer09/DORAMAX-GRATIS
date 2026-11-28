@@ -403,7 +403,7 @@
     if (!frame) return "";
     if (typeof videoId === "function") return videoId(frame);
     const source = frame.dataset.src || frame.getAttribute("src") || "";
-    const match = source.match(/youtube\\.com\\/embed\\/([^?&]+)/);
+    const match = source.match(/youtube\.com\/embed\/([^?&]+)/);
     return match ? decodeURIComponent(match[1]) : "";
   }
 
@@ -468,6 +468,11 @@
     return !!id && rewardedUnlockedVideoIds.has(id);
   };
   window.doramaxRefreshAccessGate = updateGate;
+  window.doramaxResetRewardSession = function () {
+    rewardedUnlockedVideoIds.clear();
+    rewardedPendingVideoIds.clear();
+    updateGate();
+  };
 
   // Chamado pelo Android somente depois de o AdMob confirmar a recompensa.
   window.doramaxRewardResult = function (videoId, earned, message) {
