@@ -74,7 +74,6 @@ class MainActivity : AppCompatActivity() {
         if (!isFinishing && !isDestroyed && playerImmersiveMode && !isCatalogVisible &&
             playerTopNativeAdLoaded && !playerTopAdLoadInProgress) {
             Log.i(TAG, "Refreshing DORAMAX Ad 2 after 60 seconds")
-            playerTopAdRefreshHandler.removeCallbacks(playerTopAdRefreshRunnable)
             playerTopNativeAd?.destroy()
             playerTopNativeAd = null
             playerTopNativeAdLoaded = false
