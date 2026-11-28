@@ -500,7 +500,7 @@ function buildCatalogCard(video,index){
  const card=document.createElement('button');card.type='button';card.className='catalog-card';card.setAttribute('aria-label','Assistir '+(video.title||'vídeo'));
  const wrap=document.createElement('span');wrap.className='catalog-poster-wrap';
  const img=document.createElement('img');img.className='catalog-poster';img.loading=index<4?'eager':'lazy';img.decoding='async';img.setAttribute('fetchpriority',index<4?'high':'auto');img.alt='Capa de '+(video.title||'vídeo');
- loadCatalogPoster(img,video.id).then(()=>{if(img.dataset.directFallback&&img.naturalWidth===0&&!img.dataset.fallback){img.dataset.fallback='1';loadCatalogPoster(img,video.id,'hqdefault');}});
+ loadCatalogPoster(img,video.id);
  img.onerror=function(){if(!this.dataset.fallback){this.dataset.fallback='1';loadCatalogPoster(this,video.id,'hqdefault');}else{this.style.opacity='0';}};
  const play=document.createElement('span');play.className='catalog-play';play.textContent='▶';wrap.append(img,play);
  const title=document.createElement('span');title.className='catalog-title';title.textContent=video.title||'Vídeo sem título';
