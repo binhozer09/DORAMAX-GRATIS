@@ -85,8 +85,8 @@ jobs:
           test -n "$AAPT" || { echo "Android aapt tool not found"; exit 1; }
           BADGING="$("$AAPT" dump badging "$APK")"
           printf '%s\n' "$BADGING" | grep -F "name='com.meuplayer.app'"
-          printf '%s\n' "$BADGING" | grep -F "versionCode='137'"
-          printf '%s\n' "$BADGING" | grep -F "versionName='6.0'"
+          printf '%s\n' "$BADGING" | grep -F "versionCode='138'"
+          printf '%s\n' "$BADGING" | grep -F "versionName='6.1'"
           mkdir -p release
           cp "$APK" release/DORAMAX-GRATIS.apk
 
@@ -100,21 +100,21 @@ jobs:
           apk = pathlib.Path("release/DORAMAX-GRATIS.apk")
           data = {
               "enabled": True,
-              "versionCode": 137,
-              "versionName": "6.0",
+              "versionCode": 138,
+              "versionName": "6.1",
               "apkFile": "DORAMAX-GRATIS.apk",
               "apkSha256": hashlib.sha256(apk.read_bytes()).hexdigest(),
               "apkSizeBytes": apk.stat().st_size,
           }
           pathlib.Path("release/update.json").write_text(json.dumps(data, ensure_ascii=False, indent=2) + chr(10))
           PY
-          echo "tag=doramax-v6.0" >> "$GITHUB_OUTPUT"
+          echo "tag=doramax-v6.1" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.manifest.outputs.tag }}
-          name: DORAMAX-GRATIS 6.0
+          name: DORAMAX-GRATIS 6.1
           target_commitish: main
           generate_release_notes: true
           files: |
