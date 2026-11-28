@@ -594,7 +594,7 @@ catalogRefreshButton?.addEventListener('click',shufflePaidCatalog);
 const catalogSearchButton=document.getElementById('catalogSearchButton');
 const catalogSearchInput=document.getElementById('catalogSearchInput');
 function normalizeCatalogSearch(value){
- return String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLocaleLowerCase('pt-BR').trim();
+ return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR').trim();
 }
 function renderCatalogSearchResults(){
  if(!catalogGrid)return;
