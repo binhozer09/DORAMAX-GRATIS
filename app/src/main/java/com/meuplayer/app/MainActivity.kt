@@ -737,7 +737,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Anúncio nativo com vídeo, exclusivamente no overlay superior do player.
-    // O espaço fixo de 330 x 45 dp não altera nem redimensiona o WebView/player.
+    // O espaço fixo de 320 x 50 dp não altera nem redimensiona o WebView/player.
     private fun loadPlayerTopVideoAd() {
         if (isFinishing || isDestroyed || playerTopNativeAd != null || playerTopAdLoadInProgress) return
         playerTopAdLoadInProgress = true
@@ -788,7 +788,7 @@ class MainActivity : AppCompatActivity() {
                         fun dp(value: Int) = (value * density).toInt()
 
                         val nativeAdView = NativeAdView(this@MainActivity).apply {
-                            layoutParams = FrameLayout.LayoutParams(dp(330), dp(45), android.view.Gravity.CENTER)
+                            layoutParams = FrameLayout.LayoutParams(dp(320), dp(50), android.view.Gravity.CENTER)
                             clipChildren = true
                             clipToPadding = true
                         }
