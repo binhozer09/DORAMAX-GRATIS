@@ -471,25 +471,22 @@ function openPosterCacheDb(){
  });
  return posterCacheDbPromise;
 }
-async function readCachedPoster(key){
- const db=await openPosterCacheDb();if(!db)return null;
- return new Promise(resolve=>{try{const request=db.transaction(POSTER_CACHE_STORE,'readonly').objectStore(POSTER_CACHE_STORE).get(key);request.onsuccess=()=>resolve(request.result instanceof Blob?request.result:null);request.onerror=()=>resolve(null);}catch(_){resolve(null);}});
-}
 async function writeCachedPoster(key,blob){
  const db=await openPosterCacheDb();if(!db||!(blob instanceof Blob))return;
  await new Promise(resolve=>{try{const tx=db.transaction(POSTER_CACHE_STORE,'readwrite');tx.objectStore(POSTER_CACHE_STORE).put(blob,key);tx.oncomplete=tx.onerror=tx.onabort=()=>resolve();}catch(_){resolve();}});
 }
-async function loadCatalogPoster(img,id,quality='maxresdefault'){
+function loadCatalogPoster(img,id,quality='maxresdefault'){
  const key=id+':'+quality,url=catalogPosterUrl(id,quality);
- try{
-  const cached=await readCachedPoster(key);
-  if(cached&&img.isConnected){const old=img.dataset.posterObjectUrl;if(old)URL.revokeObjectURL(old);const objectUrl=URL.createObjectURL(cached);img.dataset.posterObjectUrl=objectUrl;img.src=objectUrl;return;}
-  const response=await fetch(url,{mode:'cors',credentials:'omit'});
-  if(!response.ok)throw new Error('HTTP '+response.status);
-  const blob=await response.blob();if(!blob.size)throw new Error('Capa vazia');
-  await writeCachedPoster(key,blob);
-  if(img.isConnected){const old=img.dataset.posterObjectUrl;if(old)URL.revokeObjectURL(old);const objectUrl=URL.createObjectURL(blob);img.dataset.posterObjectUrl=objectUrl;img.src=objectUrl;}
- }catch(_){if(img.isConnected&&!img.dataset.directFallback){img.dataset.directFallback='1';img.src=url;}}
+ // Mostra a capa diretamente, sem esperar pelo cache local ou pela rede.
+ if(img.dataset.posterKey!==key){img.dataset.posterKey=key;img.src=url;}
+ // Salva uma cópia local em segundo plano para as próximas aberturas.
+ if(!img.dataset.posterFetchStarted){
+  img.dataset.posterFetchStarted='1';
+  fetch(url,{mode:'cors',credentials:'omit'}).then(response=>{
+   if(!response.ok)throw new Error('HTTP '+response.status);
+   return response.blob();
+  }).then(blob=>{if(blob.size)writeCachedPoster(key,blob);}).catch(()=>{});
+ }
 }
 let catalogRenderItems=[];
 let catalogRenderIndex=0;
