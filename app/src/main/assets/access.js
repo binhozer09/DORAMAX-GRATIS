@@ -167,7 +167,7 @@
       .dm-admin-list{margin-top:16px;text-align:left}
       .dm-payment-box{margin:14px 0;padding:14px;border:1px solid #ffffff24;border-radius:12px;background:#202020;text-align:left}.dm-payment-box h3{font-size:15px;margin:0 0 8px}.dm-payment-count{font-size:12px;color:#ffd36a;margin:0 0 10px}.dm-payment-item{padding:10px 0;border-top:1px solid #ffffff20;font-size:12px;line-height:1.45}.dm-payment-item strong{display:block;color:#fff}.dm-payment-empty{font-size:12px;color:#aaa}
       .dm-user{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #333;font-size:13px}
-      .dm-user button{border:0;border-radius:9px;padding:10px 12px;background:#159b60;color:#fff;font-size:11px;font-weight:800;white-space:normal;min-width:150px}.dm-user{align-items:flex-start}.dm-user span{flex:1;overflow-wrap:anywhere}
+      .dm-user button{border:0;border-radius:9px;padding:10px 12px;background:#d71920;color:#fff;font-size:11px;font-weight:800;white-space:normal;min-width:150px}.dm-user{align-items:flex-start}.dm-user span{flex:1;overflow-wrap:anywhere}
       .dm-user button.lock{background:#b52b3f}
       .dm-status{font-size:12px;color:#bbb;margin:8px 0}
       .dm-cover{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:26px;background:rgba(0,0,0,.94);color:#fff;text-align:center;pointer-events:auto}
@@ -427,7 +427,7 @@
     const button = document.createElement("button");
     button.type = "button";
     button.className = "dm-cover-button";
-    button.textContent = "ASSISTIR ANÚNCIO E LIBERAR";
+    button.textContent = "▶ ASSISTIR 1 ANÚNCIO";
     button.addEventListener("click", () => {
       if (rewardedPendingVideoIds.has(id) || rewardedUnlockedVideoIds.has(id)) return;
       const bridge = window.DoramaxAndroid;
